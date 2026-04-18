@@ -1,22 +1,16 @@
-import FullscreenButton from './components/FullscreenButton.jsx';
+import BattleScreen from './features/battle/BattleScreen.jsx';
 
 /**
  * アプリケーションのルートコンポーネント。
  *
- * 現状はタイトル表示と全画面切り替えボタンのみを提供する。
- * 今後はここを入口に戦闘画面・ステージ選択などの画面遷移を配置する。
+ * 起動直後に戦闘画面 (BattleScreen) を表示する。今後はステージ選択・
+ * タイトル画面などを追加する際にここで画面遷移を制御する。
  *
  * Returns:
- *     JSX.Element: アプリ全体のレイアウトを表す main 要素。
+ *     JSX.Element: アプリ全体のレイアウト。
  */
 function App() {
-  return (
-    <main style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>フローチャート型パズルRPG</h1>
-      <p>開発環境セットアップ完了</p>
-      <FullscreenButton />
-    </main>
-  );
+  return <BattleScreen />;
 }
 
 export default App;
