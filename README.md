@@ -44,8 +44,11 @@ unilab/
 ├── .claude/                      ← Claude Code 用スキル・コマンド
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
 ├── frontend/                     ← React フロントエンド(将来 backend を横に追加)
-│   ├── public/
-│   │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+│   ├── public/                   ← 画像・フォント等の静的アセット(URL で参照)
+│   │   ├── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+│   │   ├── ui/                   ← ボタン枠・カード枠など UI 装飾画像
+│   │   ├── icons/                ← HP・攻撃などのアイコン
+│   │   └── fonts/                ← ゲーム用フォント
 │   └── src/
 │       ├── main.jsx              ← エントリポイント
 │       ├── App.jsx
@@ -68,11 +71,7 @@ unilab/
 │       ├── components/           ← 汎用 UI パーツ(HPBar, Button 等)
 │       ├── hooks/                ← カスタムフック
 │       ├── styles/               ← グローバル CSS
-│       ├── utils/                ← 汎用ユーティリティ
-│       └── assets/
-│           ├── ui/               ← ボタン枠・カード枠など UI 装飾画像
-│           ├── icons/            ← HP・攻撃などのアイコン
-│           └── fonts/            ← ゲーム用フォント
+│       └── utils/                ← 汎用ユーティリティ
 │
 └── backend/                      ← Python サーバー(将来導入、現時点では未作成)
 ```
@@ -85,4 +84,4 @@ unilab/
 | `features/` で機能単位 | ファイル種別ではなく機能でまとめ見通しを良くする |
 | `engine/` を UI から分離 | 純粋関数でテスト容易、将来 Python へ移植しやすい |
 | `data/` を JSON で分離 | ステージ・カード追加をコード変更なしで行える |
-| `public/sprites/` と `src/assets/` を使い分け | 大量の動的参照画像は `public/`、コンポーネントに紐づく UI 画像は `src/assets/` |
+| 画像・フォントを `public/` に集約 | JSON からファイル名で参照でき、将来バックエンド配信に切り替えても参照形式が同じ |
