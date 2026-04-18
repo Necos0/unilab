@@ -13,6 +13,60 @@
 
 > **開発方針**: 初期はフロントエンド完結型で開発する。サーバーサイドは当面使用せず、機能拡張の必要性が出てきた段階でPythonによるサーバーを導入する。
 
+## 開発環境セットアップ
+
+### 前提環境
+
+| 項目 | 推奨バージョン | 備考 |
+|---|---|---|
+| Node.js | 20.x (LTS) 以上 | Vite 8 の要件 |
+| npm | Node に同梱 | パッケージマネージャ |
+| Git | 任意 | - |
+
+推奨ツール(任意):
+- **nvm** または **volta**: Node バージョン管理
+- **VS Code**: エディタ(拡張: ESLint / Prettier / ES7+ React snippets)
+- **React DevTools**: Chrome / Edge 拡張
+
+### 初回セットアップ
+
+```bash
+# リポジトリ取得
+git clone https://github.com/Necos0/unilab.git
+cd unilab/frontend
+
+# 依存関係のインストール
+npm install
+```
+
+### 開発サーバー起動
+
+```bash
+cd frontend
+npm run dev
+```
+
+ブラウザで `http://localhost:5173` を開くと、アプリが表示されます。ファイルを保存すると自動でリロードされます(HMR)。
+
+### 本番ビルド
+
+```bash
+cd frontend
+npm run build      # dist/ に成果物を出力
+npm run preview    # ビルド結果をローカル確認
+```
+
+### 使用ライブラリ
+
+| パッケージ | 用途 |
+|---|---|
+| `react` / `react-dom` | UIフレームワーク |
+| `@xyflow/react` | フローチャート描画(旧 React Flow) |
+| `@dnd-kit/core` | カードのドラッグ&ドロップ |
+| `framer-motion` | アニメーション・演出 |
+| `zustand` | グローバル状態管理 |
+| `vite` | 開発サーバー・ビルドツール |
+
 ## ゲームシステム
 
 ### 戦闘画面
