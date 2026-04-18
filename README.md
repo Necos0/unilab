@@ -100,6 +100,8 @@ unilab/
 ├── CLAUDE.md                     ← Claude Code 向けのコーディング規約
 ├── .claude/                      ← Claude Code 用スキル・コマンド
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
+├── doc/                          ← 開発者向けドキュメント(仕組みの解説等)
+│   └── flowchart-rendering.md
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   └── favicon.svg
@@ -107,10 +109,17 @@ unilab/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
         ├── index.css             ← グローバル CSS
+        ├── data/                 ← 静的データ(stages.json 等)
+        │   └── stages.json
         └── features/             ← 機能単位で分割
-            └── battle/           ← 戦闘画面
-                ├── BattleScreen.jsx
-                └── BattleScreen.module.css
+            ├── battle/           ← 戦闘画面
+            │   ├── BattleScreen.jsx
+            │   └── BattleScreen.module.css
+            └── flowchart/        ← フローチャート描画(React Flow)
+                ├── FlowchartArea.jsx
+                ├── FlowchartArea.module.css
+                ├── SlotNode.jsx
+                └── SlotNode.module.css
 ```
 
 ### 今後追加予定のディレクトリ
@@ -122,11 +131,9 @@ unilab/
 | `frontend/public/sprites/` | キャラ・敵・エフェクトのスプライト画像 |
 | `frontend/public/icons/` | HP・攻撃などのアイコン |
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
-| `frontend/src/features/flowchart/` | フローチャート UI(React Flow) |
 | `frontend/src/features/cards/` | カード(手札・ドラッグ元) |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
-| `frontend/src/data/` | 静的データ(cards.json, stages.json 等) |
 | `frontend/src/stores/` | グローバル状態管理(zustand 想定) |
 | `frontend/src/components/` | 汎用 UI パーツ(HPBar, Button 等) |
 | `frontend/src/hooks/` | カスタムフック |

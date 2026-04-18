@@ -21,11 +21,10 @@
 
 .flowchartArea {
   flex: 40 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   border-bottom: 1px solid #2a2a33;
   color: #a9a9b3;
+  min-height: 0;
 }
 
 .bottomArea {

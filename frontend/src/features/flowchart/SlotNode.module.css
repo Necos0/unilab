@@ -1,0 +1,19 @@
+.slot {
+  width: 80px;
+  height: 112px;
+  border: 2px dashed #6a6a78;
+  border-radius: 6px;
+  background: #15151c;
+  box-sizing: border-box;
+}
+
+.handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
