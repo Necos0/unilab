@@ -35,3 +35,54 @@ Undertale的なデザインを採用。
 
 - ユーザーが死んでいないこと
 - 相手が死んでいること
+
+## ディレクトリ構造
+
+```
+unilab/
+├── README.md
+├── .claude/                      ← Claude Code 用スキル・コマンド
+├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
+├── frontend/                     ← React フロントエンド(将来 backend を横に追加)
+│   ├── public/
+│   │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+│   └── src/
+│       ├── main.jsx              ← エントリポイント
+│       ├── App.jsx
+│       │
+│       ├── features/             ← 機能単位で分割
+│       │   ├── battle/           ← 戦闘画面全体(敵表示、シーン制御)
+│       │   │   └── effects/      ← フラッシュ・シェイク等の演出
+│       │   ├── flowchart/        ← フローチャート UI(React Flow)
+│       │   │   ├── nodes/        ← カスタムノード定義
+│       │   │   └── edges/        ← 実行時に光る辺の定義
+│       │   ├── cards/            ← カード(手札・ドラッグ元)
+│       │   └── stage/            ← ステージ選択・進行管理
+│       │
+│       ├── engine/               ← UI 非依存のゲームロジック(純粋 JS)
+│       │                           フローチャート実行・ダメージ計算など
+│       │                           将来 Python 移植時の仕様書代わりになる
+│       │
+│       ├── data/                 ← 静的データ(cards.json, stages.json 等)
+│       ├── stores/               ← グローバル状態管理(zustand 想定)
+│       ├── components/           ← 汎用 UI パーツ(HPBar, Button 等)
+│       ├── hooks/                ← カスタムフック
+│       ├── styles/               ← グローバル CSS
+│       ├── utils/                ← 汎用ユーティリティ
+│       └── assets/
+│           ├── ui/               ← ボタン枠・カード枠など UI 装飾画像
+│           ├── icons/            ← HP・攻撃などのアイコン
+│           └── fonts/            ← ゲーム用フォント
+│
+└── backend/                      ← Python サーバー(将来導入、現時点では未作成)
+```
+
+### 設計の意図
+
+| ディレクトリ | 狙い |
+|---|---|
+| `frontend/` をトップに分離 | 後から `backend/` を横に足すだけで済む構成 |
+| `features/` で機能単位 | ファイル種別ではなく機能でまとめ見通しを良くする |
+| `engine/` を UI から分離 | 純粋関数でテスト容易、将来 Python へ移植しやすい |
+| `data/` を JSON で分離 | ステージ・カード追加をコード変更なしで行える |
+| `public/sprites/` と `src/assets/` を使い分け | 大量の動的参照画像は `public/`、コンポーネントに紐づく UI 画像は `src/assets/` |
