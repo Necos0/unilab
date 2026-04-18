@@ -92,43 +92,45 @@ Undertale的なデザインを採用。
 
 ## ディレクトリ構造
 
+> **更新ルール**: ディレクトリ構造に変更があった場合（追加・削除・リネーム）は、必ず本セクションを最新の状態に更新する。実装と乖離した構造図は新規参加者を混乱させるため、変更とドキュメント更新は同じコミットに含める。
+
 ```
 unilab/
 ├── README.md
+├── CLAUDE.md                     ← Claude Code 向けのコーディング規約
 ├── .claude/                      ← Claude Code 用スキル・コマンド
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
-├── frontend/                     ← React フロントエンド(将来 backend を横に追加)
-│   ├── public/                   ← 画像・フォント等の静的アセット(URL で参照)
-│   │   ├── sprites/              ← キャラ・敵・エフェクトのスプライト画像
-│   │   ├── ui/                   ← ボタン枠・カード枠など UI 装飾画像
-│   │   ├── icons/                ← HP・攻撃などのアイコン
-│   │   └── fonts/                ← ゲーム用フォント
-│   └── src/
-│       ├── main.jsx              ← エントリポイント
-│       ├── App.jsx
-│       │
-│       ├── features/             ← 機能単位で分割
-│       │   ├── battle/           ← 戦闘画面全体(敵表示、シーン制御)
-│       │   │   └── effects/      ← フラッシュ・シェイク等の演出
-│       │   ├── flowchart/        ← フローチャート UI(React Flow)
-│       │   │   ├── nodes/        ← カスタムノード定義
-│       │   │   └── edges/        ← 実行時に光る辺の定義
-│       │   ├── cards/            ← カード(手札・ドラッグ元)
-│       │   └── stage/            ← ステージ選択・進行管理
-│       │
-│       ├── engine/               ← UI 非依存のゲームロジック(純粋 JS)
-│       │                           フローチャート実行・ダメージ計算など
-│       │                           将来 Python 移植時の仕様書代わりになる
-│       │
-│       ├── data/                 ← 静的データ(cards.json, stages.json 等)
-│       ├── stores/               ← グローバル状態管理(zustand 想定)
-│       ├── components/           ← 汎用 UI パーツ(HPBar, Button 等)
-│       ├── hooks/                ← カスタムフック
-│       ├── styles/               ← グローバル CSS
-│       └── utils/                ← 汎用ユーティリティ
-│
-└── backend/                      ← Python サーバー(将来導入、現時点では未作成)
+└── frontend/                     ← React フロントエンド(将来 backend を横に追加)
+    ├── public/                   ← 静的アセット(URL で参照)
+    │   └── favicon.svg
+    └── src/
+        ├── main.jsx              ← エントリポイント
+        ├── App.jsx
+        ├── index.css             ← グローバル CSS
+        └── features/             ← 機能単位で分割
+            └── battle/           ← 戦闘画面
+                ├── BattleScreen.jsx
+                └── BattleScreen.module.css
 ```
+
+### 今後追加予定のディレクトリ
+
+実装が必要になったタイミングで作成する（先回りした空フォルダは置かない）。
+
+| 想定パス | 用途 |
+|---|---|
+| `frontend/public/sprites/` | キャラ・敵・エフェクトのスプライト画像 |
+| `frontend/public/icons/` | HP・攻撃などのアイコン |
+| `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
+| `frontend/src/features/flowchart/` | フローチャート UI(React Flow) |
+| `frontend/src/features/cards/` | カード(手札・ドラッグ元) |
+| `frontend/src/features/stage/` | ステージ選択・進行管理 |
+| `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
+| `frontend/src/data/` | 静的データ(cards.json, stages.json 等) |
+| `frontend/src/stores/` | グローバル状態管理(zustand 想定) |
+| `frontend/src/components/` | 汎用 UI パーツ(HPBar, Button 等) |
+| `frontend/src/hooks/` | カスタムフック |
+| `backend/` | Python サーバー(将来導入) |
 
 ### 設計の意図
 
