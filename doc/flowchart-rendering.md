@@ -184,10 +184,10 @@ React Flow は
 | `frontend/src/data/stages.json` | スロットとエッジの静的定義 |
 | `frontend/src/features/battle/BattleScreen.jsx` | ステージデータを読み込み `FlowchartArea` に渡す |
 | `frontend/src/features/battle/BattleScreen.module.css` | 3 段レイアウトと中段の領域確保 |
-| `frontend/src/features/flowchart/FlowchartArea.jsx` | React Flow キャンバス・データ変換・インタラクション制御 |
-| `frontend/src/features/flowchart/FlowchartArea.module.css` | キャンバスを親要素いっぱいに広げる |
-| `frontend/src/features/flowchart/SlotNode.jsx` | 1 スロットの描画（点線枠 + Handle） |
-| `frontend/src/features/flowchart/SlotNode.module.css` | 空きスロットの見た目（点線・角丸・背景） |
+| `frontend/src/features/battle/flowchart/FlowchartArea.jsx` | React Flow キャンバス・データ変換・インタラクション制御 |
+| `frontend/src/features/battle/flowchart/FlowchartArea.module.css` | キャンバスを親要素いっぱいに広げる |
+| `frontend/src/features/battle/flowchart/SlotNode.jsx` | 1 スロットの描画（点線枠 + Handle） |
+| `frontend/src/features/battle/flowchart/SlotNode.module.css` | 空きスロットの見た目（点線・角丸・背景） |
 
 ## 関連する設計ドキュメント
 

@@ -112,14 +112,14 @@ unilab/
         ├── data/                 ← 静的データ(stages.json 等)
         │   └── stages.json
         └── features/             ← 機能単位で分割
-            ├── battle/           ← 戦闘画面
-            │   ├── BattleScreen.jsx
-            │   └── BattleScreen.module.css
-            └── flowchart/        ← フローチャート描画(React Flow)
-                ├── FlowchartArea.jsx
-                ├── FlowchartArea.module.css
-                ├── SlotNode.jsx
-                └── SlotNode.module.css
+            └── battle/           ← 戦闘画面
+                ├── BattleScreen.jsx
+                ├── BattleScreen.module.css
+                └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
+                    ├── FlowchartArea.jsx
+                    ├── FlowchartArea.module.css
+                    ├── SlotNode.jsx
+                    └── SlotNode.module.css
 ```
 
 ### 今後追加予定のディレクトリ

@@ -1,5 +1,5 @@
 import styles from './BattleScreen.module.css';
-import FlowchartArea from '../flowchart/FlowchartArea';
+import FlowchartArea from './flowchart/FlowchartArea';
 import stagesData from '../../data/stages.json';
 
 const stage = stagesData.stages[0];
