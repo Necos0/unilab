@@ -1,0 +1,15 @@
+{
+  "enemies": [
+    {
+      "id": "slime",
+      "displayName": "スライム",
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 150,
+          "loop": true
+        }
+      }
+    }
+  ]
+}

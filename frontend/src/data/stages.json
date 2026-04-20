@@ -2,6 +2,7 @@
   "stages": [
     {
       "id": "stage-00",
+      "enemyId": "slime",
       "slots": [
         { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
         { "id": "slot-2", "position": { "x": 280, "y": 120 } },
