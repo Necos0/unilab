@@ -46,4 +46,5 @@
 |---|---|---|
 | ディレクトリ | lowercase（必要なら kebab-case） | `features/`, `battle/` |
 | JSON データファイル | snake_case | `cards.json`, `stages.json` |
-| 画像・アセット | snake_case | `boss_idle.png`, `card_frame.svg` |
+| 画像・アセット（単発） | snake_case | `boss_idle.png`, `card_frame.svg` |
+| スプライト連番（アニメーション） | `<ID>_<状態>_<2桁ゼロ埋め連番>.png` | `slime_idle_00.png`, `slime_idle_05.png` |

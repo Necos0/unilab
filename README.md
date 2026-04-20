@@ -104,17 +104,27 @@ unilab/
 │   └── flowchart-rendering.md
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
-    │   └── favicon.svg
+    │   ├── favicon.svg
+    │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+    │       └── enemies/
+    │           └── slime/
+    │               └── idle/     ← スライム idle アニメーション(6 フレーム)
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
         ├── index.css             ← グローバル CSS
         ├── data/                 ← 静的データ(stages.json 等)
+        │   ├── enemies.json
         │   └── stages.json
         └── features/             ← 機能単位で分割
             └── battle/           ← 戦闘画面
                 ├── BattleScreen.jsx
                 ├── BattleScreen.module.css
+                ├── enemy/        ← 敵スプライトのアニメーション描画
+                │   ├── EnemySprite.jsx
+                │   ├── EnemySprite.module.css
+                │   ├── enemySpritePath.js
+                │   └── useSpriteAnimation.js
                 └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
                     ├── FlowchartArea.jsx
                     ├── FlowchartArea.module.css
@@ -128,7 +138,6 @@ unilab/
 
 | 想定パス | 用途 |
 |---|---|
-| `frontend/public/sprites/` | キャラ・敵・エフェクトのスプライト画像 |
 | `frontend/public/icons/` | HP・攻撃などのアイコン |
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/cards/` | カード(手札・ドラッグ元) |
