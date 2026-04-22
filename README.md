@@ -116,7 +116,8 @@ unilab/
         ├── components/           ← 汎用 UI パーツ
         │   ├── HpBar.jsx
         │   └── HpBar.module.css
-        ├── data/                 ← 静的データ(stages.json 等)
+        ├── data/                 ← 静的データ(stages.json 等、JS から import)
+        │   ├── cards.json        ← カード定義(id, displayName, power)
         │   ├── enemies.json
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   └── stages.json
@@ -144,7 +145,7 @@ unilab/
 |---|---|
 | `frontend/public/icons/` | HP・攻撃などのアイコン |
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
-| `frontend/src/features/cards/` | カード(手札・ドラッグ元) |
+| `frontend/src/features/cards/` | カード UI コンポーネント(手札・ドラッグ元) |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
 | `frontend/src/stores/` | グローバル状態管理(zustand 想定) |
@@ -158,5 +159,5 @@ unilab/
 | `frontend/` をトップに分離 | 後から `backend/` を横に足すだけで済む構成 |
 | `features/` で機能単位 | ファイル種別ではなく機能でまとめ見通しを良くする |
 | `engine/` を UI から分離 | 純粋関数でテスト容易、将来 Python へ移植しやすい |
-| `data/` を JSON で分離 | ステージ・カード追加をコード変更なしで行える |
-| 画像・フォントを `public/` に集約 | JSON からファイル名で参照でき、将来バックエンド配信に切り替えても参照形式が同じ |
+| `data/` を JSON で分離し `src/` に配置 | JS から `import` して同期アクセスでき、ビルド時に JSON の破損を検知できる。ステージ・カード追加はコード変更なしで行える |
+| 画像・フォントを `public/` に集約 | URL で参照する資産（`<img src>` 等）の置き場。JSON からファイル名で参照でき、将来バックエンド配信に切り替えても参照形式が同じ |

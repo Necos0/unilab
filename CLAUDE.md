@@ -54,3 +54,4 @@
 | JSON データファイル | snake_case | `cards.json`, `stages.json` |
 | 画像・アセット（単発） | snake_case | `boss_idle.png`, `card_frame.svg` |
 | スプライト連番（アニメーション） | `<ID>_<状態>_<2桁ゼロ埋め連番>.png` | `slime_idle_00.png`, `slime_idle_05.png` |
+| カード画像 | `<効果>.png`（効果は `cards.json` の `id`。数値はカード画像上に UI がテキスト合成するので、ファイル名には含めない） | `attack.png`, `guard.png`, `heal.png` |
