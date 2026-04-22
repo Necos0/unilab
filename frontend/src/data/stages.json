@@ -9,12 +9,24 @@
           "power": 12
         },
         {
+          "id": "attack",
+          "power": 5
+        },
+        {
+          "id": "attack",
+          "power": 7
+        },
+        {
           "id": "guard",
           "power": 12
         },
         {
           "id": "heal",
           "power": 12
+        },
+        {
+          "id": "heal",
+          "power": 3
         }
       ],
       "slots": [
