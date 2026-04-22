@@ -117,24 +117,28 @@ unilab/
         │   ├── HpBar.jsx
         │   └── HpBar.module.css
         ├── data/                 ← 静的データ(stages.json 等、JS から import)
-        │   ├── cards.json        ← カード定義(id, displayName, power)
         │   ├── enemies.json
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
-        │   └── stages.json
+        │   └── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
         └── features/             ← 機能単位で分割
-            └── battle/           ← 戦闘画面
-                ├── BattleScreen.jsx
-                ├── BattleScreen.module.css
-                ├── enemy/        ← 敵スプライトのアニメーション描画
-                │   ├── EnemySprite.jsx
-                │   ├── EnemySprite.module.css
-                │   ├── enemySpritePath.js
-                │   └── useSpriteAnimation.js
-                └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
-                    ├── FlowchartArea.jsx
-                    ├── FlowchartArea.module.css
-                    ├── SlotNode.jsx
-                    └── SlotNode.module.css
+            ├── battle/           ← 戦闘画面
+            │   ├── BattleScreen.jsx
+            │   ├── BattleScreen.module.css
+            │   ├── enemy/        ← 敵スプライトのアニメーション描画
+            │   │   ├── EnemySprite.jsx
+            │   │   ├── EnemySprite.module.css
+            │   │   ├── enemySpritePath.js
+            │   │   └── useSpriteAnimation.js
+            │   └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
+            │       ├── FlowchartArea.jsx
+            │       ├── FlowchartArea.module.css
+            │       ├── SlotNode.jsx
+            │       └── SlotNode.module.css
+            └── cards/            ← カード UI(個別カード・手札レイアウト)
+                ├── Card.jsx
+                ├── Card.module.css
+                ├── Hand.jsx
+                └── Hand.module.css
 ```
 
 ### 今後追加予定のディレクトリ
@@ -145,7 +149,6 @@ unilab/
 |---|---|
 | `frontend/public/icons/` | HP・攻撃などのアイコン |
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
-| `frontend/src/features/cards/` | カード UI コンポーネント(手札・ドラッグ元) |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
 | `frontend/src/stores/` | グローバル状態管理(zustand 想定) |

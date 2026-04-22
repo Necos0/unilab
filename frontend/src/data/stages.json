@@ -3,14 +3,54 @@
     {
       "id": "stage-00",
       "enemyId": "slime",
+      "cards": [
+        {
+          "id": "attack",
+          "power": 12
+        },
+        {
+          "id": "guard",
+          "power": 12
+        },
+        {
+          "id": "heal",
+          "power": 12
+        }
+      ],
       "slots": [
-        { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
-        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
-        { "id": "slot-3", "position": { "x": 480, "y": 120 } }
+        {
+          "id": "slot-1",
+          "position": {
+            "x": 80,
+            "y": 120
+          }
+        },
+        {
+          "id": "slot-2",
+          "position": {
+            "x": 280,
+            "y": 120
+          }
+        },
+        {
+          "id": "slot-3",
+          "position": {
+            "x": 480,
+            "y": 120
+          }
+        }
       ],
       "edges": [
-        { "id": "e1-2", "source": "slot-1", "target": "slot-2" },
-        { "id": "e2-3", "source": "slot-2", "target": "slot-3" }
+        {
+          "id": "e1-2",
+          "source": "slot-1",
+          "target": "slot-2"
+        },
+        {
+          "id": "e2-3",
+          "source": "slot-2",
+          "target": "slot-3"
+        }
       ]
     }
   ]
