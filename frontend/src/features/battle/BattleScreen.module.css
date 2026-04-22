@@ -39,7 +39,17 @@
 }
 
 .hpBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-variant-numeric: tabular-nums;
+}
+
+.hpText {
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  color: #f5f5f5;
+  letter-spacing: 1px;
 }
 
 .hand {

@@ -113,16 +113,18 @@ unilab/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
         ├── index.css             ← グローバル CSS
+        ├── components/           ← 汎用 UI パーツ
+        │   ├── HpBar.jsx
+        │   └── HpBar.module.css
         ├── data/                 ← 静的データ(stages.json 等)
         │   ├── enemies.json
+        │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   └── stages.json
         └── features/             ← 機能単位で分割
             └── battle/           ← 戦闘画面
                 ├── BattleScreen.jsx
                 ├── BattleScreen.module.css
-                ├── enemy/        ← 敵の表示（スプライト・HP バー）
-                │   ├── EnemyHpBar.jsx
-                │   ├── EnemyHpBar.module.css
+                ├── enemy/        ← 敵スプライトのアニメーション描画
                 │   ├── EnemySprite.jsx
                 │   ├── EnemySprite.module.css
                 │   ├── enemySpritePath.js
@@ -146,7 +148,6 @@ unilab/
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
 | `frontend/src/stores/` | グローバル状態管理(zustand 想定) |
-| `frontend/src/components/` | 汎用 UI パーツ(HPBar, Button 等) |
 | `frontend/src/hooks/` | カスタムフック |
 | `backend/` | Python サーバー(将来導入) |
 

@@ -1,8 +1,10 @@
 import styles from './BattleScreen.module.css';
 import FlowchartArea from './flowchart/FlowchartArea';
 import EnemySprite from './enemy/EnemySprite';
-import EnemyHpBar from './enemy/EnemyHpBar';
+import HpBar from '../../components/HpBar';
 import stagesData from '../../data/stages.json';
+import enemiesData from '../../data/enemies.json';
+import playerData from '../../data/player.json';
 
 const stage = stagesData.stages[0];
 
@@ -10,32 +12,43 @@ const stage = stagesData.stages[0];
  * 戦闘画面のルートコンポーネント。
  *
  * Undertale 風の3段レイアウトで画面を構成する。
- *   - 上段: 敵スプライトと敵 HP バー（`EnemySprite` + `EnemyHpBar`）
+ *   - 上段: 敵スプライトと敵 HP バー（`EnemySprite` + 汎用 `HpBar`）
  *   - 中段: フローチャート領域（React Flow）
- *   - 下段: HP と手札カード領域
- * 現在ステージの `enemyId` を `EnemySprite` と `EnemyHpBar` に渡し、
- * `enemies.json` の定義に基づいた idle アニメーションと最大 HP を
- * もとにした HP バーを表示する。中段は `stages.json` の先頭ステージを
- * `FlowchartArea` に渡して空きスロットとエッジを描画する。下段は
- * 現時点ではプレースホルダ表示で、後続の実装で実際のカード UI を
- * 埋め込む。スタイルは同ディレクトリの CSS Modules に切り出し、
- * クラス名衝突を防ぐ。
+ *   - 下段: プレイヤー HP バー + 数値と手札カード領域
+ * 現在ステージの `enemyId` から `enemies.json` で敵データを解決し、
+ * `EnemySprite` には `enemyId` をそのまま渡して idle アニメーションを
+ * 表示、`HpBar` には敵の `maxHp` を渡して HP バーを描画する。中段は
+ * `stages.json` の先頭ステージを `FlowchartArea` に渡して空きスロットと
+ * エッジを描画する。下段はプレイヤーの HP バー（`HpBar`）と
+ * `currentHp / maxHp` 表記、および手札プレースホルダを並べる。
+ * プレイヤーの最大 HP は `player.json` から取得し、HP の状態管理が
+ * 未実装な現段階では敵・プレイヤー共に満タン固定で表示する。スタイルは
+ * 同ディレクトリの CSS Modules に切り出し、クラス名衝突を防ぐ。
  *
  * Returns:
  *     JSX.Element: 戦闘画面全体を表す section 要素。
  */
 function BattleScreen() {
+  const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
+  const enemyMaxHp = enemy?.maxHp;
+  const playerMaxHp = playerData.maxHp;
+
   return (
     <section className={styles.root}>
       <div className={styles.enemyArea}>
         <EnemySprite enemyId={stage.enemyId} state="idle" />
-        <EnemyHpBar enemyId={stage.enemyId} />
+        <HpBar currentHp={enemyMaxHp} maxHp={enemyMaxHp} />
       </div>
       <div className={styles.flowchartArea}>
         <FlowchartArea stage={stage} />
       </div>
       <div className={styles.bottomArea}>
-        <div className={styles.hpBox}>HP: 100 / 100</div>
+        <div className={styles.hpBox}>
+          <HpBar currentHp={playerMaxHp} maxHp={playerMaxHp} />
+          <span className={styles.hpText}>
+            {playerMaxHp}/{playerMaxHp}
+          </span>
+        </div>
         <div className={styles.hand}>
           <div className={styles.card}>カードA</div>
           <div className={styles.card}>カードB</div>
