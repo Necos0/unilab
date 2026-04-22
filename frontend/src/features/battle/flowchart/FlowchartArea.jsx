@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { ReactFlow, MarkerType } from '@xyflow/react';
+import {
+  ReactFlow,
+  MarkerType,
+  Background,
+  BackgroundVariant,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import SlotNode from './SlotNode';
 import styles from './FlowchartArea.module.css';
@@ -69,7 +74,9 @@ function edgesToFlowEdges(edges, slots) {
  * ステージ定義（スロット・エッジ）を受け取り React Flow キャンバス上に
  * 描画する。本スペックでは描画専用のため、パン・ズーム・ノードドラッグ・
  * 選択といったインタラクションは全て無効化し、`fitView` で初期表示時に
- * グラフ全体が領域に収まるようにする。
+ * グラフ全体が領域に収まるようにする。背景には `Background` コンポーネント
+ * の `Lines` バリアントで薄いグリッドを敷き、「プログラムを組む場所」
+ * である中段の領域性を視覚的に強調する。
  *
  * Args:
  *     stage (object): `stages.json` から読み込んだ 1 ステージ分の定義。
@@ -100,7 +107,14 @@ function FlowchartArea({ stage }) {
         zoomOnDoubleClick={false}
         fitView
         proOptions={{ hideAttribution: true }}
-      />
+      >
+        <Background
+          variant={BackgroundVariant.Lines}
+          gap={24}
+          color="#1a1a24"
+          size={1}
+        />
+      </ReactFlow>
     </div>
   );
 }
