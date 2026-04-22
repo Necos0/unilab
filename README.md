@@ -120,7 +120,9 @@ unilab/
             └── battle/           ← 戦闘画面
                 ├── BattleScreen.jsx
                 ├── BattleScreen.module.css
-                ├── enemy/        ← 敵スプライトのアニメーション描画
+                ├── enemy/        ← 敵の表示（スプライト・HP バー）
+                │   ├── EnemyHpBar.jsx
+                │   ├── EnemyHpBar.module.css
                 │   ├── EnemySprite.jsx
                 │   ├── EnemySprite.module.css
                 │   ├── enemySpritePath.js

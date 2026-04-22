@@ -1,0 +1,16 @@
+.frame {
+  width: 180px;
+  height: 14px;
+  background: #0b0b10;
+  border: 3px solid #f5f5f5;
+  box-sizing: content-box;
+  overflow: hidden;
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+.fill {
+  height: 100%;
+  background: #3ad430;
+  transition: width 120ms steps(8, end);
+}
