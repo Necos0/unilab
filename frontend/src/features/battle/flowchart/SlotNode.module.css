@@ -5,6 +5,43 @@
   border-radius: 6px;
   background: #15151c;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background-color 0.15s, outline-color 0.15s;
+}
+
+/* カードが配置済みのとき：点線枠を消してカード本体を見せる */
+.filled {
+  border-style: none;
+  background: transparent;
+}
+
+/* ドラッグ中の控えめなハイライト（空きスロット）：
+   ドロップ可能であることをやさしく示す */
+.slot.dropTarget {
+  border-color: #9a9aab;
+}
+
+/* ドラッグ中の強いハイライト（空きスロット）：
+   ポインタ直下で「ここに落とせる」ことを明確に示す */
+.slot.isOver {
+  border-color: #e5e5ff;
+  background: rgba(229, 229, 255, 0.08);
+}
+
+/* 配置済みスロットのハイライトは outline で表現する。
+   （.filled で border を消しているため、同じ枠を使うと衝突するので） */
+.slot.filled.dropTarget {
+  outline: 2px dashed #9a9aab;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.slot.filled.isOver {
+  outline: 2px solid #e5e5ff;
+  outline-offset: 2px;
+  background: rgba(229, 229, 255, 0.08);
 }
 
 .handle {

@@ -120,6 +120,8 @@ unilab/
         │   ├── enemies.json
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   └── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
+        ├── stores/               ← グローバル状態管理(zustand)
+        │   └── battleStore.js    ← 手札・スロット割当・ドラッグ状態
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
@@ -151,7 +153,6 @@ unilab/
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
-| `frontend/src/stores/` | グローバル状態管理(zustand 想定) |
 | `frontend/src/hooks/` | カスタムフック |
 | `backend/` | Python サーバー(将来導入) |
 

@@ -53,3 +53,13 @@
   color: #f5f5f5;
   letter-spacing: 1px;
 }
+
+/* DragOverlay 内で Card をサイズ付きで描画するためのラッパー。
+   Card は height:100% + aspect-ratio で自身のサイズを決めるため、
+   親要素に明示的な高さを与える必要がある。手札・スロットどちらから
+   ドラッグしても違和感のないサイズとして固定値を採用する */
+.dragOverlay {
+  width: 100px;
+  height: 150px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+}
