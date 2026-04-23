@@ -4,24 +4,32 @@ import { create } from 'zustand';
  * バトル状態を一元管理する Zustand ストア。
  *
  * 手札（`handCards`）・スロット割当（`slotAssignments`）・ドラッグ中の
- * カード（`activeInstanceId`）をグローバルに保持し、手札 UI と
- * フローチャート上のスロット UI の両方から購読・更新できるようにする。
+ * カード（`activeInstanceId`）・フローチャートの拡大状態（`isExpanded`）・
+ * 切替アニメーション中フラグ（`isTransitioning`）をグローバルに保持し、
+ * 手札 UI・フローチャート・拡大トグルボタンなど複数のコンポーネントから
+ * 購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
  * アイテム識別子と衝突しない。
  *
  * 公開アクション：
- *   - `initializeBattle(stage)` : ステージ定義から状態を初期化する
+ *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
+ *                                 （`isExpanded` は触らない：拡大／縮小の
+ *                                 ユーザー選好は引き継ぐ）
  *   - `beginDrag(instanceId)`   : ドラッグ開始時に呼び出す
  *   - `endDrag(result)`         : ドラッグ終了時に呼び出し、配置・差し替え・
  *                                 撤回を 1 箇所で処理する
+ *   - `toggleExpand()`          : 拡大／縮小を切り替える。`isTransitioning`
+ *                                 中は no-op（連打・切替中の二重発火ガード）。
+ *                                 切替後は 250ms 後に `isTransitioning` を戻す
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
  */
 
 const HAND = 'hand';
+const TRANSITION_DURATION_MS = 250;
 
 /**
  * ステージ定義の `cards` 配列を `CardInstance` 配列に展開する。
@@ -128,13 +136,19 @@ function computeDropTransition(state, { instanceId, source, destination }) {
   return { handCards, slotAssignments };
 }
 
-const useBattleStore = create((set) => ({
+const useBattleStore = create((set, get) => ({
   handCards: [],
   slotAssignments: {},
   activeInstanceId: null,
+  isExpanded: false,
+  isTransitioning: false,
 
   /**
-   * ステージ定義から状態を初期化する。
+   * ステージ定義から配置状態を初期化する。
+   *
+   * 手札・スロット割当・ドラッグ中フラグのみ初期化し、`isExpanded` には
+   * 触れない。これにより「拡大状態でリセットを押しても拡大は保たれる」
+   * という挙動が成立する（`flowchart-zoom` 要件 6-1）。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
@@ -172,6 +186,29 @@ const useBattleStore = create((set) => ({
       ...computeDropTransition(state, result),
       activeInstanceId: null,
     })),
+
+  /**
+   * フローチャートの拡大／縮小を切り替える。
+   *
+   * 切替アニメーション中（`isTransitioning === true`）は no-op として
+   * 早期リターンし、連打や切替中の再押下による状態不整合を防ぐ。切替を
+   * 受け付けた場合は `isExpanded` を反転し、同時に `isTransitioning` を
+   * `true` にしてから `setTimeout` で 250ms 後に `false` に戻す。
+   * CSS トランジション時間（`flex-grow 0.25s`）と一致させることで、
+   * レイアウトアニメ終了とフラグ解除のタイミングを揃える。
+   */
+  toggleExpand: () => {
+    if (get().isTransitioning) {
+      return;
+    }
+    set((state) => ({
+      isExpanded: !state.isExpanded,
+      isTransitioning: true,
+    }));
+    setTimeout(() => {
+      set(() => ({ isTransitioning: false }));
+    }, TRANSITION_DURATION_MS);
+  },
 }));
 
 export default useBattleStore;

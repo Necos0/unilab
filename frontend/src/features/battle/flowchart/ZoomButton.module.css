@@ -1,9 +1,11 @@
-/* 位置は親の `.flowchartControls`（BattleScreen.module.css）が担う。
-   このボタン自身は見た目のみを受け持つ */
+/* ResetButton と同じトーン。並んだときに違和感が出ないよう、
+   背景色・ボーダー・文字色・角丸を揃える。矢印のみ表示するため
+   padding は少し絞って横幅を抑える */
 .button {
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.6rem;
   font-family: system-ui, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1;
   color: #e5e5ff;
   background: #1f1f28;
   border: 1px solid #3a3a45;

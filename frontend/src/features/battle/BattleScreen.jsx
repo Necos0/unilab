@@ -10,6 +10,7 @@ import {
 import styles from './BattleScreen.module.css';
 import FlowchartArea from './flowchart/FlowchartArea';
 import ResetButton from './flowchart/ResetButton';
+import ZoomButton from './flowchart/ZoomButton';
 import EnemySprite from './enemy/EnemySprite';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
@@ -57,7 +58,8 @@ function selectActiveCard(state) {
  * Undertale 風の3段レイアウトで画面を構成し、`DndContext` で全体を
  * ラップすることで手札⇄スロット間のドラッグ＆ドロップを可能にする。
  *   - 上段: 敵スプライトと敵 HP バー（`EnemySprite` + 汎用 `HpBar`）
- *   - 中段: フローチャート領域（React Flow）
+ *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
+ *     （拡大トグル ＋ リセット）
  *   - 下段: プレイヤー HP バー + 数値と手札カード領域
  *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
@@ -67,6 +69,12 @@ function selectActiveCard(state) {
  * どちらも 4px の距離しきい値を付けてタップ・クリックとの誤検出を避ける。
  * 追加で `DragOverlay` を配置し、ドラッグ中のカードがポインタに追従
  * するフローティング表示を提供する。
+ *
+ * フローチャートの拡大／縮小状態はストアの `isExpanded` を購読して
+ * ルート `<section>` の className に `.expanded` を条件付与することで
+ * レイアウトを切り替える。切替アニメーション中（`isTransitioning`）は
+ * `.transitioning` クラスを付与して pointer-events を無効化し、ユーザー
+ * 操作をブロックする。
  *
  * Returns:
  *     JSX.Element: 戦闘画面全体を表す section 要素。
@@ -80,6 +88,8 @@ function BattleScreen() {
   const beginDrag = useBattleStore((s) => s.beginDrag);
   const endDrag = useBattleStore((s) => s.endDrag);
   const activeCard = useBattleStore(selectActiveCard);
+  const isExpanded = useBattleStore((s) => s.isExpanded);
+  const isTransitioning = useBattleStore((s) => s.isTransitioning);
 
   useEffect(() => {
     initializeBattle(stage);
@@ -102,20 +112,31 @@ function BattleScreen() {
     });
   };
 
+  const rootClassName = [
+    styles.root,
+    isExpanded && styles.expanded,
+    isTransitioning && styles.transitioning,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <section className={styles.root}>
+      <section className={rootClassName}>
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state="idle" />
           <HpBar currentHp={enemyMaxHp} maxHp={enemyMaxHp} />
         </div>
         <div className={styles.flowchartArea}>
           <FlowchartArea stage={stage} />
-          <ResetButton stage={stage} />
+          <div className={styles.flowchartControls}>
+            <ZoomButton />
+            <ResetButton stage={stage} />
+          </div>
         </div>
         <div className={styles.playerArea}>
           <div className={styles.hpBox}>

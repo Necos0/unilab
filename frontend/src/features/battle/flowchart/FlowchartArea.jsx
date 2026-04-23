@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   MarkerType,
@@ -7,6 +7,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import SlotNode from './SlotNode';
+import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
 const nodeTypes = { slot: SlotNode };
@@ -72,11 +73,22 @@ function edgesToFlowEdges(edges, slots) {
  * 戦闘画面中段に配置するフローチャート描画領域。
  *
  * ステージ定義（スロット・エッジ）を受け取り React Flow キャンバス上に
- * 描画する。本スペックでは描画専用のため、パン・ズーム・ノードドラッグ・
- * 選択といったインタラクションは全て無効化し、`fitView` で初期表示時に
- * グラフ全体が領域に収まるようにする。背景には `Background` コンポーネント
- * の `Lines` バリアントで薄いグリッドを敷き、「プログラムを組む場所」
- * である中段の領域性を視覚的に強調する。
+ * 描画する。パン・ズーム・ノードドラッグ・選択といった React Flow 側の
+ * インタラクションは基本的に無効化し、スロット配置は dnd-kit が担う。
+ * 背景は `Background` の `Lines` バリアントで薄いグリッドを敷く。
+ *
+ * 拡大／縮小切替（`battleStore.isExpanded`）に連動して以下をコントロール：
+ *   - **縮小状態**：`fitView` に自前の上下限を付けず、React Flow 既定の
+ *     自動フィット（0.5〜2.0）に任せる。1 行でエリアが余っているときは
+ *     ~2x まで自動拡大、多段で溢れるときは自動縮小する
+ *   - **拡大状態**：`fitView` の `minZoom: 1` で「最小でも原寸」を保証した
+ *     うえで、React Flow 既定の上限（2.0）まで自動拡大する。スケール 1.0
+ *     でもエリアに収まらない場合は `panOnScroll` によるスクロールで
+ *     アクセスする
+ *
+ * コンテナサイズの変化（CSS トランジションによる `flex-grow` 変化）は
+ * `ResizeObserver` で検出し、その都度 `fitView()` を呼び直すことで、
+ * アニメーション中もスロットのスケールが滑らかに追従する。
  *
  * Args:
  *     stage (object): `stages.json` から読み込んだ 1 ステージ分の定義。
@@ -92,8 +104,38 @@ function FlowchartArea({ stage }) {
     [stage.edges, stage.slots],
   );
 
+  const canvasRef = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const isExpanded = useBattleStore((s) => s.isExpanded);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!reactFlowInstance || !canvas) {
+      return undefined;
+    }
+
+    const refit = () => {
+      reactFlowInstance.fitView({
+        padding: 0.1,
+        // 拡大時は「1.0 を下限」の自動フィット：小さい図なら自動で拡大し、
+        // 大きい図なら 1.0 を維持して overflow を panOnScroll で吸収する。
+        // 縮小時は自前の上下限を付けず React Flow 既定の自動フィットに
+        // 任せる：1 行でエリアが余っているときは ~2x まで拡大、多段で
+        // 溢れるときは自動縮小で全体収容
+        minZoom: isExpanded ? 1 : undefined,
+        duration: 0,
+      });
+    };
+
+    refit();
+
+    const observer = new ResizeObserver(refit);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [reactFlowInstance, isExpanded]);
+
   return (
-    <div className={styles.canvas}>
+    <div ref={canvasRef} className={styles.canvas}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -102,10 +144,13 @@ function FlowchartArea({ stage }) {
         nodesConnectable={false}
         elementsSelectable={false}
         panOnDrag={false}
+        panOnScroll={isExpanded}
         zoomOnScroll={false}
         zoomOnPinch={false}
         zoomOnDoubleClick={false}
         fitView
+        fitViewOptions={{ padding: 0.1 }}
+        onInit={setReactFlowInstance}
         proOptions={{ hideAttribution: true }}
       >
         <Background

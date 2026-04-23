@@ -19,15 +19,21 @@
   gap: 0.75rem;
   border-bottom: 1px solid #2a2a33;
   font-size: 1.25rem;
+  overflow: hidden;
+  /* 拡大時に flex-grow を 0 にアニメーションさせる（flowchart-zoom 要件 4） */
+  transition: flex-grow 0.25s ease;
 }
 
 .flowchartArea {
   flex: 40 0 0;
-  /* ResetButton を絶対配置で右上に重ねるための基準（要件7-5） */
+  /* フローチャートコントロール（リセット／拡大トグル）を絶対配置で
+     重ねるための基準（card-placement 要件 7-5、flowchart-zoom 要件 1-1） */
   position: relative;
   border-bottom: 1px solid #2a2a33;
   color: #a9a9b3;
   min-height: 0;
+  /* 拡大時に flex-grow を 80 にアニメーションさせる（flowchart-zoom 要件 4） */
+  transition: flex-grow 0.25s ease;
 }
 
 .playerArea {
@@ -39,6 +45,33 @@
   gap: 1rem;
   min-height: 0;
   overflow: hidden;
+}
+
+/* 拡大状態：敵エリアを 0 に潰し、フローチャートエリアを 80 まで広げる。
+   プレイヤーエリア（手札）は 20 のまま変えない（flowchart-zoom 要件 3） */
+.root.expanded .enemyArea {
+  flex-grow: 0;
+}
+
+.root.expanded .flowchartArea {
+  flex-grow: 80;
+}
+
+/* 切替アニメーション中は全ユーザー操作をブロックする
+   （flowchart-zoom 要件 5-3, 5-4） */
+.root.transitioning {
+  pointer-events: none;
+}
+
+/* フローチャート領域の右上に配置するボタングループ。
+   ZoomButton ／ ResetButton をこの順で横並びに表示する */
+.flowchartControls {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .hpBox {
