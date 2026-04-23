@@ -1,6 +1,4 @@
 .root {
-  height: 100%;
-  aspect-ratio: 2 / 3;
   flex-shrink: 0;
   min-height: 0;
   min-width: 0;
@@ -10,6 +8,29 @@
 
 .root:active {
   cursor: grabbing;
+}
+
+/* 手札レイアウト用：親の高さに合わせ、幅は 2:3 から算出する。
+   Hand は複数カードが横並びなので、各カードが幅を自ら決める必要がある */
+.hand {
+  height: 100%;
+  aspect-ratio: 2 / 3;
+}
+
+/* スロットレイアウト用：親自身が 2:3 のサイズ（80×120）を持っているため、
+   aspect-ratio を使わず親を素直に埋める */
+.fill {
+  width: 100%;
+  height: 100%;
+}
+
+/* fill variant の場合は、内側の Card（直接の div 子）もコンテナを
+   素直に埋める。Card 側の `aspect-ratio: 2/3` を無効化して、
+   スロットの寸法がそのままカードの寸法になるようにする */
+.fill > div {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .dragging {

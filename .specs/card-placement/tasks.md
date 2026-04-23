@@ -4,7 +4,7 @@
 
 まずゲーム状態の土台となる `battleStore`（Zustand）を作り、`BattleScreen` に `DndContext` を配線して状態を初期化できる状態まで持っていく。次に `DraggableCard` ラッパーを作り、`Hand` → `SlotNode` の順で接続することで、最短でドラッグ＆ドロップが動く最小ループを成立させる。最後に `DragOverlay` とハイライト CSS で視覚的フィードバックを整える。README のディレクトリ構造更新は `stores/` 新設と同じタスクに含める（CLAUDE.md の同期ルール）。
 
-合計タスク数：6件 ｜ 想定工数：約 5 時間
+合計タスク数：7件 ｜ 想定工数：約 5.5 時間
 
 ## タスク
 
@@ -86,3 +86,16 @@
     - ドラッグ中、全スロットの枠色がわずかに変化してドロップ候補であることを示す
     - ポインタがスロット上にあるとき、そのスロットだけ強めにハイライトされる
     - 同じスロットに戻すようにドロップしても状態が変わらない（要件 3-4）
+
+- [ ] **7. リセットボタンを実装する**
+  - 内容：
+    - 新規コンポーネント `ResetButton` を作成し、クリック時に `initializeBattle(stage)` を再実行して手札・スロットを初期化する。`stage` は `BattleScreen` から props で受け取る
+    - 見た目は既存のダーク基調に合わせた控えめなボタン（背景 `#1f1f28` 前後、文字 `#e5e5ff`、角丸、パディング少々）。テキストは「リセット」
+    - `BattleScreen.module.css` の `flowchartArea` を `position: relative` にし、`ResetButton` をその右上に `position: absolute; top; right` で固定配置
+    - Docstring（Google 形式、日本語）
+  - ファイル：`frontend/src/features/battle/flowchart/ResetButton.jsx`（新規）、`frontend/src/features/battle/flowchart/ResetButton.module.css`（新規）、`frontend/src/features/battle/BattleScreen.jsx`、`frontend/src/features/battle/BattleScreen.module.css`
+  - 依存：タスク1、タスク2
+  - 完了条件：`npm run lint` / `npm run build` がパスし、ブラウザで以下が確認できる：
+    - フローチャート領域の右上にリセットボタンが表示される
+    - スロットにカードを配置した状態でボタンを押すと、全てのスロットが空になり、手札が `stages.json` の初期順序で復元される
+    - スロットが全て空のときにボタンを押しても状態が変わらずエラーも出ない（冪等）

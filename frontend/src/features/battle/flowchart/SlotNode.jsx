@@ -57,7 +57,7 @@ function SlotNode({ id }) {
         isConnectable={false}
       />
       {assignedCard && (
-        <DraggableCard card={assignedCard} source={id} />
+        <DraggableCard card={assignedCard} source={id} variant="fill" />
       )}
       <Handle
         type="source"

@@ -22,6 +22,7 @@
 | `FlowchartArea` | ステージのスロット・エッジを React Flow に渡す。各スロットの現在値（空 / 配置済みカード）を `node.data` 経由で `SlotNode` に流す |
 | `SlotNode` | `useDroppable` を適用し、配置済みカードがあれば `DraggableCard` を内側に描画する |
 | `battleStore`（新規） | 手札・スロット割当・ドラッグ中カードを持つ Zustand ストア。配置／差し替え／撤回のロジックを純粋関数的に実装 |
+| `ResetButton`（新規） | フローチャート領域右上に配置する小さなボタン。押下すると `initializeBattle(stage)` を再実行して手札とスロット割当を初期化する |
 
 ### データモデル
 
@@ -77,7 +78,7 @@
 | `slotId-A` | `null` | カードを手札末尾に戻し、元スロットを `null` に（要件 4-2, 4-3） |
 | `slotId-A` | `slotId-A`（同一） | 何もしない（要件 3-4） |
 | `slotId-A` | `slotId-B`（空） | 元スロットを `null`、新スロットに配置（要件 2-1, 2-3） |
-| `slotId-A` | `slotId-B`（埋まっている） | 既存カードを手札末尾に戻し、元スロットを `null`、新スロットに配置（要件 3-1〜3-3） |
+| `slotId-A` | `slotId-B`（埋まっている） | **入れ替える**：slotId-B の既存カードを slotId-A へ、ドラッグしていたカードを slotId-B へ（要件 3-3） |
 
 **コンポーネントインターフェース**
 
@@ -182,6 +183,14 @@ sequenceDiagram
 - React Flow 側の `nodesDraggable={false}` / `panOnDrag={false}` は維持する（要件 6-1）
 - `node.data` を介して必要な情報（現在割当てられたカード、ドラッグ中フラグ）を SlotNode に渡す。`useMemo` で `nodes` を作る際に `slotAssignments` をマージする
 
+### リセット機能（要件7）
+
+- 既存の `initializeBattle(stage)` をリセットのエントリポイントとしてそのまま再利用する。専用の `resetBattle` アクションは作らない（同じ効果なので DRY）
+- `ResetButton` は `BattleScreen` から `stage` を受け取り、クリック時に `initializeBattle(stage)` を呼ぶ
+- 配置は `FlowchartArea` の親コンテナ（`styles.flowchartArea`）を `position: relative` にしたうえで、`ResetButton` を `position: absolute; top; right` で右上に固定。React Flow キャンバス上に絵的に重ねるが、React Flow 自身のインタラクションは領域内のキャンバス部分のみで発火するため、ボタン部分のクリックはボタンに吸収される
+- スタイルは既存のダーク基調（`#1f1f28` 程度の背景、`#e5e5ff` 系の文字色）に揃え、目立ちすぎない控えめなトーンにする
+- 全スロットが空でも押せる：冪等な no-op として成立する（要件7-4）
+
 ### DndContext の設定
 
 - センサーは `PointerSensor`（マウス）＋ `TouchSensor`（スマホ）を組み合わせる。どちらも `activationConstraint: { distance: 4px }` 程度を付けて、単純なクリック／タップをドラッグと誤検出しないようにする
@@ -201,7 +210,9 @@ frontend/src/
     │   └── flowchart/
     │       ├── FlowchartArea.jsx       （変更：node.data に割当・ドラッグ状態を流す）
     │       ├── SlotNode.jsx            （変更：useDroppable、DraggableCard 描画）
-    │       └── SlotNode.module.css     （変更：ハイライト用クラス）
+    │       ├── SlotNode.module.css     （変更：ハイライト用クラス）
+    │       ├── ResetButton.jsx         （新規／リセットボタン）
+    │       └── ResetButton.module.css  （新規）
     └── cards/
         ├── Card.jsx                    （変更なし）
         ├── Card.module.css             （変更なし）
@@ -239,6 +250,10 @@ frontend/src/
 - **決定内容**：`SlotNode` ごとに `useDroppable` を設置する
   **理由**：スロット単位でヒットテスト・ハイライト（`isOver`）を dnd-kit に任せられるため、ロジックが簡潔になる。ノードが 3 つ程度なら Droppable の数もごく少なく、パフォーマンスへの影響は無視できる
   **検討した代替案**：`FlowchartArea` 1 箇所に Droppable を置いて内部で座標判定する案。スロットを移動したい場合に座標・当たり判定を自前で書く必要があり、スロットの位置は React Flow のビューポート変換を挟むため計算が増える
+
+- **決定内容**：スロット→配置済みスロットのドロップは「入れ替え（swap）」にする
+  **理由**：プレイヤーは試行錯誤の中でスロットの順序を入れ替えたい場面が多い。`手札に戻す → 別スロットからも手札に戻す → 再配置` の 3 手順を、ワンアクションの swap に圧縮できると思考のループが短くなる。手札発の差し替えは「手札に戻す」の方が直感的（どこから来たカードかが残る）なので分岐する
+  **検討した代替案**：全ケースで「ドロップ先の既存カードを手札に戻す」で統一する案。挙動は単純だが、スロット間の入れ替えが 3 操作必要になり実用上ストレスが大きい
 
 - **決定内容**：スロット外にドロップしたときは `over === null` で判定する
   **理由**：dnd-kit は有効な Droppable 上でのドロップのみ `over` を返す。「フローチャート領域内の非スロット部分」と「完全に領域外」を区別する必要は要件にないため、単純な `null` 判定で要件 4 を満たせる

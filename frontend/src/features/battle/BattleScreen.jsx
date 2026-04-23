@@ -9,6 +9,7 @@ import {
 } from '@dnd-kit/core';
 import styles from './BattleScreen.module.css';
 import FlowchartArea from './flowchart/FlowchartArea';
+import ResetButton from './flowchart/ResetButton';
 import EnemySprite from './enemy/EnemySprite';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
@@ -114,6 +115,7 @@ function BattleScreen() {
         </div>
         <div className={styles.flowchartArea}>
           <FlowchartArea stage={stage} />
+          <ResetButton stage={stage} />
         </div>
         <div className={styles.playerArea}>
           <div className={styles.hpBox}>

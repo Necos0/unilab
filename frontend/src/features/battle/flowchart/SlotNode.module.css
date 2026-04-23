@@ -1,6 +1,8 @@
 .slot {
+  /* カード（aspect 2:3）と揃える形で 80×120 にする。
+     80×112（5:7）だと .filled 時にカードが左右に寄って隙間ができる */
   width: 80px;
-  height: 112px;
+  height: 120px;
   border: 2px dashed #6a6a78;
   border-radius: 6px;
   background: #15151c;
@@ -9,6 +11,11 @@
   align-items: center;
   justify-content: center;
   transition: border-color 0.15s, background-color 0.15s, outline-color 0.15s;
+  /* 親の React Flow NodeWrapper は nodesDraggable=false / elementsSelectable=false
+     の組み合わせで `pointer-events: none` をインライン付与する（index.js:2140,2236）。
+     配置済みカードをドラッグできるように、このスロット配下で pointer-events
+     を明示的に有効化する */
+  pointer-events: auto;
 }
 
 /* カードが配置済みのとき：点線枠を消してカード本体を見せる */

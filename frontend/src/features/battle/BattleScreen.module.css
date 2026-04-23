@@ -23,6 +23,7 @@
 
 .flowchartArea {
   flex: 40 0 0;
+  /* ResetButton を絶対配置で右上に重ねるための基準（要件7-5） */
   position: relative;
   border-bottom: 1px solid #2a2a33;
   color: #a9a9b3;

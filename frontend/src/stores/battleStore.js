@@ -114,7 +114,14 @@ function computeDropTransition(state, { instanceId, source, destination }) {
 
   const displaced = slotAssignments[destination];
   if (displaced) {
-    handCards = [...handCards, displaced];
+    if (source === HAND) {
+      // 手札発の場合：既存カードは手札末尾に戻す（要件 3-1, 3-2）
+      handCards = [...handCards, displaced];
+    } else {
+      // スロット発の場合：2 枚を入れ替える。ドラッグ元スロットは直前に
+      // null にクリアしているので、そこへ既存カードを押し込む（要件 3-3）
+      slotAssignments = { ...slotAssignments, [source]: displaced };
+    }
   }
   slotAssignments = { ...slotAssignments, [destination]: movedCard };
 
