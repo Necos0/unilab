@@ -100,12 +100,13 @@ unilab/
 ├── CLAUDE.md                     ← Claude Code 向けのコーディング規約
 ├── .claude/                      ← Claude Code 用スキル・コマンド
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
-├── doc/                          ← 開発者向けドキュメント(仕組みの解説等)
+├── docs/                         ← 開発者向けドキュメント(仕組みの解説等)
 │   └── flowchart-rendering.md
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
     │   ├── cards/                ← カード画像(<id>.png)
+    │   ├── maps/                 ← マップ画像(map_<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
     │       └── enemies/
     │           └── slime/

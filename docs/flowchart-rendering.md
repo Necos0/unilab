@@ -39,9 +39,8 @@ fetch する必要はない。
 
 ```json
 {
-  "stages": [
-    {
-      "id": "stage-00",
+  "stages": {
+    "1-1": {
       "slots": [
         { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
         { "id": "slot-2", "position": { "x": 280, "y": 120 } },
@@ -52,19 +51,19 @@ fetch する必要はない。
         { "id": "e2-3", "source": "slot-2", "target": "slot-3" }
       ]
     }
-  ]
+  }
 }
 ```
 
 ### 2. `BattleScreen` が先頭ステージを `FlowchartArea` に渡す
 
-`BattleScreen.jsx` は JSON を import し、`stages[0]` を props で
+`BattleScreen.jsx` は JSON を import し、`stages['1-1']` を props で
 `FlowchartArea` に渡す。現在は 1 ステージ固定だが、将来ステージ切り替えが
 入ったときはここが「ストアから現在のステージを選ぶ」責務に変わる。
 
 ```jsx
 import stagesData from '../../data/stages.json';
-const stage = stagesData.stages[0];
+const stage = stagesData.stages['1-1'];
 
 <FlowchartArea stage={stage} />
 ```
