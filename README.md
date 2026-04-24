@@ -105,6 +105,7 @@ unilab/
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
+    │   ├── cards/                ← カード画像(<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
     │       └── enemies/
     │           └── slime/

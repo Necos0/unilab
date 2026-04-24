@@ -1,7 +1,6 @@
 {
-  "stages": [
-    {
-      "id": "stage-00",
+  "stages": {
+    "1-1": {
       "enemyId": "slime",
       "cards": [
         {
@@ -65,5 +64,5 @@
         }
       ]
     }
-  ]
+  }
 }

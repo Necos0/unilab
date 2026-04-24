@@ -47,7 +47,7 @@
 Card: { id: string, power: number }
 ```
 
-- `id`: `cards.json` を廃止するため、`stages.json` の `cards[*].id` が valid な ID 集合を暗黙に定義する。`id` は `frontend/public/sprites/cards/<id>.png` の存在するファイル名に一致する前提。
+- `id`: `cards.json` を廃止するため、`stages.json` の `cards[*].id` が valid な ID 集合を暗黙に定義する。`id` は `frontend/public/cards/<id>.png` の存在するファイル名に一致する前提。
 - `power`: 当該ステージでのカード威力。UI 上はカード画像下段に数値表示するのみ。効果計算は本スペック外。
 
 #### `cards.json`
@@ -63,7 +63,7 @@ Card: { id: string, power: number }
 ```
 
 - props:
-  - `card.id` (string, 必須): カード ID。`/sprites/cards/${id}.png` の解決と `alt` 属性に使用。
+  - `card.id` (string, 必須): カード ID。`/cards/${id}.png` の解決と `alt` 属性に使用。
   - `card.power` (number, 必須): 数値オーバーレイに表示する値。
 - 戻り値: カード 1 枚を表す `<div>` 要素。
 
@@ -85,7 +85,7 @@ flowchart TD
     Stages[(stages.json)] --> BS[BattleScreen]
     BS -->|"stage.cards 配列"| Hand
     Hand -->|"各 card オブジェクト"| Card
-    Card -->|"/sprites/cards/<id>.png"| Img[img タグ]
+    Card -->|"/cards/<id>.png"| Img[img タグ]
     Card -->|"card.power"| Overlay[数値オーバーレイ]
 ```
 
@@ -107,7 +107,7 @@ flowchart LR
 
 ### Card.jsx
 
-- `card.id` から `src = \`/sprites/cards/${card.id}.png\`` を組み立てる（パス解決ヘルパは作らない。1 行で済むため `enemySpritePath.js` 相当の分離は不要と判断）。
+- `card.id` から `src = \`/cards/${card.id}.png\`` を組み立てる（パス解決ヘルパは作らない。1 行で済むため `enemySpritePath.js` 相当の分離は不要と判断）。
 - レイアウトは `position: relative` のコンテナに `<img>` を敷き、`<span>` を `position: absolute` で下段パネルに重ねる。
 - `power` のテキストは `Press Start 2P` フォント、`text-shadow` で可読性を確保（HpText の既存スタイルに倣う）。
 - `draggable={false}`、`user-select: none`、`-webkit-user-drag: none` でドラッグ抑止（D&D は別スペックで改めて制御するためここでは無効化）。
@@ -228,5 +228,5 @@ flowchart LR
 - **`cards` を辞書 vs 配列**: 決定：配列 `[{ id, power }, ...]`。理由：同一カード複数枚（例：`attack` を 2 枚）を自然に表現できる。順序が明示的。辞書だと `id` をキーとする制約で重複不可になる。
 - **カードサイズの可変 vs 固定**: 決定：可変（`height: 100%` + `aspect-ratio: 2/3`）。理由：`playerArea` の高さに追従する方が画面サイズ差異に強い。固定値は将来の調整にハードコード依存が残る。
 - **`card.power` のオーバーレイ手段（CSS overlay vs Canvas 合成）**: 決定：CSS absolute positioning。理由：DOM のまま扱える方が React のレンダリングサイクルに自然に乗り、フォント・色・サイズ変更の実験が容易。Canvas は単一画像の書き出しには有効だが、動的変更やテーマ対応で不利。
-- **パス解決ヘルパ（`enemySpritePath.js` 相当）の有無**: 決定：作らない。理由：`/sprites/cards/${id}.png` は 1 行で済み、フレーム連番等の複雑なロジックがないため先例との対称性より簡潔性を優先。
+- **パス解決ヘルパ（`enemySpritePath.js` 相当）の有無**: 決定：作らない。理由：`/cards/${id}.png` は 1 行で済み、フレーム連番等の複雑なロジックがないため先例との対称性より簡潔性を優先。
 - **`Hand` の `key`**: 決定：配列インデックス。理由：同一 id 重複が許容される仕様上、id は一意キーにできない。`cards` 配列の並び替え機能は本スペックで扱わないため、index で問題ない。将来並び替えを導入する段階で UUID 等に切り替える。

@@ -20,7 +20,7 @@ import stagesData from '../../data/stages.json';
 import enemiesData from '../../data/enemies.json';
 import playerData from '../../data/player.json';
 
-const stage = stagesData.stages[0];
+const stage = stagesData.stages['1-1'];
 
 /**
  * ドラッグ中のカード（`activeInstanceId`）を手札・スロット割当の両方
