@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80"        
+  height="80">                                                                  
+    <line
+      x1="22"                                                                   
+      y1="14"     
+      x2="22"
+      y2="66"
+      stroke="#e5e5ff"
+      stroke-width="5"                                                          
+      stroke-linecap="round"
+    />                                                                          
+    <path         
+      d="M22 18 L60 22 L50 32 L60 42 L22 38 Z"
+      fill="#e5e5ff"                                                            
+    />                                                                          
+</svg>

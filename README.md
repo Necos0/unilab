@@ -134,6 +134,8 @@ unilab/
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
     │   ├── cards/                ← カード画像(<id>.png)
+    │   ├── icons/                ← UI アイコン
+    │   │   └── flowchart/        ← フローチャート関連アイコン(start.svg / goal.svg)
     │   ├── maps/                 ← マップ画像(map_<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
     │       └── enemies/
@@ -179,7 +181,6 @@ unilab/
 
 | 想定パス | 用途 |
 |---|---|
-| `frontend/public/icons/` | HP・攻撃などのアイコン |
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |

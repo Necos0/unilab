@@ -7,10 +7,12 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import SlotNode from './SlotNode';
+import StartNode from './StartNode';
+import GoalNode from './GoalNode';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
-const nodeTypes = { slot: SlotNode };
+const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode };
 
 /**
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
@@ -33,29 +35,71 @@ function slotsToNodes(slots) {
 }
 
 /**
+ * ステージ定義の `start` オブジェクトを React Flow ノードに変換する。
+ *
+ * `start` が未定義のステージ（マーカー無しのレガシーステージ等）でも
+ * 落ちないよう `null` を返す。`null` のときは `nodes` 配列に含めない。
+ *
+ * Args:
+ *     start ({position: {x: number, y: number}} | undefined):
+ *         ステージ定義の `start` フィールド。未定義可。
+ *
+ * Returns:
+ *     {id: 'start', type: 'start', position: object, data: object} | null:
+ *         React Flow ノード。`start` が未定義なら `null`。
+ */
+function startToNode(start) {
+  if(!start) return null;
+  return { id: 'start', type: 'start', position: start.position, data: {} };
+}
+
+/**
+ * ステージ定義の `goal` オブジェクトを React Flow ノードに変換する。
+ *
+ * `goal` が未定義のステージでも落ちないよう `null` を返す。
+ *
+ * Args:
+ *     goal ({position: {x: number, y: number}} | undefined):
+ *         ステージ定義の `goal` フィールド。未定義可。
+ *
+ * Returns:
+ *     {id: 'goal', type: 'goal', position: object, data: object} | null:
+ *         React Flow ノード。`goal` が未定義なら `null`。
+ */
+function goalToNode(goal) {
+  if(!goal) return null;
+  return { id: 'goal', type: 'goal', position: goal.position, data: {} };
+}
+
+/**
  * ステージ定義のエッジ配列を React Flow のエッジ配列に変換する。
  *
- * `source` または `target` のスロットが存在しないエッジは除外し、
- * 開発者が気づけるよう console.warn に記録する。描画エラーで画面が
- * 落ちることを防ぐためのガードレール。
+ * `source` または `target` が、有効なノード ID（スロット＋ start / goal）
+ * のいずれにも当てはまらないエッジは除外し、開発者が気づけるよう
+ * `console.warn` に記録する。描画エラーで画面が落ちることを防ぐための
+ * ガードレール。
  *
  * Args:
  *     edges (Array<{id: string, source: string, target: string}>):
  *         ステージ定義に含まれるエッジ配列。
  *     slots (Array<{id: string}>):
  *         参照整合性チェックに使うスロット配列。
+ *     hasStart (boolean): スタートマーカーが定義されているか。
+ *     hasGoal (boolean): ゴールマーカーが定義されているか。
  *
  * Returns:
  *     Array<object>: React Flow に渡せるエッジ配列。矢印マーカー付き。
  */
-function edgesToFlowEdges(edges, slots) {
-  const slotIds = new Set(slots.map((slot) => slot.id));
+function edgesToFlowEdges(edges, slots, hasStart, hasGoal) {
+  const validIds = new Set(slots.map((slot) => slot.id));
+  if (hasStart) validIds.add('start');
+  if (hasGoal) validIds.add('goal');
   return edges
     .filter((edge) => {
-      const ok = slotIds.has(edge.source) && slotIds.has(edge.target);
+      const ok = validIds.has(edge.source) && validIds.has(edge.target);
       if (!ok) {
         console.warn(
-          `[FlowchartArea] skip edge "${edge.id}": source or target slot not found`,
+          `[FlowchartArea] skip edge "${edge.id}": source or target node not found`,
           edge,
         );
       }
@@ -72,10 +116,12 @@ function edgesToFlowEdges(edges, slots) {
 /**
  * 戦闘画面中段に配置するフローチャート描画領域。
  *
- * ステージ定義（スロット・エッジ）を受け取り React Flow キャンバス上に
- * 描画する。パン・ズーム・ノードドラッグ・選択といった React Flow 側の
- * インタラクションは基本的に無効化し、スロット配置は dnd-kit が担う。
- * 背景は `Background` の `Lines` バリアントで薄いグリッドを敷く。
+ * ステージ定義（スロット・スタート／ゴールマーカー・エッジ）を受け取り
+ * React Flow キャンバス上に描画する。スロットには dnd-kit でカードを
+ * ドロップできるが、スタート／ゴールマーカーはドロップ対象外（純粋な
+ * 視覚マーカー）。背景には `Background` の `Lines` バリアントで薄い
+ * グリッドを敷き、「プログラムを組む場所」である中段の領域性を視覚的に
+ * 強調する。
  *
  * 拡大／縮小切替（`battleStore.isExpanded`）に連動して以下をコントロール：
  *   - **縮小状態**：`fitView` に自前の上下限を付けず、React Flow 既定の
@@ -92,16 +138,24 @@ function edgesToFlowEdges(edges, slots) {
  *
  * Args:
  *     stage (object): `stages.json` から読み込んだ 1 ステージ分の定義。
- *         `slots` と `edges` を持つ。
+ *         `slots` / `edges` に加えて、任意で `start` / `goal` を持つ。
  *
  * Returns:
  *     JSX.Element: React Flow キャンバスをラップする div 要素。
  */
 function FlowchartArea({ stage }) {
-  const nodes = useMemo(() => slotsToNodes(stage.slots), [stage.slots]);
+  const nodes = useMemo(() => {
+    const result = slotsToNodes(stage.slots);
+    const startNode = startToNode(stage.start);
+    const goalNode = goalToNode(stage.goal);
+    if(startNode) result.unshift(startNode);
+    if(goalNode) result.push(goalNode);
+    return result;
+  }, [stage.slots, stage.start, stage.goal]);
+  
   const edges = useMemo(
-    () => edgesToFlowEdges(stage.edges, stage.slots),
-    [stage.edges, stage.slots],
+    () => edgesToFlowEdges(stage.edges, stage.slots, !!stage.start, !!stage.goal),
+    [stage.edges, stage.slots, stage.start, stage.goal],
   );
 
   const canvasRef = useRef(null);
