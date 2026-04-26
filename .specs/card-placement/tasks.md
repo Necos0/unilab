@@ -90,12 +90,14 @@
 - [ ] **7. リセットボタンを実装する**
   - 内容：
     - 新規コンポーネント `ResetButton` を作成し、クリック時に `initializeBattle(stage)` を再実行して手札・スロットを初期化する。`stage` は `BattleScreen` から props で受け取る
-    - 見た目は既存のダーク基調に合わせた控えめなボタン（背景 `#1f1f28` 前後、文字 `#e5e5ff`、角丸、パディング少々）。テキストは「リセット」
-    - `BattleScreen.module.css` の `flowchartArea` を `position: relative` にし、`ResetButton` をその右上に `position: absolute; top; right` で固定配置
+    - 見た目は既存のダーク基調に合わせた控えめなボタン（背景 `#1f1f28`、文字 `#e5e5ff`、角丸、`ZoomButton` と同じパディング比率）。**ボタン内容は `/icons/flowchart/reset.svg` の円環状矢印アイコンを `<img>` で表示** し、テキストは表示しない（意味は `aria-label="リセット"` で支援技術に伝える）。要件7-6
+    - SVG アセット（円環状矢印）を `frontend/public/icons/flowchart/reset.svg` に新規作成。viewBox `0 0 24 24`、`currentColor` 指定でボタンの文字色を継承させる
+    - `BattleScreen.module.css` の `flowchartArea` を `position: relative` にし、`ResetButton` を親の `.flowchartControls`（`flowchart-zoom` スペックで導入）の中に並べて配置
     - Docstring（Google 形式、日本語）
-  - ファイル：`frontend/src/features/battle/flowchart/ResetButton.jsx`（新規）、`frontend/src/features/battle/flowchart/ResetButton.module.css`（新規）、`frontend/src/features/battle/BattleScreen.jsx`、`frontend/src/features/battle/BattleScreen.module.css`
+  - ファイル：`frontend/src/features/battle/flowchart/ResetButton.jsx`（新規）、`frontend/src/features/battle/flowchart/ResetButton.module.css`（新規）、`frontend/src/features/battle/BattleScreen.jsx`、`frontend/src/features/battle/BattleScreen.module.css`、`frontend/public/icons/flowchart/reset.svg`（新規）
   - 依存：タスク1、タスク2
   - 完了条件：`npm run lint` / `npm run build` がパスし、ブラウザで以下が確認できる：
-    - フローチャート領域の右上にリセットボタンが表示される
+    - フローチャート領域の右上に円環状矢印アイコンのリセットボタンが表示される
     - スロットにカードを配置した状態でボタンを押すと、全てのスロットが空になり、手札が `stages.json` の初期順序で復元される
     - スロットが全て空のときにボタンを押しても状態が変わらずエラーも出ない（冪等）
+    - `ZoomButton` と並んだときに高さ・縦中央位置が揃って見える

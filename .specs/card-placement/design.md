@@ -187,8 +187,9 @@ sequenceDiagram
 
 - 既存の `initializeBattle(stage)` をリセットのエントリポイントとしてそのまま再利用する。専用の `resetBattle` アクションは作らない（同じ効果なので DRY）
 - `ResetButton` は `BattleScreen` から `stage` を受け取り、クリック時に `initializeBattle(stage)` を呼ぶ
-- 配置は `FlowchartArea` の親コンテナ（`styles.flowchartArea`）を `position: relative` にしたうえで、`ResetButton` を `position: absolute; top; right` で右上に固定。React Flow キャンバス上に絵的に重ねるが、React Flow 自身のインタラクションは領域内のキャンバス部分のみで発火するため、ボタン部分のクリックはボタンに吸収される
-- スタイルは既存のダーク基調（`#1f1f28` 程度の背景、`#e5e5ff` 系の文字色）に揃え、目立ちすぎない控えめなトーンにする
+- 配置は `FlowchartArea` の親コンテナ（`styles.flowchartArea`）を `position: relative` にしたうえで、`ResetButton` をフローチャートコントロール群（`.flowchartControls`）の右上に配置（`flowchart-zoom` スペックで導入されたボタングループに `ZoomButton` と並ぶ形）
+- ボタン内容は **`/icons/flowchart/reset.svg` の円環状矢印アイコン** を `<img>` で表示し、テキストは持たない（要件7-6）。意味は `aria-label="リセット"` で支援技術に伝える
+- スタイルは既存のダーク基調（`#1f1f28` 背景、`#e5e5ff` 文字色）に揃え、`ZoomButton` と同じパディング・フォント設定で並んだときのサイズ感を一致させる
 - 全スロットが空でも押せる：冪等な no-op として成立する（要件7-4）
 
 ### DndContext の設定
