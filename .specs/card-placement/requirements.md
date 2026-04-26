@@ -83,3 +83,4 @@
 3. WHEN リセットボタンによって手札が復元される THEN the system SHALL 手札を `stages.json` の `cards` 配列と同じ初期順序で並べる
 4. IF スロットが全て空の場合 WHEN ユーザーがリセットボタンを押す THEN the system SHALL 状態を変更しない（冪等な no-op として成立する）
 5. WHEN リセットボタンが描画される THEN the system SHALL リセットボタンをフローチャート領域内の右上に配置する
+6. WHEN リセットボタンが描画される THEN the system SHALL ボタン内容として円環状の矢印アイコン（SVG）を表示する。テキストラベル（「リセット」等）はボタン本体に表示せず、`aria-label` で支援技術向けにのみ提供する（隣接する `ZoomButton`（↑/↓）やフローチャート上のスタート／ゴールマーカーとの視覚的統一感を保つため）

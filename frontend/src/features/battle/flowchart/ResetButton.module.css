@@ -1,14 +1,19 @@
 /* 位置は親の `.flowchartControls`（BattleScreen.module.css）が担う。
    このボタン自身は見た目のみを受け持つ */
 .button {
-  padding: 0.35rem 0.75rem;
+  /* ZoomButton と同じパディングにして、横並びでサイズ感を揃える */           
+  padding: 0.35rem 0.6rem;                                                    
+  /* アイコンを縦中央に揃える */
+  display: inline-flex;                                                       
+  align-items: center;
+  justify-content: center;                                                    
   font-family: system-ui, sans-serif;
-  font-size: 0.75rem;
-  color: #e5e5ff;
-  background: #1f1f28;
-  border: 1px solid #3a3a45;
+  /* SVG の currentColor が継承する色 */                                      
+  color: #e5e5ff;                                                             
+  background: #1f1f28;                                                        
+  border: 1px solid #3a3a45;                                                  
   border-radius: 4px;
-  cursor: pointer;
+  cursor: pointer;                                                            
   transition: background-color 0.15s, border-color 0.15s;
 }
 
@@ -19,4 +24,11 @@
 
 .button:active {
   background: #15151c;
+}
+
+/* SVGアイコン本体。ZoomButton の矢印（font-size 0.9rem）と同じ高さに揃える */
+.icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  display: block;
 }
