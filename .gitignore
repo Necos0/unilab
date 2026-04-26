@@ -9,3 +9,7 @@ Thumbs.db
 
 # Claude Code Playwright MCP artifacts
 .playwright-mcp/
+
+# Personal Claude Code settings
+.claude/CLAUDE.md
+.claude/personal/

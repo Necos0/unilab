@@ -1,0 +1,28 @@
+.marker {
+    /* スロットと同じ寸法で水平配置時にエッジが直線になる */
+    width: 80px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* マーカーは枠線なし。アイコンが直接見える控えめな見た目 */
+    pointer-events: none;
+}
+
+.icon {
+    /* マーカー領域　80x120の中央に控えめに配置 */
+    width: 48px;
+    height: 48px;
+}
+
+/* SlotNodeと同じく、エッジ接続のためだけに存在する不可視ハンドル */
+.handle {
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    min-height: 0;
+    background: transparent;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+}
