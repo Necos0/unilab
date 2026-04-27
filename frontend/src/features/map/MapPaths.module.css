@@ -1,0 +1,13 @@
+.path {
+  fill: none;
+  /*
+   * 背景画像の道に重ねて使う。座標調整中は視認できるよう半透明の暖色で
+   * 描き、画像の道と一致させた後で `stroke` の alpha を 0 に下げて見せ
+   * なくする運用を想定。
+   */
+  stroke: rgba(120, 80, 40, 0.35);
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}

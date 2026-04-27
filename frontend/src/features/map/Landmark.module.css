@@ -1,0 +1,34 @@
+.landmark {
+  cursor: pointer;
+}
+
+.landmark.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* クリック判定を広く取るための透明な円。 */
+.hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.dot {
+  fill: rgba(255, 215, 90, 0.85);
+  stroke: #2c1d0a;
+  stroke-width: 3;
+}
+
+.landmark:hover .dot {
+  fill: rgba(255, 240, 150, 1);
+}
+
+.label {
+  font-size: 28px;
+  font-weight: bold;
+  fill: #fff;
+  stroke: #1a1208;
+  stroke-width: 4;
+  paint-order: stroke fill;
+  user-select: none;
+}

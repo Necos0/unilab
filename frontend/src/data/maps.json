@@ -1,0 +1,92 @@
+{
+  "maps": {
+    "map_1": {
+      "image": "/maps/map_1.png",
+      "viewBox": {
+        "width": 1920,
+        "height": 1080
+      },
+      "startId": "village_gate",
+      "landmarks": [
+        {
+          "id": "village_gate",
+          "label": "村の門",
+          "position": {
+            "x": 170,
+            "y": 540
+          }
+        },
+        {
+          "id": "well",
+          "label": "井戸",
+          "position": {
+            "x": 500,
+            "y": 690
+          }
+        },
+        {
+          "id": "fallen_tree",
+          "label": "倒木",
+          "position": {
+            "x": 880,
+            "y": 230
+          }
+        },
+        {
+          "id": "fortress",
+          "label": "砦",
+          "position": {
+            "x": 980,
+            "y": 700
+          }
+        },
+        {
+          "id": "stone_circle",
+          "label": "ストーンサークル",
+          "position": {
+            "x": 1700,
+            "y": 470
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-gate-well",
+          "from": "village_gate",
+          "to": "well",
+          "control": {
+            "x": 300,
+            "y": 700
+          }
+        },
+        {
+          "id": "e-well-fallen",
+          "from": "well",
+          "to": "fallen_tree",
+          "control": {
+            "x": 700,
+            "y": 350
+          }
+        },
+        {
+          "id": "e-well-fortress",
+          "from": "well",
+          "to": "fortress",
+          "control": {
+            "x": 720,
+            "y": 720
+          }
+        },
+        {
+          "id": "e-fortress-stone",
+          "from": "fortress",
+          "to": "stone_circle",
+          "control": {
+            "x": 1350,
+            "y": 600
+          }
+        }
+      ]
+    }
+  }
+}
