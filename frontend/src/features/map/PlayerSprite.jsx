@@ -58,13 +58,14 @@ function PlayerPlaceholder({ x, y }) {
  * あれば次の useEffect 実行で連続再生される（要件 5-5）。
  *
  * 描画位置の決定ロジック：
- *   - 静止時（`segments` 空）は `currentLocation` のランドマーク座標を
+ *   - 静止時（`segments` 空）は `currentLocation` のランドマークの
+ *     `stopPoint`（道上の停止点。アイコン位置 `position` とは別軸）を
  *     描画時に直接導出する（要件 3-2, 5-3）。effect 内で同期的に
  *     setState すると `react-hooks/set-state-in-effect` に抵触するため、
  *     静止位置は state で持たず render で導出するパターンを採る。
  *   - 移動中はアニメーション state（`animPos`）を使う。前セグメント完了時
- *     の最終位置がそのまま次セグメントの開始位置（= 新 `currentLocation`）
- *     と一致するため、フレーム間でジャンプは起こらない。
+ *     の最終位置がそのまま次セグメントの開始位置（= 新 `currentLocation`
+ *     の `stopPoint`）と一致するため、フレーム間でジャンプは起こらない。
  *
  * Returns:
  *     JSX.Element | null: スプライト要素、または座標未確定時 null。
@@ -132,15 +133,16 @@ function PlayerSprite() {
       if (progress < 1) {
         rafId = requestAnimationFrame(tick);
       } else {
-        // 完了時：浮動小数誤差を打ち消すため目的地へスナップしてから
-        // ストアを進める。次セグメントがあれば effect が再走して連続再生。
+        // 完了時：浮動小数誤差を打ち消すため目的地の停止点（stopPoint）へ
+        // スナップしてからストアを進める。次セグメントがあれば effect が
+        // 再走して連続再生。
         const destLandmark = mapDef.landmarks.find(
           (lm) => lm.id === segment.to,
         );
         if (destLandmark) {
           setAnimPos({
-            x: destLandmark.position.x,
-            y: destLandmark.position.y,
+            x: destLandmark.stopPoint.x,
+            y: destLandmark.stopPoint.y,
           });
         }
         advanceSegment();
@@ -159,7 +161,7 @@ function PlayerSprite() {
 
   const idlePosition =
     mapDef && currentLocation
-      ? mapDef.landmarks.find((lm) => lm.id === currentLocation)?.position ??
+      ? mapDef.landmarks.find((lm) => lm.id === currentLocation)?.stopPoint ??
         null
       : null;
   // 移動中は animPos（rAF が更新する補間点）を、静止時は idlePosition を使う。

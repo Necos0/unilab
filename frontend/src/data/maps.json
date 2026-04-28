@@ -13,6 +13,10 @@
           "label": "村の門",
           "position": {
             "x": 170,
+            "y": 500
+          },
+          "stopPoint": {
+            "x": 170,
             "y": 540
           }
         },
@@ -20,6 +24,10 @@
           "id": "well",
           "label": "井戸",
           "position": {
+            "x": 570,
+            "y": 550
+          },
+          "stopPoint": {
             "x": 500,
             "y": 690
           }
@@ -28,24 +36,36 @@
           "id": "fallen_tree",
           "label": "倒木",
           "position": {
-            "x": 880,
-            "y": 230
+            "x": 950,
+            "y": 270
+          },
+          "stopPoint": {
+            "x": 1100,
+            "y": 420
           }
         },
         {
           "id": "fortress",
           "label": "砦",
           "position": {
-            "x": 980,
-            "y": 700
+            "x": 1100,
+            "y": 750
+          },
+          "stopPoint": {
+            "x": 1000,
+            "y": 900
           }
         },
         {
           "id": "stone_circle",
           "label": "ストーンサークル",
           "position": {
-            "x": 1700,
-            "y": 470
+            "x": 1680,
+            "y": 520
+          },
+          "stopPoint": {
+            "x": 1680,
+            "y": 610
           }
         }
       ],

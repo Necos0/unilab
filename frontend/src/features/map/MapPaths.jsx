@@ -3,6 +3,10 @@ import styles from './MapPaths.module.css';
 /**
  * 1 本のエッジを SVG path 文字列に変換する。
  *
+ * 端点には各ランドマークの `stopPoint`（道上の停止点）を使う。
+ * `position`（アイコン・クリック位置）はランドマーク本体の見た目位置で
+ * あり、道のラインとは別軸で設定するため両者を区別する。
+ *
  * 二次ベジェ（`M from Q control to`）として描画する。直線にしないのは、
  * `getPointAtLength` の結果が直線補間と区別できる「カーブに沿った動き」
  * になることを保証するため（要件 6-4）。
@@ -17,8 +21,8 @@ import styles from './MapPaths.module.css';
  *     string: SVG `<path>` の `d` 属性値。
  */
 function buildPathD(edge, landmarkById) {
-  const from = landmarkById.get(edge.from).position;
-  const to = landmarkById.get(edge.to).position;
+  const from = landmarkById.get(edge.from).stopPoint;
+  const to = landmarkById.get(edge.to).stopPoint;
   const c = edge.control;
   return `M ${from.x},${from.y} Q ${c.x},${c.y} ${to.x},${to.y}`;
 }
