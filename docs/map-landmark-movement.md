@@ -123,11 +123,23 @@ if (!segment) return;             // 静止中は effect では何もしない
 
 const pathEl = document.querySelector(`[data-edge-id="${segment.edgeId}"]`);
 const total = pathEl.getTotalLength();
-const eased = easeInOutQuad(progress);
-const length = (reverse ? 1 - eased : eased) * total;
+// 等速移動：所要時間はエッジ長に比例（duration = total / speed）。
+// 進行率は線形のまま使うことで px/ms が一定になる。
+const duration = total / SEGMENT_SPEED_PX_PER_MS;
+const progress = Math.min(1, (now - startTimestamp) / duration);
+const length = (reverse ? 1 - progress : progress) * total;
 const point = pathEl.getPointAtLength(length);
 setAnimPos({ x: point.x, y: point.y });
 ```
+
+#### 等速移動（イージングなし、所要時間はエッジ長に比例）
+
+セグメントごとに固定時間（例: 800ms）でアニメすると、長いエッジほど
+速く見え、短いエッジほど遅く見えてしまい「ランドマーク間の歩く速度」
+が不揃いになる。これを防ぐため、duration をエッジ長に応じて算出する
+方式（`duration = totalLength / SEGMENT_SPEED_PX_PER_MS`）を採用し、
+進行率にイージングを掛けずに線形のまま `length` を求める。結果として
+全セグメントで `px/ms`（= キャラの見かけの速度）が一定になる。
 
 #### `<path data-edge-id>` を経由する理由
 
@@ -201,11 +213,11 @@ t=0 ms     : ユーザーがランドマーク B をクリック
              → Landmark.handleClick(B) → mapStore.requestMove("B")
 t=0 ms     : BFS で [A, j1, B] を得て、segments=[{A→j1},{j1→B}]、isMoving=true
 t=0 ms+    : PlayerSprite の effect が再走、segments[0]={A→j1} のループ開始
-t=~0..800ms: 800ms かけて A→j1 を easeInOutQuad で補間描画
-t=~800ms   : 完了スナップ → advanceSegment()
+t=~0..d1   : A→j1 を等速で線形補間描画（d1 = エッジ長 / SPEED）
+t=~d1      : 完了スナップ → advanceSegment()
              → currentLocation="j1"、segments=[{j1→B}]、isMoving=true
-t=~800ms+  : effect 再走、{j1→B} のループ開始
-t=~1600ms  : 完了スナップ → advanceSegment()
+t=~d1+     : effect 再走、{j1→B} のループ開始
+t=~d1+d2   : 完了スナップ → advanceSegment()
              → currentLocation="B"、segments=[]、isMoving=false
              → ランドマークが再びクリック可能になる
 ```

@@ -2,20 +2,7 @@ import { useEffect, useState } from 'react';
 import useMapStore from '../../stores/mapStore';
 import findNodeById from './findNodeById';
 
-const SEGMENT_DURATION_MS = 800;
-
-/**
- * 0〜1 の入力に二次イーズインアウトを掛けて返す。
- *
- * Args:
- *     t (number): 0 〜 1 の進行率。
- *
- * Returns:
- *     number: イーズ後の 0 〜 1 の値。
- */
-function easeInOutQuad(t) {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
+const SEGMENT_SPEED_PX_PER_MS = 0.6;
 
 /**
  * 仮プレイヤースプライト（赤丸プレースホルダ）の描画コンポーネント。
@@ -122,12 +109,11 @@ function PlayerSprite() {
         startTimestamp = now;
       }
       const total = pathEl.getTotalLength();
-      const progress = Math.min(
-        1,
-        (now - startTimestamp) / SEGMENT_DURATION_MS,
-      );
-      const eased = easeInOutQuad(progress);
-      const length = (reverse ? 1 - eased : eased) * total;
+      // 等速移動：所要時間はエッジ長に比例（duration = total / speed）。
+      // 進行率は線形のまま（イージングなし）使うことで px/ms が一定になる。
+      const duration = total / SEGMENT_SPEED_PX_PER_MS;
+      const progress = Math.min(1, (now - startTimestamp) / duration);
+      const length = (reverse ? 1 - progress : progress) * total;
       const point = pathEl.getPointAtLength(length);
       setAnimPos({ x: point.x, y: point.y });
 
