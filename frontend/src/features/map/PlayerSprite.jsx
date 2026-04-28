@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import useMapStore from '../../stores/mapStore';
+import findNodeById from './findNodeById';
 
 const SEGMENT_DURATION_MS = 800;
 
@@ -135,14 +136,12 @@ function PlayerSprite() {
       } else {
         // 完了時：浮動小数誤差を打ち消すため目的地の停止点（stopPoint）へ
         // スナップしてからストアを進める。次セグメントがあれば effect が
-        // 再走して連続再生。
-        const destLandmark = mapDef.landmarks.find(
-          (lm) => lm.id === segment.to,
-        );
-        if (destLandmark) {
+        // 再走して連続再生。目的地は landmark / junction のいずれもあり得る。
+        const destNode = findNodeById(mapDef, segment.to);
+        if (destNode) {
           setAnimPos({
-            x: destLandmark.stopPoint.x,
-            y: destLandmark.stopPoint.y,
+            x: destNode.stopPoint.x,
+            y: destNode.stopPoint.y,
           });
         }
         advanceSegment();
@@ -159,10 +158,12 @@ function PlayerSprite() {
     };
   }, [mapDef, currentLocation, segments, advanceSegment]);
 
+  // 静止位置のノードは landmark or junction どちらでもあり得る
+  // （プログラム的には起動直後やデバッグ時に junction が現在地になる
+  //  可能性に備える。通常の操作では起点・終点ともランドマーク）。
   const idlePosition =
     mapDef && currentLocation
-      ? mapDef.landmarks.find((lm) => lm.id === currentLocation)?.stopPoint ??
-        null
+      ? findNodeById(mapDef, currentLocation)?.stopPoint ?? null
       : null;
   // 移動中は animPos（rAF が更新する補間点）を、静止時は idlePosition を使う。
   // 移動開始の最初のフレームで animPos がまだ前回の値を保持していても、その

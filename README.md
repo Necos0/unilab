@@ -129,7 +129,8 @@ unilab/
 ├── .claude/                      ← Claude Code 用スキル・コマンド
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
 ├── docs/                         ← 開発者向けドキュメント(仕組みの解説等)
-│   └── flowchart-rendering.md
+│   ├── flowchart-rendering.md
+│   └── map-landmark-movement.md
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
@@ -184,6 +185,7 @@ unilab/
                 ├── Landmark.jsx           ← ランドマーク 1 個分(クリックハンドラ)
                 ├── Landmark.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
+                ├── findNodeById.js        ← ランドマーク/分岐点を ID 横断で引く(純関数)
                 └── findShortestPath.js    ← BFS による最短経路探索(純関数)
 ```
 

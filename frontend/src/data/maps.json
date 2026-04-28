@@ -7,6 +7,15 @@
         "height": 1080
       },
       "startId": "village_gate",
+      "junctions": [
+        {
+          "id": "j-well-fork",
+          "stopPoint": {
+            "x": 740,
+            "y": 710
+          }
+        }
+      ],
       "landmarks": [
         {
           "id": "village_gate",
@@ -80,21 +89,30 @@
           }
         },
         {
-          "id": "e-well-fallen",
+          "id": "e-well-fork",
           "from": "well",
-          "to": "fallen_tree",
+          "to": "j-well-fork",
           "control": {
-            "x": 700,
-            "y": 350
+            "x": 650,
+            "y": 730
           }
         },
         {
-          "id": "e-well-fortress",
-          "from": "well",
+          "id": "e-fork-fallen",
+          "from": "j-well-fork",
+          "to": "fallen_tree",
+          "control": {
+            "x": 900,
+            "y": 500
+          }
+        },
+        {
+          "id": "e-fork-fortress",
+          "from": "j-well-fork",
           "to": "fortress",
           "control": {
-            "x": 720,
-            "y": 720
+            "x": 900,
+            "y": 850
           }
         },
         {

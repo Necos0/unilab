@@ -4,7 +4,7 @@
 
 要件 1〜6 を満たすマップ画面を、`frontend/src/features/map/` 配下に新設する。背景画像・道・ランドマーク・プレイヤースプライトをすべて単一の `<svg viewBox>` 内に重ね、座標系を 1920×1080 の論理座標に統一する。
 
-道は **分岐を含むネットワーク（無向グラフ）** として扱う：ノード＝ランドマーク、エッジ＝道。マップ定義は JSON データ（`frontend/src/data/maps.json`）として外出しし、座標・ID・接続関係の変更がコード変更なしで反映される構造にする（要件 2-4）。
+道は **分岐を含むネットワーク（無向グラフ）** として扱う：ノード＝ランドマーク **または分岐点（junction）**、エッジ＝道。ランドマークはクリック可能でアイコン・ラベルを持つが、junction は道のグラフ構造上の中間ノードとしてのみ存在し、`id` と `stopPoint` だけを持ちアイコンもクリック判定も持たない（要件 2-4）。マップ定義は JSON データ（`frontend/src/data/maps.json`）として外出しし、座標・ID・接続関係の変更がコード変更なしで反映される構造にする（要件 2-6）。
 
 状態（現在位置・移動中フラグ・移動セグメント列）は Zustand ストア `mapStore` に集約する。任意のランドマークがクリックされたら、現在地から目的地までの **エッジ数最小の経路** をストア内 BFS で求め、得られたエッジ列を順に SVG `<path>` の `getPointAtLength()` ＋ `requestAnimationFrame` で連続再生する（要件 4-3, 5-5, 6-4）。
 
@@ -70,6 +70,9 @@ App
         { "id": "fortress",     "label": "砦",              "position": { "x": 980,  "y": 700 }, "stopPoint": { "x": 980,  "y": 700 } },
         { "id": "stone_circle", "label": "ストーンサークル", "position": { "x": 1700, "y": 470 }, "stopPoint": { "x": 1700, "y": 470 } }
       ],
+      "junctions": [
+        { "id": "j-fork-1", "stopPoint": { "x": 600, "y": 600 } }
+      ],
       "edges": [
         { "id": "e-gate-well",      "from": "village_gate", "to": "well",         "control": { "x": 300,  "y": 700 } },
         { "id": "e-well-fallen",    "from": "well",         "to": "fallen_tree",  "control": { "x": 700,  "y": 350 } },
@@ -83,7 +86,10 @@ App
 
 **設計上のポイント**
 
-- ランドマークと道のネットワークを **ノード（`landmarks`）＋ エッジ（`edges`）** の 2 配列で表す。`hub` のような特殊ノードを設けず、分岐は「同じランドマークから複数のエッジが伸びている」状態で自然に表現される（例：`well` から `village_gate` / `fallen_tree` / `fortress` の 3 本）。これにより、要件 2-4 の「特定のランドマークが分岐点になり得る」がデータだけで成立する。
+- ランドマークと道のネットワークを **ノード（`landmarks` / `junctions`）＋ エッジ（`edges`）** の 3 配列で表す。`hub` のような特殊ノードを設けず、分岐は「同じノードから複数のエッジが伸びている」状態で自然に表現される。
+- **landmarks**: クリック可能・アイコン・ラベル付きの最終目的地候補。`id` / `label` / `position` / `stopPoint` を持つ。
+- **junctions**: 道が分岐する位置を表すクリック不可の中間ノード。`id` / `stopPoint` のみ。経路探索（BFS）にはノードとして含まれ、移動アニメーションでは通過点として扱われる（停止しない・選択不能、要件 2-4）。
+- エッジの `from` / `to` は landmark / junction のどちらの ID も指せる。グラフ構造としてはどちらも対等なノード。
 - 各ランドマークは **2 つの座標** を持つ（要件 2-3）：
     - `position`：アイコン・ラベル・クリック判定の中心。背景画像のランドマーク本体（井戸の建物、村の門のアーチ等）の上に置く。
     - `stopPoint`：道上の停止点・パス端点。背景画像の道がランドマークに最も近づくポイントに置く。`MapPaths` のエッジ端点と `PlayerSprite` の着地点はどちらもこちらを参照する。
@@ -102,6 +108,7 @@ type MapDef = {
   viewBox: { width: number; height: number };
   startId: string;
   landmarks: Landmark[];
+  junctions?: Junction[];                // 省略可（分岐点が無いマップ）
   edges: Edge[];
 };
 type Landmark = {
@@ -110,10 +117,14 @@ type Landmark = {
   position:  { x: number; y: number };  // アイコン・クリック中心
   stopPoint: { x: number; y: number };  // 道上の停止点・パス端点
 };
+type Junction = {
+  id: string;
+  stopPoint: { x: number; y: number };  // 道上の通過点（クリック不可）
+};
 type Edge = {
   id: string;
-  from: string;            // landmark id
-  to: string;              // landmark id
+  from: string;            // landmark id or junction id
+  to: string;              // landmark id or junction id
   control: { x: number; y: number };
 };
 ```
@@ -280,7 +291,7 @@ frontend/
 │       └── map_1.png            ← 既存
 └── src/
     ├── data/
-    │   └── maps.json            ← 新規（マップ定義: landmarks + edges）
+    │   └── maps.json            ← 新規（マップ定義: landmarks + junctions + edges）
     ├── stores/
     │   └── mapStore.js          ← 新規
     └── features/
@@ -293,7 +304,7 @@ frontend/
             ├── Landmark.jsx
             ├── Landmark.module.css
             ├── PlayerSprite.jsx
-            ├── PlayerSprite.module.css
+            ├── findNodeById.js       ← landmark / junction を ID 横断で引く純関数
             └── findShortestPath.js   ← BFS による経路探索（純関数）
 ```
 
@@ -350,10 +361,11 @@ frontend/
 | 1-2 16:9 背景 | `MapScreen.module.css` で `aspect-ratio: 16/9` ＋ `<image>` を viewBox 全面 |
 | 1-3 道・ランドマーク・キャラを重ねる | 単一 `<svg>` 内のレイヤ順 |
 | 2-1 5 ランドマーク（アイコン位置） | `maps.json` の `landmarks[5].position` |
-| 2-2 エッジごとに `<path>`（停止点接続） | `MapPaths` が `landmarks[*].stopPoint` を端点に 1 本ずつ生成 |
+| 2-2 エッジごとに `<path>`（停止点接続） | `MapPaths` が両端ノードの `stopPoint` を端点に 1 本ずつ生成 |
 | 2-3 position と stopPoint の分離 | ランドマーク定義に 2 つの座標を持つ（アイコンと道のラインを別軸で調整可能） |
-| 2-4 分岐点をデータで表現 | `edges[]` 内で同一ノードが複数エッジに現れることで自然に表現 |
-| 2-5 JSON 編集だけで反映 | `maps.json` の座標/ID/edges を読み出すだけ |
+| 2-4 分岐点（junction）はクリック不可のグラフノード | `mapDef.junctions[]` に `id` / `stopPoint` のみで定義。`MapScreen` は `landmarks` のみを `Landmark` コンポーネント化し、junction は描画もクリック判定もしない。BFS は landmark / junction を区別せず adjacency に含める |
+| 2-5 分岐構造をデータで表現 | `edges[]` 内で同一ノード（landmark or junction）が複数エッジに現れることで自然に表現 |
+| 2-6 JSON 編集だけで反映 | `maps.json` の座標/ID/edges を読み出すだけ |
 | 3-1 初期位置は出発点 | `mapStore.initializeMap` が `mapDef.startId` を採用 |
 | 3-2 静止 | `segments` 空時は座標スナップ |
 | 3-3 startId で切替可 | JSON の `startId` を読むだけ |
