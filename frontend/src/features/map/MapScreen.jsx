@@ -4,6 +4,7 @@ import MapBackground from './MapBackground';
 import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
+import BattleDemoButton from './BattleDemoButton';
 import useMapStore from '../../stores/mapStore';
 import mapsData from '../../data/maps.json';
 
@@ -21,7 +22,7 @@ const mapDef = mapsData.maps.map_1;
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen() {
+function MapScreen({ onStartBattleDemo }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const isMoving = useMapStore((state) => state.isMoving);
   const requestMove = useMapStore((state) => state.requestMove);
@@ -51,6 +52,7 @@ function MapScreen() {
         ))}
         <PlayerSprite />
       </svg>
+      <BattleDemoButton onClick={onStartBattleDemo} />
     </section>
   );
 }

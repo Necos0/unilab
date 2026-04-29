@@ -1,4 +1,5 @@
 {
+  "demoStageId": "1-1",
   "stages": {
     "1-1": {
       "enemyId": "slime",
