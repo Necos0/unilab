@@ -63,13 +63,27 @@
   pointer-events: none;
 }
 
-/* フローチャート領域の右上に配置するボタングループ。
-   ZoomButton ／ ResetButton をこの順で横並びに表示する */
+/* 実行中（startExecution　開始〜完了の間）の全ユーザー操作をブロックする（play-button　要件　3-1, 3-2) */
+.root.executing {
+  pointer-events: none;
+}
+
+/* フローチャート領域の右上に配置するボタングループ。                         
+     上段に ZoomButton + ResetButton を横並び（.topRow）、    
+     下段に PlayButton を横長で配置する縦 2 段構成 */
 .flowchartControls {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+/* 上段：ZoomButton　と　ResetBUtton　を横並び */
+.topRow {
   display: flex;
   gap: 0.5rem;
 }

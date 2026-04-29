@@ -1,10 +1,17 @@
-.marker {
+.marker {                                                                     
+    /* スタートマーカーと同じ枠デザインで統一感を出す（白の固体枠＋角丸＋
+       背景色）。スロットの点線枠と差別化しつつ、フローチャート全体の           
+       トーンは揃える */                                                        
     width: 80px;                                                                
-    height: 120px;
-    display: flex;                                                              
+    height: 120px;                                                              
+    border: 2px solid #e5e5ff;
+    border-radius: 6px;                                                         
+    background: #15151c;
+    box-sizing: border-box;                                                     
+    display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none;
+    pointer-events: none;                                                       
 }
 
 .icon {
@@ -22,3 +29,19 @@
     opacity: 0;                                                                 
     pointer-events: none;
 } 
+
+/* 実行中：このマーカーが現在のフェーズ対象のとき、マーカー全体を発光・       
+    点滅させる（play-button 要件 5-5）。SlotNode の `.slot.active` と同じ      
+    流儀で、`filter` を marker 全体に当てて「カード周りに光の影」を出す */
+.marker.active {
+    animation: startGoalHighlight 0.3s ease-in-out 2 alternate;
+}
+
+@keyframes startGoalHighlight {
+    from {
+        filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+    }
+    to {
+        filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+    }
+}

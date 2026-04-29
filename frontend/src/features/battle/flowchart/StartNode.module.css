@@ -1,11 +1,16 @@
-.marker {
-    /* スロットと同じ寸法で水平配置時にエッジが直線になる */
-    width: 80px;
-    height: 120px;
+.marker {                                                                     
+    /* スロットと同じ寸法・角丸・背景にして「カードのような枠付き」を演出。     
+       既存空きスロット（点線枠）に対して固体の白枠で差別化（マーカーは         
+       ドロップ対象でないことを示しつつ、視覚的トーンは揃える） */              
+    width: 80px;                                                                
+    height: 120px;                                                              
+    border: 2px solid #e5e5ff;                                                  
+    border-radius: 6px;
+    background: #15151c;
+    box-sizing: border-box;                                                     
     display: flex;
-    align-items: center;
+    align-items: center;                                                        
     justify-content: center;
-    /* マーカーは枠線なし。アイコンが直接見える控えめな見た目 */
     pointer-events: none;
 }
 
@@ -25,4 +30,20 @@
     border: none;
     opacity: 0;
     pointer-events: none;
+}
+
+/* 実行中：このマーカーが現在のフェーズ対象のとき、マーカー全体を発光・
+    点滅させる（play-button 要件 5-1）。SlotNode の `.slot.active` と同じ      
+    流儀で、`filter` を marker 全体に当てて「カード周りに光の影」を出す */
+.marker.active {
+    animation: startGoalHighlight 0.3s ease-in-out 2 alternate;
+}
+
+@keyframes startGoalHighlight {
+    from {
+        filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+    }
+    to {
+        filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+    }
 }

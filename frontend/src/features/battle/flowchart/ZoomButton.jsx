@@ -12,6 +12,11 @@ import styles from './ZoomButton.module.css';
  * 配置は親コンポーネント（`BattleScreen`）側の `.flowchartControls` が
  * 担う。本コンポーネント自身は見た目と onClick のみを提供する。見た目は
  * `ResetButton` と同じトーン（背景 `#1f1f28`・文字 `#e5e5ff`・角丸）。
+ * 
+ * 実行中（`isExecuting`）または拡大／縮小切替アニメ中（`isTransitioning`）                                                          
+ * は `disabled` 属性を付与してクリック不可にする。CSS の `.button:disabled`                                                         
+ * で半透明＋ `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える                                                          
+ * （play-button 要件 3-2）。                                         
  *
  * Returns:
  *     JSX.Element: トグルボタン要素。
@@ -19,6 +24,10 @@ import styles from './ZoomButton.module.css';
 function ZoomButton() {
   const isExpanded = useBattleStore((s) => s.isExpanded);
   const toggleExpand = useBattleStore((s) => s.toggleExpand);
+  const isExecuting = useBattleStore((s) => s.isExecuting);
+  const isTransitioning = useBattleStore((s) => s.isTransitioning);
+
+  const isDisabled = isExecuting || isTransitioning;
 
   return (
     <button
@@ -26,6 +35,7 @@ function ZoomButton() {
       className={styles.button}
       onClick={toggleExpand}
       aria-label={isExpanded ? 'フローチャートを縮小' : 'フローチャートを拡大'}
+      disabled={isDisabled}
     >
       {isExpanded ? '↓' : '↑'}
     </button>

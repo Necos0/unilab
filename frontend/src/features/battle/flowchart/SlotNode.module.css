@@ -51,6 +51,14 @@
   background: rgba(229, 229, 255, 0.08);
 }
 
+/* 実行中・拡大／縮小アニメ中：通常時の `pointer-events: auto` を打ち消して   
+    配置済みカードもドラッグできないようにする（play-button 要件 3-1）。       
+    親の `.root.executing` / `.root.transitioning` の `pointer-events: none` を
+    .slot のローカル auto が突き抜けてしまう問題への対策 */                    
+.slot.locked {                                                                
+  pointer-events: none;                                                       
+}
+
 .handle {
   width: 1px;
   height: 1px;
@@ -60,4 +68,17 @@
   border: none;
   opacity: 0;
   pointer-events: none;
+}
+
+.slot.active {
+  animation: slotHighlight 0.3s ease-in-out 2 alternate;
+}
+
+@keyframes slotHighlight {
+  from {
+    filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+  }
+  to {
+    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+  }
 }
