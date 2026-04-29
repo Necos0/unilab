@@ -1,0 +1,45 @@
+/* 位置は親の `.flowchartControls`（BattleScreen.module.css）が担う。         
+     このボタン自身は見た目のみを受け持つ */                  
+.button {                                                                     
+    /* ZoomButton/ResetButton と同じパディング比率で揃える。横長の細い形状を    
+        維持しつつ、全幅は親の `align-items: stretch` に従ってボタングループ
+        の横幅いっぱいに広がる */                                                
+    padding: 0.35rem 0.75rem;                                 
+    /* アイコンを縦中央に揃える（横方向は justify-content: center で中央寄せ） */                                                          
+    display: inline-flex;                                                       
+    align-items: center;                                                        
+    justify-content: center;                                                    
+    font-family: system-ui, sans-serif;                                         
+    /* 通常時の色合いは ResetButton/ZoomButton と同じダーク基調 */              
+    color: #e5e5ff;                                            
+    background: #1f1f28;                                                        
+    border: 1px solid #3a3a45;                                                  
+    border-radius: 4px;                                                         
+    cursor: pointer;                                                            
+    /* opacity も transition 対象に含めて、disabled 切替が滑らかに */
+    transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;      
+}                                     
+                                                                            
+/* :hover と :active を :not(:disabled) で守って、disabled  
+時に反応しないように */                                                       
+.button:hover:not(:disabled) {                              
+    background: #2a2a33;                                                        
+    border-color: #5a5a66;                                            
+}                                                                             
+                                                                            
+.button:active:not(:disabled) {                                               
+    background: #15151c;                                                        
+}                                                     
+                                                                            
+/* 無効状態：押せないことが視覚的にわかるよう半透明＋カーソル変更 */
+.button:disabled {                                       
+    opacity: 0.4;                                             
+    cursor: not-allowed;                   
+}                                                                             
+                                                            
+/* SVG アイコン本体。ZoomButton の矢印（font-size 0.9rem）と同じ高さに揃える */                                                          
+.icon {                                                                       
+    width: 0.9rem;                         
+    height: 0.9rem;                                                             
+    display: block;                                                             
+}

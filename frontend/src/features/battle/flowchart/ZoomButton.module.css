@@ -11,14 +11,19 @@
   border: 1px solid #3a3a45;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
   background: #2a2a33;
   border-color: #5a5a66;
 }
 
-.button:active {
+.button:active:not(:disabled) {
   background: #15151c;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

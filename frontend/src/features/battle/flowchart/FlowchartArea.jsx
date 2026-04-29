@@ -9,10 +9,12 @@ import '@xyflow/react/dist/style.css';
 import SlotNode from './SlotNode';
 import StartNode from './StartNode';
 import GoalNode from './GoalNode';
+import AnimatedProgressEdge from './AnimatedProgressEdge';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
 const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode };
+const edgeTypes = { 'animated-progress': AnimatedProgressEdge };
 
 /**
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
@@ -109,6 +111,7 @@ function edgesToFlowEdges(edges, slots, hasStart, hasGoal) {
       id: edge.id,
       source: edge.source,
       target: edge.target,
+      type: 'animated-progress',
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
 }
@@ -194,6 +197,7 @@ function FlowchartArea({ stage }) {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}

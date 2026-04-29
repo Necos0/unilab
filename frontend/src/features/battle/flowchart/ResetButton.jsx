@@ -13,11 +13,17 @@ import styles from './ResetButton.module.css';
   * 視覚的統一感を保つため（card-placement 要件7-6）。意味は                   
   * `aria-label="リセット"` で支援技術に伝える。                               
   *                                                                            
-  * 配置は `BattleScreen` 側で `flowchartArea` を `position: relative` に      
-  * したうえで、`.flowchartControls` ラッパー内に `ZoomButton` と並べる        
-  * （flowchart-zoom スペック）。                                              
-  *                                                                            
-  * Args:                                                                      
+  * 配置は `BattleScreen` 側で `flowchartArea` を `position: relative` に
+  * したうえで、`.flowchartControls` ラッパー内に `ZoomButton` と並べる
+  * （flowchart-zoom スペック）。
+  *
+  * 実行中（`isExecuting`）または拡大／縮小切替アニメ中（`isTransitioning`）
+  * は `disabled` 属性を付与してクリック不可にする。CSS の `.button:disabled`
+  * で半透明＋ `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
+  * （play-button 要件 3-2）。
+  *
+  * Args:
+
   *     props (object): React プロパティ。                                     
   *         stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を                                                                            
   *             持ち、`initializeBattle` の再実行に必要。                      
@@ -27,13 +33,17 @@ import styles from './ResetButton.module.css';
   */ 
 function ResetButton({ stage }) {
   const initializeBattle = useBattleStore((s) => s.initializeBattle);
+  const isExecuting = useBattleStore((s) => s.isExecuting);
+  const isTransitioning = useBattleStore((s) => s.isTransitioning);
+
+  const isDisabled = isExecuting || isTransitioning;
 
   const handleClick = () => {
     initializeBattle(stage);
   };
 
   return (
-    <button type="button" className={styles.button} onClick={handleClick} aria-label="リセット">
+    <button type="button" className={styles.button} onClick={handleClick} aria-label="リセット" disabled={isDisabled}>
       <img className={styles.icon} src="/icons/flowchart/reset.svg" alt="" draggable={false}/>
     </button>
   );

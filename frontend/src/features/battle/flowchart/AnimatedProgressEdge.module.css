@@ -1,0 +1,12 @@
+.dot {
+    offset-distance: 0%;
+    animation-name: traverseEdge;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes traverseEdge {
+    to {
+        offset-distance: 100%;
+    }
+}

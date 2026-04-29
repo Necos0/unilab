@@ -23,6 +23,9 @@ import { create } from 'zustand';
  *   - `toggleExpand()`          : 拡大／縮小を切り替える。`isTransitioning`
  *                                 中は no-op（連打・切替中の二重発火ガード）。
  *                                 切替後は 250ms 後に `isTransitioning` を戻す
+ *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
+ *                                 自動縮小→実行の順。'isExecuting'中・全スロット
+ *                                 未埋まりは no-op
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
@@ -30,6 +33,7 @@ import { create } from 'zustand';
 
 const HAND = 'hand';
 const TRANSITION_DURATION_MS = 250;
+const EXECUTION_PER_CARD_MS = 2000;
 
 /**
  * ステージ定義の `cards` 配列を `CardInstance` 配列に展開する。
@@ -67,6 +71,60 @@ function emptySlotAssignments(slots) {
     assignments[slot.id] = null;
   }
   return assignments;
+}
+
+/**                                                         
+ * ステージ定義のエッジを辿って、実行時のフェーズ列を構築する。               
+ *                                                          
+ * `'start'` ノードから始め、各ノードの outgoing エッジを 1 本ずつ辿って      
+ * `'goal'` までの経路を `[{type:'node', id:'start'}, {type:'edge',           
+id:'e-start-1'},                                                              
+  * {type:'node', id:'slot-1'}, ..., {type:'node', id:'goal'}]`                
+の配列に展開する。                                                            
+  * 経路が途中で途切れている場合（参照不正など）は、辿れた範囲までで打ち切る。
+  *                                                          
+  * Args:                                                                      
+  *     stage (object): `stages.json` の 1 ステージ分。`edges` と `slots` 
+を持つ。                                                                      
+  *                                                                            
+  * Returns:                                                                   
+  *     Array<{type: 'node' | 'edge', id: string}>: フェーズ列。実行中の       
+  *         `executionStep` に時系列でセットされる。
+  */
+ function buildExecutionPath(stage) {
+  const next = {};
+  for (const edge of stage.edges ?? []) {
+    next[edge.source] = { target: edge.target, edgeId: edge.id };
+  }
+  const phases = [];
+  let currentNode = 'start';
+  while (true) {
+    phases.push({ type: 'node', id: currentNode });
+    if (currentNode === 'goal') break;
+    const trans = next[currentNode];
+    if (!trans) break;
+    phases.push({ type: 'edge', id: trans.edgeId });
+    currentNode = trans.target;
+  }
+  return phases;
+ }
+
+ /**                                                         
+ * 全スロットがカードで埋まっているかを返すセレクタ関数。                     
+ *                                     
+ * `Object.values(slotAssignments).every(...)` を呼ぶだけだが、複数の         
+ * コンポーネントが同じ判定を行うため共通関数として export する。スロット
+ * が 1 つも無いステージでは `every` の規約上 `true` が返るが、その場合は     
+ * 「埋まっていると見なす」で問題ない（実行しても 0 ステップで終わる）。
+ *                                                          
+ * Args:                                                    
+ *     state (object): `battleStore` の状態。               
+ *                                                                            
+ * Returns:                                                 
+ *     boolean: 全スロットが埋まっているなら `true`。                         
+ */
+function selectAllSlotsFilled(state) {
+  return Object.values(state.slotAssignments).every((card) => card !== null);
 }
 
 /**
@@ -142,6 +200,9 @@ const useBattleStore = create((set, get) => ({
   activeInstanceId: null,
   isExpanded: false,
   isTransitioning: false,
+  isExecuting: false,
+  executionStep: null,
+  currentPhaseMs: null,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -209,7 +270,62 @@ const useBattleStore = create((set, get) => ({
       set(() => ({ isTransitioning: false }));
     }, TRANSITION_DURATION_MS);
   },
+
+  /**                                                                         
+   * フローチャートの実行（ビジュアル進行のみ）を開始する。 
+   *                                                                          
+   * 以下のいずれかのときは no-op として早期リターン：      
+   *   - 既に実行中（`isExecuting`）                                          
+   *   - 拡大／縮小切替アニメーション中（`isTransitioning`）
+   *   - 全スロットが埋まっていない（`selectAllSlotsFilled` が false）        
+   *                                                        
+   * 拡大状態のときは、`isExpanded` を false にしてレイアウトを縮小しながら   
+   * `setTimeout(TRANSITION_DURATION_MS)` 後に実行シーケンスを開始する。
+   * 縮小状態なら即実行する。                                                 
+   *                                                        
+   * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、  
+   * `phases.length × phaseMs` の合計時間に等分配して `setTimeout` で順次
+   * `executionStep` にセットしていく。最後に `isExecuting` を `false`、      
+   * `executionStep` と `currentPhaseMs` を `null` に戻す。                   
+   *                                                                          
+   * Args:                                                                    
+   *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`    
+  を持つ。                                                                      
+    */
+   startExecution: (stage) => {
+    const state = get();
+    if (state.isExecuting || state.isTransitioning) {
+      return;
+    }
+    if (!selectAllSlotsFilled(state)){
+      return;
+    }
+
+    const beginSequence = () => {
+      const phases = buildExecutionPath(stage);
+      const totalMs = stage.slots.length * EXECUTION_PER_CARD_MS;
+      const phaseMs = totalMs / phases.length;
+
+      set({ isExecuting: true, currentPhaseMs: phaseMs });
+      phases.forEach((phase, i) => {
+        setTimeout(() => set({ executionStep: phase }), i * phaseMs);
+      });
+      setTimeout(() => {
+        set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
+      }, phases.length * phaseMs);
+    };
+
+    if (state.isExpanded) {
+      set({ isExpanded: false, isTransitioning: true });
+      setTimeout(() => {
+        set({ isTransitioning: false });
+        beginSequence();
+      }, TRANSITION_DURATION_MS);
+    } else {
+      beginSequence();
+    }
+   }
 }));
 
 export default useBattleStore;
-export { HAND };
+export { HAND, selectAllSlotsFilled };
