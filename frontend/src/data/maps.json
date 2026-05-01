@@ -26,7 +26,7 @@
           },
           "stopPoint": {
             "x": 170,
-            "y": 540
+            "y": 560
           }
         },
         {
@@ -62,7 +62,7 @@
           },
           "stopPoint": {
             "x": 1000,
-            "y": 900
+            "y": 920
           }
         },
         {
@@ -83,46 +83,76 @@
           "id": "e-gate-well",
           "from": "village_gate",
           "to": "well",
-          "control": {
-            "x": 300,
-            "y": 700
-          }
+          "waypoints": [
+            {
+              "x": 400,
+              "y": 630
+            }
+          ]
         },
         {
           "id": "e-well-fork",
           "from": "well",
           "to": "j-well-fork",
-          "control": {
-            "x": 650,
-            "y": 730
-          }
+          "waypoints": [
+            {
+              "x": 620,
+              "y": 720
+            }
+          ]
         },
         {
           "id": "e-fork-fallen",
           "from": "j-well-fork",
           "to": "fallen_tree",
-          "control": {
-            "x": 900,
-            "y": 500
-          }
+          "waypoints": [
+            {
+              "x": 910,
+              "y": 600
+            },
+            {
+              "x": 950,
+              "y": 500
+            }
+          ]
         },
         {
           "id": "e-fork-fortress",
           "from": "j-well-fork",
           "to": "fortress",
-          "control": {
-            "x": 900,
-            "y": 850
-          }
+          "waypoints": [
+            {
+              "x": 850,
+              "y": 850
+            }
+          ]
         },
         {
           "id": "e-fortress-stone",
           "from": "fortress",
           "to": "stone_circle",
-          "control": {
-            "x": 1350,
-            "y": 600
-          }
+          "waypoints": [
+            {
+              "x": 1130,
+              "y": 940
+            },
+            {
+              "x": 1300,
+              "y": 900
+            },
+            {
+              "x": 1430,
+              "y": 830
+            },
+            {
+              "x": 1510,
+              "y": 690
+            },
+            {
+              "x": 1640,
+              "y": 670
+            }
+          ]
         }
       ]
     }

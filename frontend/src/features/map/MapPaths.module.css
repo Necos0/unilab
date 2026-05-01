@@ -11,3 +11,11 @@
   stroke-linejoin: round;
   pointer-events: none;
 }
+
+/* DEBUG: waypoint 可視化（座標調整用、確定後は削除）*/
+.waypoint {
+  fill: #00e5ff;
+  stroke: #000;
+  stroke-width: 2;
+  pointer-events: none;
+}
