@@ -1,0 +1,89 @@
+/* ランドマークホバー時に表示される詳細パネルの見た目。 */
+
+/*
+ * 表示／非表示（opacity と pointer-events）の切り替えは親 Landmark の
+ * :hover をトリガに、Landmark.module.css 側で data-role="detail" 属性を
+ * セレクタにして行う。本ファイルでは見た目（色・フォント等）だけを担う。
+ */
+
+.panel {
+  fill: #f5e6c4;
+  stroke: #7c5e2c;
+  stroke-width: 2;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.label {
+  fill: #3a2410;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  user-select: none;
+  pointer-events: none;
+}
+
+.stars {
+  fill: #c47a1a;
+  font-size: 22px;
+  letter-spacing: 2px;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  user-select: none;
+  pointer-events: none;
+}
+
+.fightButton {
+  cursor: pointer;
+}
+
+.fightBg {
+  fill: #c44a3a;
+  stroke: #7c2a1a;
+  stroke-width: 2;
+  transition: fill 0.12s;
+}
+
+.fightButton:hover .fightBg {
+  fill: #d65a48;
+}
+
+.fightButton:active .fightBg {
+  fill: #a83828;
+}
+
+.fightText {
+  fill: #fff8e8;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  user-select: none;
+  pointer-events: none;
+}
+
+/*
+ * canFight===false のときの無効化スタイル。クリックは JS 側で弾くので
+ * pointer-events は受けたままにし、cursor: not-allowed で操作不能を伝える。
+ * 色を彩度の低いグレーに落として「押せない」見た目にする。
+ */
+.fightButtonDisabled {
+  cursor: not-allowed;
+}
+
+.fightButtonDisabled .fightBg,
+.fightButtonDisabled:hover .fightBg,
+.fightButtonDisabled:active .fightBg {
+  fill: #7a7a7a;
+  stroke: #4a4a4a;
+}
+
+.fightButtonDisabled .fightText {
+  fill: #d4d4d4;
+}
+
+/* 「近づいて戦おう」のヒント文。ボタン直下に小さく添える。 */
+.hint {
+  fill: #6b4a20;
+  font-size: 11px;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  user-select: none;
+  pointer-events: none;
+}

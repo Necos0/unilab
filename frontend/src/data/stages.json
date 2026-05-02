@@ -4,29 +4,113 @@
     "1-1": {
       "enemyId": "slime",
       "start": {
-        "position":{ "x":-120, "y": 120 }
+        "position": { "x": -120, "y": 120 }
       },
       "cards": [
-          { "id": "attack", "power": 12 },
-          { "id": "attack", "power": 5 },                                       
-          { "id": "attack", "power": 7 },
-          { "id": "guard", "power": 12 },                                       
-          { "id": "heal", "power": 12 },
-          { "id": "heal", "power": 3 }                                          
-        ],                                                                      
-        "slots": [
-          { "id": "slot-1", "position": { "x": 80,  "y": 120 } },               
-          { "id": "slot-2", "position": { "x": 280, "y": 120 } },               
-          { "id": "slot-3", "position": { "x": 480, "y": 120 } }
-        ],                                                                      
-        "goal": { 
-          "position": { "x": 680, "y": 120 }                                    
-        },
+        { "id": "attack", "power": 12 },
+        { "id": "attack", "power": 5 },
+        { "id": "attack", "power": 7 },
+        { "id": "guard", "power": 12 },
+        { "id": "heal", "power": 12 },
+        { "id": "heal", "power": 3 }
+      ],
+      "slots": [
+        { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
+        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
+        { "id": "slot-3", "position": { "x": 480, "y": 120 } }
+      ],
+      "goal": {
+        "position": { "x": 680, "y": 120 }
+      },
       "edges": [
-        { "id": "e-start-1", "source": "start", "target": "slot-1" },
-        { "id": "e1-2", "source": "slot-1", "target": "slot-2" },
-        { "id": "e2-3", "source": "slot-2", "target": "slot-3" },
-        { "id": "e-3-goal", "source": "slot-3", "target": "goal" }
+        { "id": "e-start-1", "source": "start",  "target": "slot-1" },
+        { "id": "e1-2",      "source": "slot-1", "target": "slot-2" },
+        { "id": "e2-3",      "source": "slot-2", "target": "slot-3" },
+        { "id": "e-3-goal",  "source": "slot-3", "target": "goal"   }
+      ]
+    },
+    "1-2": {
+      "enemyId": "wolf",
+      "start": {
+        "position": { "x": -120, "y": 120 }
+      },
+      "cards": [
+        { "id": "attack", "power": 14 },
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 8 },
+        { "id": "guard",  "power": 14 },
+        { "id": "heal",   "power": 10 },
+        { "id": "heal",   "power": 5 }
+      ],
+      "slots": [
+        { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
+        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
+        { "id": "slot-3", "position": { "x": 480, "y": 120 } }
+      ],
+      "goal": {
+        "position": { "x": 680, "y": 120 }
+      },
+      "edges": [
+        { "id": "e-start-1", "source": "start",  "target": "slot-1" },
+        { "id": "e1-2",      "source": "slot-1", "target": "slot-2" },
+        { "id": "e2-3",      "source": "slot-2", "target": "slot-3" },
+        { "id": "e-3-goal",  "source": "slot-3", "target": "goal"   }
+      ]
+    },
+    "1-3": {
+      "enemyId": "knight",
+      "start": {
+        "position": { "x": -120, "y": 120 }
+      },
+      "cards": [
+        { "id": "attack", "power": 18 },
+        { "id": "attack", "power": 14 },
+        { "id": "attack", "power": 10 },
+        { "id": "guard",  "power": 18 },
+        { "id": "heal",   "power": 12 },
+        { "id": "heal",   "power": 6 }
+      ],
+      "slots": [
+        { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
+        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
+        { "id": "slot-3", "position": { "x": 480, "y": 120 } }
+      ],
+      "goal": {
+        "position": { "x": 680, "y": 120 }
+      },
+      "edges": [
+        { "id": "e-start-1", "source": "start",  "target": "slot-1" },
+        { "id": "e1-2",      "source": "slot-1", "target": "slot-2" },
+        { "id": "e2-3",      "source": "slot-2", "target": "slot-3" },
+        { "id": "e-3-goal",  "source": "slot-3", "target": "goal"   }
+      ]
+    },
+    "1-4": {
+      "enemyId": "golem",
+      "start": {
+        "position": { "x": -120, "y": 120 }
+      },
+      "cards": [
+        { "id": "attack", "power": 24 },
+        { "id": "attack", "power": 18 },
+        { "id": "attack", "power": 14 },
+        { "id": "guard",  "power": 24 },
+        { "id": "heal",   "power": 16 },
+        { "id": "heal",   "power": 8 }
+      ],
+      "slots": [
+        { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
+        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
+        { "id": "slot-3", "position": { "x": 480, "y": 120 } }
+      ],
+      "goal": {
+        "position": { "x": 680, "y": 120 }
+      },
+      "edges": [
+        { "id": "e-start-1", "source": "start",  "target": "slot-1" },
+        { "id": "e1-2",      "source": "slot-1", "target": "slot-2" },
+        { "id": "e2-3",      "source": "slot-2", "target": "slot-3" },
+        { "id": "e-3-goal",  "source": "slot-3", "target": "goal"   }
       ]
     }
   }

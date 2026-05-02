@@ -7,28 +7,18 @@
   pointer-events: none;
 }
 
-/* クリック判定を広く取るための透明な円。 */
-.hit {
-  fill: transparent;
-  stroke: none;
+/*
+ * 詳細パネル（LandmarkDetail）は data-role="detail" を持つ。CSS Modules
+ * はクラス名をハッシュ化するが属性セレクタは素通しなので、ここから
+ * 直接ターゲットして opacity を切り替えられる。
+ */
+.landmark [data-role='detail'] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
 }
 
-.dot {
-  fill: rgba(255, 215, 90, 0.85);
-  stroke: #2c1d0a;
-  stroke-width: 3;
-}
-
-.landmark:hover .dot {
-  fill: rgba(255, 240, 150, 1);
-}
-
-.label {
-  font-size: 28px;
-  font-weight: bold;
-  fill: #fff;
-  stroke: #1a1208;
-  stroke-width: 4;
-  paint-order: stroke fill;
-  user-select: none;
+.landmark:hover [data-role='detail'] {
+  opacity: 1;
+  pointer-events: auto;
 }
