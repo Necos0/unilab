@@ -23,9 +23,8 @@
 
 .text {
   fill: #3a2410;
-  font-size: 18px;
-  font-weight: bold;
-  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  font-size: 16px;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
 }

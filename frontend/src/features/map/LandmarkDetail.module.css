@@ -4,6 +4,10 @@
  * 表示／非表示（opacity と pointer-events）の切り替えは親 Landmark の
  * data-arrived 属性をトリガに、Landmark.module.css 側で行う。本ファイル
  * では見た目（色・フォント等）だけを担う。
+ *
+ * フォントは Google Fonts の `DotGothic16`（16px ネイティブの 2D ドット
+ * 風日本語ゴシック）を採用。単一ウェイトなので `font-weight: bold` は
+ * 擬似太字でにじむため指定しない。
  */
 
 .panel {
@@ -16,17 +20,16 @@
 .label {
   fill: #3a2410;
   font-size: 16px;
-  font-weight: bold;
-  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
 }
 
 .stars {
   fill: #c47a1a;
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: 2px;
-  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
 }
@@ -52,9 +55,8 @@
 
 .fightText {
   fill: #fff8e8;
-  font-size: 18px;
-  font-weight: bold;
-  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  font-size: 16px;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
 }
