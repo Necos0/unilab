@@ -13,7 +13,23 @@
   justify-content: center;
   background: #0b0b10;
   overflow: hidden;
-  position: relative;   /* ← BattleDemoButton の絶対配置の基準にする */
+}
+
+/*
+ * SVG マップとオーバーレイ UI（左上のフルスクリーントグル、右上の
+ * バトルデモボタン）をまとめる、マップの 16:9 アスペクトに揃えた
+ * 実描画領域。これがマップそのものの矩形になる。`.root` 直下に置かず
+ * .canvas を挟むことで、ボタンを `.canvas` 基準の絶対配置にでき、
+ * letterbox（黒帯）部分ではなく実際のマップ表示領域の角に重ねられる。
+ *   - 横幅は viewport 幅と「viewport 高さに収まる 16:9 幅」のうち小さい方
+ *   - 高さは aspect-ratio で自動算出
+ */
+.canvas {
+  position: relative;
+  aspect-ratio: 1920 / 1080;
+  width: 100%;
+  max-width: calc(100svh * 1920 / 1080);
+  max-height: 100svh;
 }
 
 .svg {

@@ -5,6 +5,7 @@ import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import BattleDemoButton from './BattleDemoButton';
+import FullscreenToggleButton from './FullscreenToggleButton';
 import useMapStore from '../../stores/mapStore';
 import mapsData from '../../data/maps.json';
 
@@ -49,26 +50,29 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
 
   return (
     <section className={styles.root}>
-      <svg
-        className={styles.svg}
-        viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <MapBackground mapDef={mapDef} />
-        <MapPaths mapDef={mapDef} />
-        {mapDef.landmarks.map((landmark) => (
-          <Landmark
-            key={landmark.id}
-            landmark={landmark}
-            isMoving={isMoving}
-            currentLocation={currentLocation}
-            onClick={requestMove}
-            onStartBattle={onStartBattle}
-          />
-        ))}
-        <PlayerSprite />
-      </svg>
-      <BattleDemoButton onClick={onStartBattleDemo} />
+      <div className={styles.canvas}>
+        <svg
+          className={styles.svg}
+          viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <MapBackground mapDef={mapDef} />
+          <MapPaths mapDef={mapDef} />
+          {mapDef.landmarks.map((landmark) => (
+            <Landmark
+              key={landmark.id}
+              landmark={landmark}
+              isMoving={isMoving}
+              currentLocation={currentLocation}
+              onClick={requestMove}
+              onStartBattle={onStartBattle}
+            />
+          ))}
+          <PlayerSprite />
+        </svg>
+        <FullscreenToggleButton />
+        <BattleDemoButton onClick={onStartBattleDemo} />
+      </div>
     </section>
   );
 }

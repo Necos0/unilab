@@ -1,0 +1,27 @@
+/* マップ画面の左上にオーバーレイ表示する大画面表示トグルボタン。
+   BattleDemoButton（右上）とトーンを揃え、絶対配置で SVG マップの上に
+   重ねる。 */
+.button {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  padding: 0.4rem 0.9rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: #e5e5ff;
+  background: rgba(31, 31, 40, 0.85);
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.button:hover {
+  background: rgba(42, 42, 51, 0.85);
+  border-color: #5a5a66;
+}
+
+.button:active {
+  background: rgba(21, 21, 28, 0.95);
+}

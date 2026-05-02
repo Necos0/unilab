@@ -188,8 +188,10 @@ unilab/
                 ├── Landmark.module.css
                 ├── LandmarkScroll.jsx     ← 巻物形のステージ名バナー
                 ├── LandmarkScroll.module.css
-                ├── LandmarkDetail.jsx     ← ホバー時の詳細パネル(難易度・たたかう)
+                ├── LandmarkDetail.jsx     ← 到着時の詳細パネル(難易度・たたかう)
                 ├── LandmarkDetail.module.css
+                ├── FullscreenToggleButton.jsx     ← 左上の大画面表示トグル
+                ├── FullscreenToggleButton.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
                 ├── findNodeById.js        ← ランドマーク/分岐点を ID 横断で引く(純関数)
                 └── findShortestPath.js    ← BFS による最短経路探索(純関数)
