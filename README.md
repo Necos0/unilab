@@ -161,6 +161,8 @@ unilab/
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
             │   ├── BattleScreen.module.css
+            │   ├── BackToMapButton.jsx        ← 右上のテスト用「マップへ戻る」ボタン
+            │   ├── BackToMapButton.module.css
             │   ├── enemy/        ← 敵スプライトのアニメーション描画
             │   │   ├── EnemySprite.jsx
             │   │   ├── EnemySprite.module.css
@@ -182,8 +184,12 @@ unilab/
                 ├── MapBackground.jsx      ← 背景画像レイヤ
                 ├── MapPaths.jsx           ← 道(SVG path)レイヤ
                 ├── MapPaths.module.css
-                ├── Landmark.jsx           ← ランドマーク 1 個分(クリックハンドラ)
+                ├── Landmark.jsx           ← ランドマーク 1 個分(クリック・ホバー)
                 ├── Landmark.module.css
+                ├── LandmarkScroll.jsx     ← 巻物形のステージ名バナー
+                ├── LandmarkScroll.module.css
+                ├── LandmarkDetail.jsx     ← ホバー時の詳細パネル(難易度・たたかう)
+                ├── LandmarkDetail.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
                 ├── findNodeById.js        ← ランドマーク/分岐点を ID 横断で引く(純関数)
                 └── findShortestPath.js    ← BFS による最短経路探索(純関数)

@@ -39,7 +39,9 @@
           "stopPoint": {
             "x": 500,
             "y": 690
-          }
+          },
+          "stageId": "1-1",
+          "difficulty": 1
         },
         {
           "id": "fallen_tree",
@@ -51,7 +53,9 @@
           "stopPoint": {
             "x": 1100,
             "y": 420
-          }
+          },
+          "stageId": "1-2",
+          "difficulty": 2
         },
         {
           "id": "fortress",
@@ -63,7 +67,9 @@
           "stopPoint": {
             "x": 1000,
             "y": 920
-          }
+          },
+          "stageId": "1-3",
+          "difficulty": 3
         },
         {
           "id": "stone_circle",
@@ -75,7 +81,9 @@
           "stopPoint": {
             "x": 1680,
             "y": 610
-          }
+          },
+          "stageId": "1-4",
+          "difficulty": 5
         }
       ],
       "edges": [

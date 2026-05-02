@@ -13,6 +13,7 @@ import ResetButton from './flowchart/ResetButton';
 import ZoomButton from './flowchart/ZoomButton';
 import PlayButton from './flowchart/PlayButton';
 import EnemySprite from './enemy/EnemySprite';
+import BackToMapButton from './BackToMapButton';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
@@ -21,7 +22,6 @@ import stagesData from '../../data/stages.json';
 import enemiesData from '../../data/enemies.json';
 import playerData from '../../data/player.json';
 
-const stage = stagesData.stages[stagesData.demoStageId];
 
 /**
  * ドラッグ中のカード（`activeInstanceId`）を手札・スロット割当の両方
@@ -77,10 +77,20 @@ function selectActiveCard(state) {
  * 実行中（`isExecuting`）は `.transitioning` ／ `.executing` クラスを        
  * 付与して pointer-events を無効化し、ユーザー操作をブロックする。
  *
+ * Args:
+ *     props (object): React プロパティ。
+ *         stageId (string): 戦うステージの ID。`stages.json` のキーに対応。
+ *             未指定時は `demoStageId` をフォールバックとして使う。
+ *         onExitToMap (function): 右上「マップへ戻る」ボタン押下時に呼ぶ
+ *             ハンドラ。引数なし。テスト用途のため戦闘進行や勝敗に
+ *             関係なく即座にマップ画面へ戻る。
+ *
  * Returns:
  *     JSX.Element: 戦闘画面全体を表す section 要素。
  */
-function BattleScreen() {
+function BattleScreen({ stageId, onExitToMap }) {
+  const resolvedStageId = stageId ?? stagesData.demoStageId;
+  const stage = stagesData.stages[resolvedStageId];
   const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
   const enemyMaxHp = enemy?.maxHp;
   const playerMaxHp = playerData.maxHp;
@@ -95,7 +105,7 @@ function BattleScreen() {
 
   useEffect(() => {
     initializeBattle(stage);
-  }, [initializeBattle]);
+  }, [initializeBattle, stage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -130,6 +140,7 @@ function BattleScreen() {
       onDragEnd={handleDragEnd}
     >
       <section className={rootClassName}>
+        <BackToMapButton onClick={onExitToMap} />
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state="idle" />
           <HpBar currentHp={enemyMaxHp} maxHp={enemyMaxHp} />

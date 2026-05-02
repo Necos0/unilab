@@ -11,6 +11,42 @@
           "loop": true
         }
       }
+    },
+    {
+      "id": "wolf",
+      "displayName": "ウルフ",
+      "maxHp": 50,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        }
+      }
+    },
+    {
+      "id": "knight",
+      "displayName": "ナイト",
+      "maxHp": 80,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 150,
+          "loop": true
+        }
+      }
+    },
+    {
+      "id": "golem",
+      "displayName": "ゴーレム",
+      "maxHp": 130,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 150,
+          "loop": true
+        }
+      }
     }
   ]
 }

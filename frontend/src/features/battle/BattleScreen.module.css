@@ -8,6 +8,8 @@
   color: #f5f5f5;
   font-family: system-ui, sans-serif;
   overflow: hidden;
+  /* BackToMapButton の絶対配置の基準 */
+  position: relative;
 }
 
 .enemyArea {

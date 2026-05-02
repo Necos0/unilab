@@ -1,0 +1,31 @@
+/* ランドマーク名を載せた矩形ラベルの見た目。SVG 内の `<g>` をスタイリングする。 */
+
+/*
+ * ラベル自体がランドマークの主たるカーソル判定対象。filled な矩形で
+ * ホバーとクリックを拾い、cursor: pointer で「インタラクション可能」を
+ * 視覚的に伝える。
+ */
+.scroll {
+  cursor: pointer;
+}
+
+.parchment {
+  fill: #f5e6c4;
+  stroke: #7c5e2c;
+  stroke-width: 1.5;
+  transition: fill 0.12s;
+}
+
+/* ホバー時は紙を明るくして「反応している」ことを伝える。 */
+.scroll:hover .parchment {
+  fill: #fff5dc;
+}
+
+.text {
+  fill: #3a2410;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+  user-select: none;
+  pointer-events: none;
+}
