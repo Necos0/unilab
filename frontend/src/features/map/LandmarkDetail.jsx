@@ -17,48 +17,33 @@ function formatStars(difficulty) {
 }
 
 /**
- * ランドマークにマウスを合わせたときに表示される詳細パネル。
+ * ランドマーク到着時に表示される詳細パネル。
  *
  * パーチメント風の角丸矩形を背景に、上半分に難易度を星で、下半分に
  * 「たたかう」ボタンを配置する。SVG `<g>` を返すため、親側で
  * `transform="translate(...)"` により位置を制御する。表示／非表示は
- * 親の CSS（`:hover`）に任せ、本コンポーネント自体は常時マウントされる
- * 想定。`onFight` は「たたかう」ボタンのクリック時にイベント伝搬を
- * 止めた上で呼ばれる（ランドマーク本体のクリック＝移動要求と区別する
- * ため）。
- *
- * `canFight` が `false` のとき（プレイヤーがそのランドマークに到着して
- * いない／移動中など）はボタンを灰色に落とし、クリックも無視して
- * 「近づいてから戦う」運用を強制する。ボタン下部にヒント文も差し替え
- * 表示してユーザーに状況を伝える。
+ * 親 Landmark 側の data-arrived 属性に紐づく CSS が opacity で切り替える
+ * （本コンポーネント自体は常時マウントされてフェードのみ受け持つ）。
+ * `onFight` は「たたかう」ボタンのクリック時にイベント伝搬を止めた上で
+ * 呼ばれる（ラベルクリック＝移動要求と区別するため）。表示中は必ず
+ * プレイヤーが到着済みなので、ボタン側に到着判定は不要。
  *
  * Args:
  *     props (object): React プロパティ。
  *         difficulty (number): 1〜5 の難易度。
- *         canFight (boolean): 「たたかう」を有効化してよいか。
  *         onFight (function): 「たたかう」ボタンのクリックハンドラ。引数なし。
  *
  * Returns:
  *     JSX.Element: 詳細パネル全体を表す `<g>` 要素。
  */
-function LandmarkDetail({ difficulty, canFight, onFight }) {
+function LandmarkDetail({ difficulty, onFight }) {
   const halfWidth = 100;
-  const halfHeight = 80;
+  const halfHeight = 70;
 
   const handleFightClick = (event) => {
     event.stopPropagation();
-    if (!canFight) {
-      return;
-    }
     onFight();
   };
-
-  const fightButtonClassName = [
-    styles.fightButton,
-    !canFight && styles.fightButtonDisabled,
-  ]
-    .filter(Boolean)
-    .join(' ');
 
   return (
     <g data-role="detail">
@@ -77,10 +62,10 @@ function LandmarkDetail({ difficulty, canFight, onFight }) {
       <text x={0} y={-halfHeight + 56} textAnchor="middle" className={styles.stars}>
         {formatStars(difficulty)}
       </text>
-      <g className={fightButtonClassName} onClick={handleFightClick}>
+      <g className={styles.fightButton} onClick={handleFightClick}>
         <rect
           x={-60}
-          y={halfHeight - 56}
+          y={halfHeight - 50}
           width={120}
           height={36}
           rx={4}
@@ -89,23 +74,13 @@ function LandmarkDetail({ difficulty, canFight, onFight }) {
         />
         <text
           x={0}
-          y={halfHeight - 32}
+          y={halfHeight - 26}
           textAnchor="middle"
           className={styles.fightText}
         >
           たたかう
         </text>
       </g>
-      {!canFight && (
-        <text
-          x={0}
-          y={halfHeight - 6}
-          textAnchor="middle"
-          className={styles.hint}
-        >
-          近づいて戦おう
-        </text>
-      )}
     </g>
   );
 }

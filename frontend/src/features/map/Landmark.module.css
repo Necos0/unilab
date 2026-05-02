@@ -11,14 +11,17 @@
  * 詳細パネル（LandmarkDetail）は data-role="detail" を持つ。CSS Modules
  * はクラス名をハッシュ化するが属性セレクタは素通しなので、ここから
  * 直接ターゲットして opacity を切り替えられる。
+ *
+ * 表示条件は親 `<g>` の data-arrived="true"（プレイヤーがそのランドマーク
+ * に到着して静止しているとき）。ホバーは表示の引き金にしない。
  */
 .landmark [data-role='detail'] {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease-in-out;
+  transition: opacity 0.2s ease-in-out;
 }
 
-.landmark:hover [data-role='detail'] {
+.landmark[data-arrived='true'] [data-role='detail'] {
   opacity: 1;
   pointer-events: auto;
 }
