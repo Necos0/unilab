@@ -13,7 +13,7 @@
 }
 
 .enemyArea {
-  flex: 40 0 0;
+  flex: 45 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,7 +27,7 @@
 }
 
 .flowchartArea {
-  flex: 40 0 0;
+  flex: 35 0 0;
   /* フローチャートコントロール（リセット／拡大トグル）を絶対配置で
      重ねるための基準（card-placement 要件 7-5、flowchart-zoom 要件 1-1） */
   position: relative;
