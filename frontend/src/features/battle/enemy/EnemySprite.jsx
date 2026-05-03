@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './EnemySprite.module.css';
 import enemiesData from '../../../data/enemies.json';
 import { getEnemyFramePath } from './enemySpritePath';
 import { useSpriteAnimation } from './useSpriteAnimation';
+import useBattleStore from '../../../stores/battleStore';
 
 /**
  * 敵をスプライトアニメーションで描画する汎用コンポーネント。
@@ -14,6 +15,13 @@ import { useSpriteAnimation } from './useSpriteAnimation';
  * することで、フレーム切り替え時のチラつきを防ぐ。
  * `enemyId` または `state` が定義に存在しない場合は `null` を返し、
  * 親レイアウトを崩さない。画像は原寸で表示する。
+ *
+ * 攻撃ヒット演出として `battleStore.damageEvents` 末尾の id を購読し、
+ * 新しいダメージイベントが入ったタイミングで `<img>` に `.flashing`
+ * クラスを 1 ショット付与する。CSS の `@keyframes enemyFlash` が
+ * `filter: brightness/saturate` でスプライトを白く明滅させ、
+ * `onAnimationEnd` でクラスを外す。位置・サイズ・idle のフレーム
+ * 切り替えには影響しない（演出は重ね描き）。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -33,6 +41,12 @@ function EnemySprite({ enemyId, state = 'idle' }) {
     loop: animation?.loop ?? false,
   });
 
+  const lastDamageId = useBattleStore(
+    (s) => s.damageEvents[s.damageEvents.length -1]?.id ?? null,
+  );
+  const [consumedDamageId, setConsumedDamageId] = useState(null);
+  const isFlashing = lastDamageId !== null && lastDamageId !== consumedDamageId;
+
   useEffect(() => {
     if (!animation) return;
     for (let i = 0; i < animation.frameCount; i += 1) {
@@ -50,7 +64,8 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   return (
     <div className={styles.root}>
       <img
-        className={styles.sprite}
+        className={`${styles.sprite} ${isFlashing ? styles.flashing : ''}`}
+        onAnimationEnd={() => setConsumedDamageId(lastDamageId)}
         src={src}
         alt={enemy.displayName}
         draggable={false}

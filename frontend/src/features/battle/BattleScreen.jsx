@@ -17,9 +17,9 @@ import BackToMapButton from './BackToMapButton';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
+import DamageFloater from './enemy/DamageFloater';
 import useBattleStore from '../../stores/battleStore';
 import stagesData from '../../data/stages.json';
-import enemiesData from '../../data/enemies.json';
 import playerData from '../../data/player.json';
 
 
@@ -58,13 +58,15 @@ function selectActiveCard(state) {
  *
  * Undertale 風の3段レイアウトで画面を構成し、`DndContext` で全体を
  * ラップすることで手札⇄スロット間のドラッグ＆ドロップを可能にする。
- *   - 上段: 敵スプライトと敵 HP バー（`EnemySprite` + 汎用 `HpBar`）
- *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群         
- *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）  
+ *   - 上段: 敵スプライト + 敵 HP バー（数値併記） + ダメージ数字フロート層
+ *      （`EnemySprite` + 汎用 `HpBar` + `DamageFloater`）
+ *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
+ *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）
  *   - 下段: プレイヤー HP バー + 数値と手札カード領域
  *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
- * 手札・スロット割当は `battleStore` が保持する。`DndContext` の
+ * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・ダメージ
+ * 演出キュー（`damageEvents`）は `battleStore` が保持する。`DndContext` の
  * `onDragStart` / `onDragEnd` はそれぞれ `beginDrag` / `endDrag` に
  * 橋渡しする。センサーは `PointerSensor` と `TouchSensor` を登録し、
  * どちらも 4px の距離しきい値を付けてタップ・クリックとの誤検出を避ける。
@@ -91,8 +93,6 @@ function selectActiveCard(state) {
 function BattleScreen({ stageId, onExitToMap }) {
   const resolvedStageId = stageId ?? stagesData.demoStageId;
   const stage = stagesData.stages[resolvedStageId];
-  const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
-  const enemyMaxHp = enemy?.maxHp;
   const playerMaxHp = playerData.maxHp;
 
   const initializeBattle = useBattleStore((s) => s.initializeBattle);
@@ -102,6 +102,8 @@ function BattleScreen({ stageId, onExitToMap }) {
   const isExpanded = useBattleStore((s) => s.isExpanded);
   const isTransitioning = useBattleStore((s) => s.isTransitioning);
   const isExecuting = useBattleStore((s) => s.isExecuting);
+  const currentEnemyHp = useBattleStore((s) => s.currentEnemyHp);
+  const maxEnemyHp = useBattleStore((s) => s.maxEnemyHp);
 
   useEffect(() => {
     initializeBattle(stage);
@@ -143,7 +145,13 @@ function BattleScreen({ stageId, onExitToMap }) {
         <BackToMapButton onClick={onExitToMap} />
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state="idle" />
-          <HpBar currentHp={enemyMaxHp} maxHp={enemyMaxHp} />
+          <div className={styles.hpBox}>
+            <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
+            <span className={styles.hpText}>
+              {currentEnemyHp}/{maxEnemyHp}
+            </span>
+          </div>
+          <DamageFloater />
         </div>
         <div className={styles.flowchartArea}>
           <FlowchartArea stage={stage} />
