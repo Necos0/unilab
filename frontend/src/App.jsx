@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
+import BattleTransition from './features/battle/BattleTransition.jsx';
 import stagesData from './data/stages.json';
 
 /**
@@ -14,6 +15,12 @@ import stagesData from './data/stages.json';
  * のため、戦闘画面右上の「マップへ戻る」ボタンで戦闘進行や勝敗に関係なく
  * 即座にマップ画面へ戻れる（戦闘ステートはマウント解除でリセットされる）。
  *
+ * マップ → 戦闘の遷移は `BattleTransition` の黒フェードオーバーレイを挟み、
+ * フェードイン中にバトル画面で使う画像（敵スプライト・カード・フローチャート
+ * アイコン）を並列で事前読み込みする。フェードイン完了とプリロード完了の
+ * 両方が揃ったタイミング（`handleTransitionMidpoint`）で `BattleScreen` に
+ * 切り替え、その後フェードアウトでバトル画面を露出させる。
+ *
  * 将来「ステージ選択画面」「タイトル画面」「戦闘終了→マップ復帰」など
  * 本格的な画面遷移ロジックを追加する際は、ここの `useState` を Zustand
  * ストアやルーターに置き換える形で拡張する。
@@ -24,22 +31,45 @@ import stagesData from './data/stages.json';
 function App() {
   const [screen, setScreen] = useState('map');
   const [stageId, setStageId] = useState(stagesData.demoStageId);
+  const [pendingStageId, setPendingStageId] = useState(null);
 
   const handleStartBattle = (id) => {
-    setStageId(id);
-    setScreen('battle');
+    if (pendingStageId !== null) {
+      return;
+    }
+    setPendingStageId(id);
   };
 
-  if (screen === 'battle') {
-    return (
+  const handleTransitionMidpoint = useCallback(() => {
+    setStageId((current) => pendingStageId ?? current);
+    setScreen('battle');
+  }, [pendingStageId]);
+
+  const handleTransitionEnd = useCallback(() => {
+    setPendingStageId(null);
+  }, []);
+
+  const currentScreen =
+    screen === 'battle' ? (
       <BattleScreen stageId={stageId} onExitToMap={() => setScreen('map')} />
+    ) : (
+      <MapScreen
+        onStartBattle={handleStartBattle}
+        onStartBattleDemo={() => handleStartBattle(stagesData.demoStageId)}
+      />
     );
-  }
+
   return (
-    <MapScreen
-      onStartBattle={handleStartBattle}
-      onStartBattleDemo={() => handleStartBattle(stagesData.demoStageId)}
-    />
+    <>
+      {currentScreen}
+      {pendingStageId !== null && (
+        <BattleTransition
+          targetStageId={pendingStageId}
+          onMidpoint={handleTransitionMidpoint}
+          onEnd={handleTransitionEnd}
+        />
+      )}
+    </>
   );
 }
 

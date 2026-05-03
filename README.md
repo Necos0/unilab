@@ -163,6 +163,9 @@ unilab/
             │   ├── BattleScreen.module.css
             │   ├── BackToMapButton.jsx        ← 右上のテスト用「マップへ戻る」ボタン
             │   ├── BackToMapButton.module.css
+            │   ├── BattleTransition.jsx       ← マップ→バトルの黒フェード演出＋画像プリロード
+            │   ├── BattleTransition.module.css
+            │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
             │   ├── enemy/        ← 敵スプライトのアニメーション描画
             │   │   ├── EnemySprite.jsx
             │   │   ├── EnemySprite.module.css

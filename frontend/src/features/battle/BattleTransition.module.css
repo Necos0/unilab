@@ -1,0 +1,42 @@
+/*
+ * 画面遷移用の黒オーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）
+ *   - z-index は手札・フローチャートコントロール（z-index:10 前後）より十分上
+ *   - 遷移中のクリックをブロックするため pointer-events を有効にする
+ *   - 不透明度は `fadeIn` / `fadeOut` のキーフレーム終了状態を `forwards` で
+ *     保持することで、JS 側の phase 切替と CSS アニメーションを同期させる
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 0;
+  pointer-events: auto;
+}
+
+.fadeIn {
+  animation: battleTransitionFadeIn 350ms ease-in forwards;
+}
+
+.fadeOut {
+  animation: battleTransitionFadeOut 350ms ease-out forwards;
+}
+
+@keyframes battleTransitionFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes battleTransitionFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
