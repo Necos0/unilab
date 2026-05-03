@@ -31,7 +31,7 @@
       "animations": {
         "idle": {
           "frameCount": 6,
-          "frameDurationMs": 150,
+          "frameDurationMs": 250,
           "loop": true
         }
       }
@@ -43,7 +43,7 @@
       "animations": {
         "idle": {
           "frameCount": 6,
-          "frameDurationMs": 150,
+          "frameDurationMs": 250,
           "loop": true
         }
       }
