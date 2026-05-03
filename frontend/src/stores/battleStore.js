@@ -1,13 +1,15 @@
 import { create } from 'zustand';
+import enemiesData from '../data/enemies.json';
 
 /**
  * バトル状態を一元管理する Zustand ストア。
  *
  * 手札（`handCards`）・スロット割当（`slotAssignments`）・ドラッグ中の
  * カード（`activeInstanceId`）・フローチャートの拡大状態（`isExpanded`）・
- * 切替アニメーション中フラグ（`isTransitioning`）をグローバルに保持し、
- * 手札 UI・フローチャート・拡大トグルボタンなど複数のコンポーネントから
- * 購読・更新できるようにする。
+ * 切替アニメーション中フラグ（`isTransitioning`）・敵 HP（`currentEnemyHp`
+ * / `maxEnemyHp`）・ダメージ演出キュー（`damageEvents`）をグローバルに
+ * 保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
+ * スプライト演出など複数のコンポーネントから購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
@@ -16,7 +18,8 @@ import { create } from 'zustand';
  * 公開アクション：
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
- *                                 ユーザー選好は引き継ぐ）
+ *                                 ユーザー選好は引き継ぐ）。敵 HP は
+ *                                 `enemies.json` の `maxHp` で初期化
  *   - `beginDrag(instanceId)`   : ドラッグ開始時に呼び出す
  *   - `endDrag(result)`         : ドラッグ終了時に呼び出し、配置・差し替え・
  *                                 撤回を 1 箇所で処理する
@@ -25,7 +28,14 @@ import { create } from 'zustand';
  *                                 切替後は 250ms 後に `isTransitioning` を戻す
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
- *                                 未埋まりは no-op
+ *                                 未埋まりは no-op。実行開始時に敵 HP を
+ *                                 `maxEnemyHp` に戻し、各 attack カードのフェーズ
+ *                                 で `applyDamage(card.power)` を発火する
+ *   - `applyDamage(amount)`     : 敵 HP を amount だけ減らし（0 クランプ）、
+ *                                 ダメージ演出イベントを `damageEvents` に
+ *                                 push する
+ *   - `dismissDamageEvent(id)`  : 指定 id のダメージイベントを配列から取り除く
+ *                                 （`DamageFloater` 等の演出側からの自走削除）
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
@@ -203,6 +213,10 @@ const useBattleStore = create((set, get) => ({
   isExecuting: false,
   executionStep: null,
   currentPhaseMs: null,
+  currentEnemyHp: 0,
+  maxEnemyHp: 0,
+  damageEvents: [],
+  _damageCounter: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -214,12 +228,18 @@ const useBattleStore = create((set, get) => ({
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
    */
-  initializeBattle: (stage) =>
+  initializeBattle: (stage) => {
+    const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
+    const maxHp = enemy?.maxHp ?? 0;
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
       slotAssignments: emptySlotAssignments(stage.slots ?? []),
       activeInstanceId: null,
-    })),
+      maxEnemyHp: maxHp,
+      currentEnemyHp: maxHp,
+      damageEvents: [],
+    }));
+  },
 
   /**
    * ドラッグ開始時に呼び出し、`activeInstanceId` をセットする。
@@ -306,9 +326,22 @@ const useBattleStore = create((set, get) => ({
       const totalMs = stage.slots.length * EXECUTION_PER_CARD_MS;
       const phaseMs = totalMs / phases.length;
 
-      set({ isExecuting: true, currentPhaseMs: phaseMs });
+      set((s) => ({
+        isExecuting: true,
+        currentPhaseMs: phaseMs,
+        currentEnemyHp: s.maxEnemyHp,
+        damageEvents: [],
+      }));
       phases.forEach((phase, i) => {
-        setTimeout(() => set({ executionStep: phase }), i * phaseMs);
+        setTimeout(() => {
+          set({ executionStep: phase });
+          if (phase.type === 'node') {
+            const card = get().slotAssignments[phase.id];
+            if (card && card.id === 'attack' && card.power > 0) {
+              get().applyDamage(card.power);
+            }
+          }
+        }, i * phaseMs);
       });
       setTimeout(() => {
         set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
@@ -324,7 +357,44 @@ const useBattleStore = create((set, get) => ({
     } else {
       beginSequence();
     }
-   }
+   },
+
+  /**
+   * 敵に対してダメージを 1 回適用する。
+   *                                                                          
+   * `currentEnemyHp` を減算（0 でクランプ）し、`damageEvents`に新規イベントを                                                              
+    * 追加する。`damageEvents` の各要素は `EnemySprite` のフラッシュ演出と
+    * `DamageFloater` の浮き数字描画のトリガーとして購読される。`id` は        
+    * `_damageCounter` ベースの単調増加文字列で、React の key として使う。     
+    *                                                                          
+    * Args:                                                                    
+    *     amount (number): 与えるダメージ量。負の値や 0 は呼び出し側で         
+    *         弾く前提だが、内部的には `Math.max(0, ...)` で 0 クランプする。  
+    */
+   applyDamage: (amount) => set((state) => {
+    const nextHp = Math.max(0, state.currentEnemyHp - amount);
+    const id = `d-${state._damageCounter}`;
+    return {
+      currentEnemyHp: nextHp,
+      damageEvents: [...state.damageEvents, { id, amount }],
+      _damageCounter: state._damageCounter + 1,
+    };
+   }),
+
+   /**
+   * 指定 id のダメージイベントを `damageEvents` から削除する。               
+   *                                                                          
+   * `DamageFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、自身を
+   * 配列から取り除いて自走 unmount する。これにより `damageEvents` が        
+   * 累積し続けるのを防ぐ。                                                   
+   *                                                                          
+   * Args:                                                                    
+   *     id (string): 削除対象のダメージイベント id。`damageEvents` 内に      
+   *         該当が無ければ no-op。                                           
+   */
+   dismissDamageEvent: (id) => set((state) => ({
+    damageEvents: state.damageEvents.filter((e) => e.id !== id),
+   })),
 }));
 
 export default useBattleStore;

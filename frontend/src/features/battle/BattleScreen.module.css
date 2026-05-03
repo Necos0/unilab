@@ -22,6 +22,9 @@
   border-bottom: 1px solid #2a2a33;
   font-size: 1.25rem;
   overflow: hidden;
+  /* DamageFloater を絶対配置で重ねるための基準点（attack-processing 要件     
+  8-4） */
+  position: relative;
   /* 拡大時に flex-grow を 0 にアニメーションさせる（flowchart-zoom 要件 4） */
   transition: flex-grow 0.25s ease;
 }

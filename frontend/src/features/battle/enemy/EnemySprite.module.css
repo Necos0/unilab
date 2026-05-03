@@ -11,3 +11,13 @@
   user-select: none;
   -webkit-user-drag: none;
 }
+
+.flashing {
+  animation: enemyFlash 0.25s ease-out 1;
+}
+
+@keyframes enemyFlash {
+  0%   { filter: brightness(1)   saturate(1);}
+  35%  { filter: brightness(2.2) saturate(0.2);}
+  100% { filter: brightness(1)   saturate(1);}
+}

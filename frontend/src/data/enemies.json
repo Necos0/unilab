@@ -3,7 +3,7 @@
     {
       "id": "slime",
       "displayName": "スライム",
-      "maxHp": 30,
+      "maxHp": 10,
       "animations": {
         "idle": {
           "frameCount": 6,
