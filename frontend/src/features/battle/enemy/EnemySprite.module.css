@@ -21,3 +21,8 @@
   35%  { filter: brightness(2.2) saturate(0.2);}
   100% { filter: brightness(1)   saturate(1);}
 }
+
+.fading {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}

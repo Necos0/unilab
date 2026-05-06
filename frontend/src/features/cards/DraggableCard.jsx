@@ -16,6 +16,12 @@ import styles from './DraggableCard.module.css';
  * ポインタに追従するカードは `BattleScreen` 側の `DragOverlay` が
  * 別途描画する。
  *
+ * 勝利演出中（`victoryPhase !== null`）は `useDraggable` に `disabled: true`
+ * を渡し、ライブラリ側でドラッグ開始を抑止する（`victory-clear` 要件 6-1）。
+ * 戦闘画面ルートに付与される `.root.victory` の `pointer-events: none` だけ
+ * では dnd-kit の pointer 監視を確実に止められない場合があるため、
+ * dnd-kit 公式の disabled API でカード側からも明示的に無効化する。
+ *
  * 配置先のコンテナに合わせてサイズ計算方法を切り替えるため `variant` を
  * 受け取る：
  *   - `'hand'`（既定）: 手札レイアウトで使用。`height: 100%` + `aspect-ratio: 2/3`
@@ -33,9 +39,11 @@ import styles from './DraggableCard.module.css';
  *     JSX.Element: ドラッグ可能な領域としてカードを包む div 要素。
  */
 function DraggableCard({ card, source, variant = 'hand' }) {
+  const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: card.instanceId,
     data: { source },
+    disabled: victoryPhase !== null,
   });
   const isDragging = useBattleStore(
     (s) => s.activeInstanceId === card.instanceId,

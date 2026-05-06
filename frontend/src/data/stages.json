@@ -35,7 +35,7 @@
         "position": { "x": -120, "y": 120 }
       },
       "cards": [
-        { "id": "attack", "power": 14 },
+        { "id": "attack", "power": 80 },
         { "id": "attack", "power": 10 },
         { "id": "attack", "power": 8 },
         { "id": "guard",  "power": 14 },
@@ -63,8 +63,8 @@
         "position": { "x": -120, "y": 120 }
       },
       "cards": [
-        { "id": "attack", "power": 18 },
-        { "id": "attack", "power": 14 },
+        { "id": "attack", "power": 60 },
+        { "id": "attack", "power": 20 },
         { "id": "attack", "power": 10 },
         { "id": "guard",  "power": 18 },
         { "id": "heal",   "power": 12 },
@@ -91,8 +91,8 @@
         "position": { "x": -120, "y": 120 }
       },
       "cards": [
-        { "id": "attack", "power": 24 },
-        { "id": "attack", "power": 18 },
+        { "id": "attack", "power": 100 },
+        { "id": "attack", "power": 40 },
         { "id": "attack", "power": 14 },
         { "id": "guard",  "power": 24 },
         { "id": "heal",   "power": 16 },

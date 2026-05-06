@@ -17,10 +17,11 @@ import styles from './ResetButton.module.css';
   * したうえで、`.flowchartControls` ラッパー内に `ZoomButton` と並べる
   * （flowchart-zoom スペック）。
   *
-  * 実行中（`isExecuting`）または拡大／縮小切替アニメ中（`isTransitioning`）
-  * は `disabled` 属性を付与してクリック不可にする。CSS の `.button:disabled`
-  * で半透明＋ `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
-  * （play-button 要件 3-2）。
+  * 実行中（`isExecuting`）・拡大／縮小切替アニメ中（`isTransitioning`）・
+  * 勝利演出中（`victoryPhase !== null`）は `disabled` 属性を付与して
+  * クリック不可にする。CSS の `.button:disabled` で半透明＋
+  * `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
+  * （play-button 要件 3-2、victory-clear 要件 6-2）。
   *
   * Args:
 
@@ -35,8 +36,9 @@ function ResetButton({ stage }) {
   const initializeBattle = useBattleStore((s) => s.initializeBattle);
   const isExecuting = useBattleStore((s) => s.isExecuting);
   const isTransitioning = useBattleStore((s) => s.isTransitioning);
+  const victoryPhase = useBattleStore((s) => s.victoryPhase);
 
-  const isDisabled = isExecuting || isTransitioning;
+  const isDisabled = isExecuting || isTransitioning || victoryPhase !== null;
 
   const handleClick = () => {
     initializeBattle(stage);

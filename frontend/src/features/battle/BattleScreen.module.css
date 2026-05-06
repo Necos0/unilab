@@ -62,6 +62,14 @@
   flex-grow: 80;
 }
 
+/* 拡大時はフローチャート領域が画面上部まで広がり、`.flowchartControls`       
+    （ZoomButton + ResetButton + PlayButton）が右上の BackToMapButton          
+    （`.root` 基準で top: 0.5rem）と被って押せなくなるため、コントロール
+    群を BackToMapButton の高さぶん下に逃がす */
+.root.expanded .flowchartControls {
+  top: 3rem;
+}
+
 /* 切替アニメーション中は全ユーザー操作をブロックする
    （flowchart-zoom 要件 5-3, 5-4） */
 .root.transitioning {
@@ -70,6 +78,13 @@
 
 /* 実行中（startExecution　開始〜完了の間）の全ユーザー操作をブロックする（play-button　要件　3-1, 3-2) */
 .root.executing {
+  pointer-events: none;
+}
+
+/* 勝利演出中（victoryPhase が非 null）の全ユーザー操作をブロックする         
+  （victory-clear 要件 6）。VictoryClearOverlay の .overlay は内側で         
+  pointer-events: auto を再付与するため、マップへ戻るボタンだけは押せる */ 
+.root.victory {
   pointer-events: none;
 }
 
@@ -105,6 +120,14 @@
   font-size: 0.75rem;
   color: #f5f5f5;
   letter-spacing: 1px;
+}
+
+/* 勝利演出のフェードフェーズで敵 HP バー＋数値ラベルを透明化する。           
+    EnemySprite の .fading と同じ 0.5 秒で同期させ、敵が消えるのと             
+    同時に HP 表示も消えるようにする（victory-clear 要件 3 連動） */ 
+.fading {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
 }
 
 /* DragOverlay 内で Card をサイズ付きで描画するためのラッパー。
