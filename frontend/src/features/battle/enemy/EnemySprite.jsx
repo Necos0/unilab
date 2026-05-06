@@ -23,6 +23,16 @@ import useBattleStore from '../../../stores/battleStore';
  * `onAnimationEnd` でクラスを外す。位置・サイズ・idle のフレーム
  * 切り替えには影響しない（演出は重ね描き）。
  *
+ * 勝利演出への連動として `battleStore.victoryPhase` を購読し、
+ * `'fading'` または `'cleared'` のとき `<img>` に `.fading` クラスを
+ * 付与して `opacity: 0` へ 0.5 秒のトランジションをかける。
+ * `'fading'` 中はフェードが進行し、`'cleared'` では透明のまま固定される
+ * （`victory-clear` 要件 3）。dead 状態への切替（`state="dead"`）の
+ * 判断は親（`BattleScreen`）側で行い、本コンポーネントは渡された
+ * `state` プロップに従って描画する責務に限定する。`.flashing` は
+ * `filter`、`.fading` は `opacity` で別プロパティのため、両方が同時に
+ * 当たっても干渉しない。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         enemyId (string): 敵識別子。
@@ -46,6 +56,8 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   );
   const [consumedDamageId, setConsumedDamageId] = useState(null);
   const isFlashing = lastDamageId !== null && lastDamageId !== consumedDamageId;
+  const victoryPhase = useBattleStore((s) => s.victoryPhase);
+  const isFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
 
   useEffect(() => {
     if (!animation) return;
@@ -64,7 +76,7 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   return (
     <div className={styles.root}>
       <img
-        className={`${styles.sprite} ${isFlashing ? styles.flashing : ''}`}
+        className={`${styles.sprite} ${isFlashing ? styles.flashing : ''} ${isFading ? styles.fading : ''}`}
         onAnimationEnd={() => setConsumedDamageId(lastDamageId)}
         src={src}
         alt={enemy.displayName}

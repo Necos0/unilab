@@ -7,19 +7,25 @@ import enemiesData from '../data/enemies.json';
  * 手札（`handCards`）・スロット割当（`slotAssignments`）・ドラッグ中の
  * カード（`activeInstanceId`）・フローチャートの拡大状態（`isExpanded`）・
  * 切替アニメーション中フラグ（`isTransitioning`）・敵 HP（`currentEnemyHp`
- * / `maxEnemyHp`）・ダメージ演出キュー（`damageEvents`）をグローバルに
- * 保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
- * スプライト演出など複数のコンポーネントから購読・更新できるようにする。
+ * / `maxEnemyHp`）・ダメージ演出キュー（`damageEvents`）・勝利演出フェーズ
+ * （`victoryPhase`）をグローバルに保持し、手札 UI・フローチャート・
+ * 拡大トグルボタン・敵 HP バー・スプライト演出・CLEAR! オーバーレイなど
+ * 複数のコンポーネントから購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
  * アイテム識別子と衝突しない。
  *
+ * `victoryPhase` は `null | 'dead' | 'fading' | 'cleared'` の 4 状態を取る
+ * 線形 enum で、勝利演出（敵 dead アニメ → スプライトのフェードアウト →
+ * CLEAR! テキスト表示）の進行を 1 フィールドで表現する。
+ *
  * 公開アクション：
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
  *                                 ユーザー選好は引き継ぐ）。敵 HP は
- *                                 `enemies.json` の `maxHp` で初期化
+ *                                 `enemies.json` の `maxHp` で初期化し、
+ *                                 `victoryPhase` も `null` に戻す
  *   - `beginDrag(instanceId)`   : ドラッグ開始時に呼び出す
  *   - `endDrag(result)`         : ドラッグ終了時に呼び出し、配置・差し替え・
  *                                 撤回を 1 箇所で処理する
@@ -30,12 +36,21 @@ import enemiesData from '../data/enemies.json';
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
  *                                 未埋まりは no-op。実行開始時に敵 HP を
  *                                 `maxEnemyHp` に戻し、各 attack カードのフェーズ
- *                                 で `applyDamage(card.power)` を発火する
+ *                                 で `applyDamage(card.power)` を発火する。
+ *                                 シーケンス完了時点で敵 HP が 0 なら、
+ *                                 `startVictorySequence(stage.enemyId)` を呼んで
+ *                                 勝利演出を起動する
  *   - `applyDamage(amount)`     : 敵 HP を amount だけ減らし（0 クランプ）、
  *                                 ダメージ演出イベントを `damageEvents` に
  *                                 push する
  *   - `dismissDamageEvent(id)`  : 指定 id のダメージイベントを配列から取り除く
  *                                 （`DamageFloater` 等の演出側からの自走削除）
+ *   - `startVictorySequence(enemyId)`
+ *                               : 勝利演出シーケンスを開始する。`enemies.json` で
+ *                                 dead アニメが定義されていれば `'dead' →
+ *                                 'fading' → 'cleared'` の 3 段、未定義なら
+ *                                 `'fading' → 'cleared'` の 2 段で `victoryPhase`
+ *                                 を遷移させる
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
@@ -44,6 +59,7 @@ import enemiesData from '../data/enemies.json';
 const HAND = 'hand';
 const TRANSITION_DURATION_MS = 250;
 const EXECUTION_PER_CARD_MS = 2000;
+const VICTORY_FADE_DURATION_MS = 500;
 
 /**
  * ステージ定義の `cards` 配列を `CardInstance` 配列に展開する。
@@ -216,14 +232,18 @@ const useBattleStore = create((set, get) => ({
   currentEnemyHp: 0,
   maxEnemyHp: 0,
   damageEvents: [],
+  victoryPhase: null,
   _damageCounter: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
    *
-   * 手札・スロット割当・ドラッグ中フラグのみ初期化し、`isExpanded` には
-   * 触れない。これにより「拡大状態でリセットを押しても拡大は保たれる」
-   * という挙動が成立する（`flowchart-zoom` 要件 6-1）。
+   * 手札・スロット割当・ドラッグ中フラグ・敵 HP・ダメージ演出キュー・
+   * 勝利演出フェーズ（`victoryPhase`）を初期化する。`isExpanded` には
+   * 触れない（「拡大状態でリセットを押しても拡大は保たれる」挙動が
+   * 成立する：`flowchart-zoom` 要件 6-1）。`victoryPhase` を `null` に
+   * 戻すことで、CLEAR! 演出の名残（透過したスプライト・CLEAR! テキスト）
+   * を残さず通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4）。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
@@ -238,6 +258,7 @@ const useBattleStore = create((set, get) => ({
       maxEnemyHp: maxHp,
       currentEnemyHp: maxHp,
       damageEvents: [],
+      victoryPhase: null,
     }));
   },
 
@@ -291,27 +312,30 @@ const useBattleStore = create((set, get) => ({
     }, TRANSITION_DURATION_MS);
   },
 
-  /**                                                                         
-   * フローチャートの実行（ビジュアル進行のみ）を開始する。 
-   *                                                                          
-   * 以下のいずれかのときは no-op として早期リターン：      
-   *   - 既に実行中（`isExecuting`）                                          
+  /**
+   * フローチャートの実行（ビジュアル進行のみ）を開始する。
+   *
+   * 以下のいずれかのときは no-op として早期リターン：
+   *   - 既に実行中（`isExecuting`）
    *   - 拡大／縮小切替アニメーション中（`isTransitioning`）
-   *   - 全スロットが埋まっていない（`selectAllSlotsFilled` が false）        
-   *                                                        
-   * 拡大状態のときは、`isExpanded` を false にしてレイアウトを縮小しながら   
+   *   - 全スロットが埋まっていない（`selectAllSlotsFilled` が false）
+   *
+   * 拡大状態のときは、`isExpanded` を false にしてレイアウトを縮小しながら
    * `setTimeout(TRANSITION_DURATION_MS)` 後に実行シーケンスを開始する。
-   * 縮小状態なら即実行する。                                                 
-   *                                                        
-   * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、  
+   * 縮小状態なら即実行する。
+   *
+   * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、
    * `phases.length × phaseMs` の合計時間に等分配して `setTimeout` で順次
-   * `executionStep` にセットしていく。最後に `isExecuting` を `false`、      
-   * `executionStep` と `currentPhaseMs` を `null` に戻す。                   
-   *                                                                          
-   * Args:                                                                    
-   *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`    
-  を持つ。                                                                      
-    */
+   * `executionStep` にセットしていく。最後に `isExecuting` を `false`、
+   * `executionStep` と `currentPhaseMs` を `null` に戻す。シーケンス完了
+   * 時点で `currentEnemyHp === 0` なら、続けて `startVictorySequence(
+   * stage.enemyId)` を呼び出して CLEAR! 演出を起動する（`victory-clear`
+   * 要件 1-1, 1-3：実行終了の合図に同期して勝利演出を始める）。
+   *
+   * Args:
+   *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`
+   *         と `enemyId` を持つ。
+   */
    startExecution: (stage) => {
     const state = get();
     if (state.isExecuting || state.isTransitioning) {
@@ -345,6 +369,9 @@ const useBattleStore = create((set, get) => ({
       });
       setTimeout(() => {
         set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
+        if (get().currentEnemyHp === 0) {
+          get().startVictorySequence(stage.enemyId);
+        }
       }, phases.length * phaseMs);
     };
 
@@ -395,6 +422,34 @@ const useBattleStore = create((set, get) => ({
    dismissDamageEvent: (id) => set((state) => ({
     damageEvents: state.damageEvents.filter((e) => e.id !== id),
    })),
+
+   /**
+    * 勝利演出シーケンスを開始する。
+    *
+    * `enemies.json` から `enemyId` の `animations.dead` を引き、定義が
+    * 存在すれば `'dead' → 'fading' → 'cleared'` の 3 段、未定義なら
+    * `'fading' → 'cleared'` の 2 段で `victoryPhase` を `setTimeout`
+    * チェーンで遷移させる。`'dead'` 段の長さは
+    * `frameCount × frameDurationMs`、`'fading'` 段の長さは
+    * `VICTORY_FADE_DURATION_MS` に固定。dead 未実装の敵（slime 等）に
+    * 対する暫定スキップ分岐は、将来全敵に dead アニメが用意された時点で
+    * 撤去できる（`victory-clear` 要件 2 備考）。
+    *
+    * Args:
+    *     enemyId (string): 倒した敵 ID。`enemies.json` のキーに対応する。
+    */
+   startVictorySequence: (enemyId) => {
+    const enemy = enemiesData.enemies.find((e) => e.id === enemyId);
+    const deadAnim = enemy?.animations?.dead;
+    const deadDurationMs = deadAnim ? deadAnim.frameCount * deadAnim.frameDurationMs : 0;
+    if (deadAnim) {
+      set({ victoryPhase: 'dead' });
+      setTimeout(() => set({ victoryPhase: 'fading' }), deadDurationMs);
+    } else {
+      set({ victoryPhase: 'fading' });
+    }
+    setTimeout(() => set({ victoryPhase: 'cleared' }), deadDurationMs + VICTORY_FADE_DURATION_MS, );
+   },
 }));
 
 export default useBattleStore;

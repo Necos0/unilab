@@ -13,10 +13,11 @@ import styles from './ZoomButton.module.css';
  * 担う。本コンポーネント自身は見た目と onClick のみを提供する。見た目は
  * `ResetButton` と同じトーン（背景 `#1f1f28`・文字 `#e5e5ff`・角丸）。
  * 
- * 実行中（`isExecuting`）または拡大／縮小切替アニメ中（`isTransitioning`）                                                          
- * は `disabled` 属性を付与してクリック不可にする。CSS の `.button:disabled`                                                         
- * で半透明＋ `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える                                                          
- * （play-button 要件 3-2）。                                         
+ * 実行中（`isExecuting`）・拡大／縮小切替アニメ中（`isTransitioning`）・
+ * 勝利演出中（`victoryPhase !== null`）は `disabled` 属性を付与して
+ * クリック不可にする。CSS の `.button:disabled` で半透明＋
+ * `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
+ * （play-button 要件 3-2、victory-clear 要件 6-2）。
  *
  * Returns:
  *     JSX.Element: トグルボタン要素。
@@ -26,8 +27,9 @@ function ZoomButton() {
   const toggleExpand = useBattleStore((s) => s.toggleExpand);
   const isExecuting = useBattleStore((s) => s.isExecuting);
   const isTransitioning = useBattleStore((s) => s.isTransitioning);
+  const victoryPhase = useBattleStore((s) => s.victoryPhase);
 
-  const isDisabled = isExecuting || isTransitioning;
+  const isDisabled = isExecuting || isTransitioning || victoryPhase !== null;
 
   return (
     <button

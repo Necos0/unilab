@@ -21,6 +21,11 @@
           "frameCount": 5,
           "frameDurationMs": 250,
           "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
         }
       }
     },
@@ -33,6 +38,11 @@
           "frameCount": 6,
           "frameDurationMs": 250,
           "loop": true
+        },
+        "dead": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": false
         }
       }
     },
@@ -45,6 +55,11 @@
           "frameCount": 6,
           "frameDurationMs": 250,
           "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
         }
       }
     }

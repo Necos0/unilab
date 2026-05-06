@@ -165,6 +165,8 @@ unilab/
             │   ├── BackToMapButton.module.css
             │   ├── BattleTransition.jsx       ← マップ→バトルの黒フェード演出＋画像プリロード
             │   ├── BattleTransition.module.css
+            │   ├── VictoryClearOverlay.jsx    ← 勝利時の CLEAR! テキスト＋マップへ戻るボタン
+            │   ├── VictoryClearOverlay.module.css
             │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
             │   ├── enemy/        ← 敵スプライトのアニメーション描画
             │   │   ├── EnemySprite.jsx
