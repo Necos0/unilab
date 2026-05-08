@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -18,9 +18,9 @@ import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
 import DamageFloater from './enemy/DamageFloater';
+import PlayerDamageFloater from './player/PlayerDamageFloater';
 import useBattleStore from '../../stores/battleStore';
 import stagesData from '../../data/stages.json';
-import playerData from '../../data/player.json';
 import VictoryClearOverlay from './VictoryClearOverlay';
 import enemiesData from '../../data/enemies.json';
 
@@ -61,15 +61,38 @@ function selectActiveCard(state) {
  * Undertale 風の3段レイアウトで画面を構成し、`DndContext` で全体を
  * ラップすることで手札⇄スロット間のドラッグ＆ドロップを可能にする。
  *   - 上段: 敵スプライト + 敵 HP バー（数値併記） + ダメージ数字フロート層
- *      （`EnemySprite` + 汎用 `HpBar` + `DamageFloater`）
+ *      （`EnemySprite` + 汎用 `HpBar` + `DamageFloater`）。HP バーラッパー
+ *      は `enemyHpBox` クラス
  *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
  *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）
- *   - 下段: プレイヤー HP バー + 数値と手札カード領域
+ *   - 下段: プレイヤー HP バー（数値併記） + プレイヤー被弾ダメージ数字
+ *      フロート層 + 手札カード領域。HP バーラッパーは `playerHpBox` クラス
+ *      で、内側に `PlayerDamageFloater` を絶対配置で重ねる
+ *
+ * `enemyHpBox` と `playerHpBox` は対称的な命名で、それぞれ片側だけに
+ * レイアウト・演出変更が入っても他方に影響が出ないように分離している。
+ *
+ * 被弾時の shake + 赤フラッシュ演出は `enemyHpBox` / `playerHpBox` 両方の
+ * ラッパー側に実装している（HpBar 本体には触らない）。
+ * `battleStore.{enemy,player}DamageEvents` 末尾要素の `id` を購読し、
+ * 「最新の id」と「すでに消費済みの id」を比較する派生計算で
+ * `isEnemyHit` / `isPlayerHit` を求める方式（`EnemySprite` のフラッシュ
+ * 判定と同じパターン）。両者が異なるとき `.hit` クラスが付与され、CSS の
+ * `@keyframes hpBoxHit`（0.3 秒の `translateX` 振動 +
+ * `filter: brightness/saturate/hue-rotate` による赤系フラッシュを 1 つの
+ * キーフレームに合成）が両ラッパー共通で 1 ショット再生される。
+ * `onAnimationEnd` で「消費済み id」を「最新の id」に進めると判定が
+ * `false` に戻り、次回の被弾で末尾 id が更新されると再び `true` になる。
+ * `useEffect` を使わない派生計算パターンにより、React 19 の
+ * `react-hooks/set-state-in-effect` ルールにも適合する。
  *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
- * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・ダメージ
- * 演出キュー（`damageEvents`）・勝利演出フェーズ（`victoryPhase`）は
- * `battleStore` が保持する。`DndContext` の
+ * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・敵向け
+ * ダメージ演出キュー（`enemyDamageEvents`）・プレイヤー HP（`currentPlayerHp`
+ * / `maxPlayerHp`）・勝利演出フェーズ（`victoryPhase`）は `battleStore`
+ * が保持する。プレイヤー HP は以前ローカル変数で `playerData.maxHp` を
+ * 静的に表示していたが、モンスターカード被弾処理（monster-attack 仕様）
+ * の導入に合わせてストア値の購読に切り替えた。`DndContext` の
  * `onDragStart` / `onDragEnd` はそれぞれ `beginDrag` / `endDrag` に
  * 橋渡しする。センサーは `PointerSensor` と `TouchSensor` を登録し、
  * どちらも 4px の距離しきい値を付けてタップ・クリックとの誤検出を避ける。
@@ -109,7 +132,6 @@ function selectActiveCard(state) {
 function BattleScreen({ stageId, onExitToMap }) {
   const resolvedStageId = stageId ?? stagesData.demoStageId;
   const stage = stagesData.stages[resolvedStageId];
-  const playerMaxHp = playerData.maxHp;
 
   const initializeBattle = useBattleStore((s) => s.initializeBattle);
   const beginDrag = useBattleStore((s) => s.beginDrag);
@@ -120,8 +142,20 @@ function BattleScreen({ stageId, onExitToMap }) {
   const isExecuting = useBattleStore((s) => s.isExecuting);
   const currentEnemyHp = useBattleStore((s) => s.currentEnemyHp);
   const maxEnemyHp = useBattleStore((s) => s.maxEnemyHp);
+  const currentPlayerHp = useBattleStore((s) => s.currentPlayerHp);
+  const maxPlayerHp = useBattleStore((s) => s.maxPlayerHp);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const isEnemyFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
+  const lastPlayerDamageId = useBattleStore(
+    (s) => s.playerDamageEvents.at(-1)?.id ?? null,
+  );
+  const [consumedPlayerDamageId, setConsumedPlayerDamageId] = useState(null);
+  const isPlayerHit = lastPlayerDamageId !== null && lastPlayerDamageId !== consumedPlayerDamageId;
+  const lastEnemyDamageId = useBattleStore(
+    (s) => s.enemyDamageEvents.at(-1)?.id ?? null,
+  );
+  const [consumedEnemyDamageId, setConsumedEnemyDamageId] = useState(null);
+  const isEnemyHit = lastEnemyDamageId !== null && lastEnemyDamageId !== consumedEnemyDamageId;
 
   useEffect(() => {
     initializeBattle(stage);
@@ -168,7 +202,10 @@ function BattleScreen({ stageId, onExitToMap }) {
         {victoryPhase !== 'cleared' && <BackToMapButton onClick={onExitToMap} />}
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
-          <div className={`${styles.hpBox} ${isEnemyFading ? styles.fading : ''}`}>
+          <div 
+            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyHit ? styles.hit : ''}`}
+            onAnimationEnd={() => setConsumedEnemyDamageId(lastEnemyDamageId)}
+          >
             <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
             <span className={styles.hpText}>
               {currentEnemyHp}/{maxEnemyHp}
@@ -190,11 +227,15 @@ function BattleScreen({ stageId, onExitToMap }) {
           </div>
         </div>
         <div className={styles.playerArea}>
-          <div className={styles.hpBox}>
-            <HpBar currentHp={playerMaxHp} maxHp={playerMaxHp} />
+          <div 
+            className={`${styles.playerHpBox} ${isPlayerHit ? styles.hit : ''}`}
+            onAnimationEnd={() => setConsumedPlayerDamageId(lastPlayerDamageId)}
+          >
+            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} />
             <span className={styles.hpText}>
-              {playerMaxHp}/{playerMaxHp}
+              {currentPlayerHp}/{maxPlayerHp}
             </span>
+            <PlayerDamageFloater />
           </div>
           <Hand />
         </div>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import enemiesData from '../data/enemies.json';
+import playerData from '../data/player.json';
 
 /**
  * バトル状態を一元管理する Zustand ストア。
@@ -7,14 +8,19 @@ import enemiesData from '../data/enemies.json';
  * 手札（`handCards`）・スロット割当（`slotAssignments`）・ドラッグ中の
  * カード（`activeInstanceId`）・フローチャートの拡大状態（`isExpanded`）・
  * 切替アニメーション中フラグ（`isTransitioning`）・敵 HP（`currentEnemyHp`
- * / `maxEnemyHp`）・ダメージ演出キュー（`damageEvents`）・勝利演出フェーズ
- * （`victoryPhase`）をグローバルに保持し、手札 UI・フローチャート・
- * 拡大トグルボタン・敵 HP バー・スプライト演出・CLEAR! オーバーレイなど
- * 複数のコンポーネントから購読・更新できるようにする。
+ * / `maxEnemyHp`）・敵向けダメージ演出キュー（`enemyDamageEvents`）・プレイヤー
+ * HP（`currentPlayerHp` / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー
+ * （`playerDamageEvents`）・勝利演出フェーズ（`victoryPhase`）をグローバル
+ * に保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
+ * スプライト演出・CLEAR! オーバーレイ・プレイヤー HP バーなど複数の
+ * コンポーネントから購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
- * アイテム識別子と衝突しない。
+ * アイテム識別子と衝突しない。ステージ定義側でスロットに固定配置される
+ * ロックカード（モンスターカード等）は `locked: true` フラグを持ち、
+ * `DraggableCard` の `disabled` 判定と `computeDropTransition` のガードで
+ * ユーザー操作からの drag-out / drop-onto を抑止する。
  *
  * `victoryPhase` は `null | 'dead' | 'fading' | 'cleared'` の 4 状態を取る
  * 線形 enum で、勝利演出（敵 dead アニメ → スプライトのフェードアウト →
@@ -24,8 +30,11 @@ import enemiesData from '../data/enemies.json';
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
  *                                 ユーザー選好は引き継ぐ）。敵 HP は
- *                                 `enemies.json` の `maxHp` で初期化し、
- *                                 `victoryPhase` も `null` に戻す
+ *                                 `enemies.json` の `maxHp`、プレイヤー HP は
+ *                                 `player.json` の `maxHp` で初期化し、
+ *                                 `victoryPhase` も `null` に戻す。スロット
+ *                                 割当は `lockedCard` を持つステージ定義
+ *                                 から復元される
  *   - `beginDrag(instanceId)`   : ドラッグ開始時に呼び出す
  *   - `endDrag(result)`         : ドラッグ終了時に呼び出し、配置・差し替え・
  *                                 撤回を 1 箇所で処理する
@@ -36,15 +45,28 @@ import enemiesData from '../data/enemies.json';
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
  *                                 未埋まりは no-op。実行開始時に敵 HP を
  *                                 `maxEnemyHp` に戻し、各 attack カードのフェーズ
- *                                 で `applyDamage(card.power)` を発火する。
+ *                                 で `applyEnemyDamage(card.power)` を発火する。
  *                                 シーケンス完了時点で敵 HP が 0 なら、
  *                                 `startVictorySequence(stage.enemyId)` を呼んで
  *                                 勝利演出を起動する
- *   - `applyDamage(amount)`     : 敵 HP を amount だけ減らし（0 クランプ）、
- *                                 ダメージ演出イベントを `damageEvents` に
- *                                 push する
- *   - `dismissDamageEvent(id)`  : 指定 id のダメージイベントを配列から取り除く
+ *   - `applyEnemyDamage(amount)`
+ *                               : 敵 HP を amount だけ減らし（0 クランプ）、
+ *                                 敵向けダメージ演出イベントを
+ *                                 `enemyDamageEvents` に push する
+ *   - `dismissEnemyDamageEvent(id)`
+ *                               : 指定 id の敵向けダメージイベントを
+ *                                 `enemyDamageEvents` から取り除く
  *                                 （`DamageFloater` 等の演出側からの自走削除）
+ *   - `applyPlayerDamage(amount)`
+ *                               : プレイヤー HP を amount だけ減らし（0 クランプ）、
+ *                                 プレイヤー向けダメージ演出イベントを
+ *                                 `playerDamageEvents` に push する。モンスター
+ *                                 カードのスロット通過時に `startExecution` から
+ *                                 呼び出される
+ *   - `dismissPlayerDamageEvent(id)`
+ *                               : 指定 id のプレイヤー向けダメージイベントを
+ *                                 `playerDamageEvents` から取り除く
+ *                                 （`PlayerDamageFloater` 等の演出側からの自走削除）
  *   - `startVictorySequence(enemyId)`
  *                               : 勝利演出シーケンスを開始する。`enemies.json` で
  *                                 dead アニメが定義されていれば `'dead' →
@@ -83,18 +105,44 @@ function expandHandCards(cards) {
 }
 
 /**
- * スロット配列から全て `null` 埋めの割当マップを生成する。
+ * ステージ定義から初期スロット割当マップを生成する。
+ *
+ * 各スロットに `lockedCard` が定義されていれば、そのスロットは
+ * `{ instanceId: 'locked-<slotId>', id, power, locked: true }` の
+ * ロック付き `CardInstance` で埋める。`lockedCard` を持たないスロットは
+ * 従来どおり `null`（空き）にする。`locked: true` フラグは `DraggableCard`
+ * の `disabled` 判定および `computeDropTransition` のガードで参照され、
+ * ユーザー操作からの drag-out / drop-onto を抑止する役割を持つ
+ * （monster-attack 要件 2-2, 2-3）。
+ *
+ * `instanceId` は `locked-<slotId>` 規約で生成し、`expandHandCards` が
+ * 使う `c-${index}` 体系と衝突しない安定 ID として機能する。リセット
+ * ボタン経由で `initializeBattle` が再実行されてもスロット ID が同じで
+ * あれば同じ `instanceId` が復元されるため、React の差分更新も自然に
+ * 働く。
  *
  * Args:
- *     slots (Array<{id: string}>): ステージ定義のスロット配列。
+ *     stage (object): `stages.json` の 1 ステージ分。`slots` 配列を持ち、
+ *         各スロットは `{id, position, lockedCard?}` の形。`lockedCard`
+ *         は `{id: string, power: number}` の形で、未定義なら空きスロット。
  *
  * Returns:
- *     Object<string, null>: スロット ID をキーに、値が全て `null` のマップ。
+ *     Object<string, CardInstance | null>: スロット ID をキーに、ロック
+ *         カードか `null` を値とするマップ。
  */
-function emptySlotAssignments(slots) {
+function buildSlotAssignmentsFromStage(stage) {
   const assignments = {};
-  for (const slot of slots) {
-    assignments[slot.id] = null;
+  for (const slot of stage.slots ?? []) {
+    if(slot.lockedCard){
+      assignments[slot.id] = {
+        instanceId: `locked-${slot.id}`,
+        id: slot.lockedCard.id,
+        power: slot.lockedCard.power,
+        locked: true,
+      };
+    } else {
+      assignments[slot.id] = null;
+    }
   }
   return assignments;
 }
@@ -159,6 +207,16 @@ function selectAllSlotsFilled(state) {
  * `source` と `destination` の組み合わせで 7 パターンに分岐する。
  * Zustand の `set` の引数として渡せる部分更新オブジェクトを返す。
  *
+ * 関数冒頭で 4 つの早期リターンガードを通過する：
+ *   1. 手札 → スロット外（`source === HAND && destination === null`）：
+ *      何もしない（手札からの撤回扱い）
+ *   2. 同一位置への drop（`source === destination`）：何もしない
+ *   3. ドラッグ元スロットがロックカードを持つ（`sourceCard.locked`）：
+ *      何もしない（モンスターカードを動かせない／monster-attack 要件 2-3）
+ *   4. ドロップ先スロットがロックカードを持つ（`destCard.locked`）：
+ *      何もしない（ロックスロットへ別カードを置けない／monster-attack 要件 2-2）
+ * いずれにも該当しない場合のみ、本来の状態遷移ロジックに進む。
+ *
  * Args:
  *     state (object): 現在のストア状態。
  *     result (object): ドラッグ結果。以下のキーを持つ。
@@ -178,6 +236,20 @@ function computeDropTransition(state, { instanceId, source, destination }) {
 
   if (source === destination) {
     return {};
+  }
+
+  if (source !== HAND) {
+    const sourceCard = state.slotAssignments[source];
+    if (sourceCard?.locked) {
+      return {};
+    }
+  }
+
+  if (destination !== null) {
+    const destCard = state.slotAssignments[destination];
+    if (destCard?.locked) {
+      return {};
+    }
   }
 
   let handCards = state.handCards;
@@ -231,33 +303,56 @@ const useBattleStore = create((set, get) => ({
   currentPhaseMs: null,
   currentEnemyHp: 0,
   maxEnemyHp: 0,
-  damageEvents: [],
+  enemyDamageEvents: [],
   victoryPhase: null,
-  _damageCounter: 0,
+  _enemyDamageCounter: 0,
+  currentPlayerHp: 0,
+  maxPlayerHp: 0,
+  playerDamageEvents: [],
+  _playerDamageCounter: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
    *
-   * 手札・スロット割当・ドラッグ中フラグ・敵 HP・ダメージ演出キュー・
-   * 勝利演出フェーズ（`victoryPhase`）を初期化する。`isExpanded` には
-   * 触れない（「拡大状態でリセットを押しても拡大は保たれる」挙動が
-   * 成立する：`flowchart-zoom` 要件 6-1）。`victoryPhase` を `null` に
-   * 戻すことで、CLEAR! 演出の名残（透過したスプライト・CLEAR! テキスト）
-   * を残さず通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4）。
+   * 手札・スロット割当・ドラッグ中フラグ・敵 HP・敵向けダメージ演出キュー・
+   * プレイヤー HP・プレイヤー向けダメージ演出キュー・勝利演出フェーズ
+   * （`victoryPhase`）を初期化する。`isExpanded` には触れない
+   * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
+   * `flowchart-zoom` 要件 6-1）。`victoryPhase` を `null` に戻すことで、
+   * CLEAR! 演出の名残（透過したスプライト・CLEAR! テキスト）を残さず
+   * 通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4）。
+   *
+   * 敵 HP は `enemies.json` から `stage.enemyId` に対応する `maxHp` を
+   * 取得して `maxEnemyHp` / `currentEnemyHp` の双方に設定する。プレイヤー
+   * HP は `player.json` の `maxHp` から同様に `maxPlayerHp` /
+   * `currentPlayerHp` を初期化する（monster-attack 要件 3-1）。データが
+   * 欠損している場合は `?? 0` で 0 にフォールバックし、`HpBar` 側で
+   * `null` を返すことでレイアウトを崩さない。
+   *
+   * スロット割当の構築は `buildSlotAssignmentsFromStage(stage)` に委譲
+   * する。これにより、`stages.json` でスロットに `lockedCard` を定義
+   * した場合（モンスターカードの固定配置など）、初期化時にそのスロット
+   * へロック付きカードが復元される（monster-attack 要件 2-1, 2-4）。
+   * リセットボタン経由で再実行されても同様にロックカードは復元される
+   * ため、ユーザー配置のカードのみが手札に戻る挙動になる。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
    */
   initializeBattle: (stage) => {
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
-    const maxHp = enemy?.maxHp ?? 0;
+    const maxEnemyHp = enemy?.maxHp ?? 0;
+    const maxPlayerHp = playerData.maxHp ?? 0;
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
-      slotAssignments: emptySlotAssignments(stage.slots ?? []),
+      slotAssignments: buildSlotAssignmentsFromStage(stage),
       activeInstanceId: null,
-      maxEnemyHp: maxHp,
-      currentEnemyHp: maxHp,
-      damageEvents: [],
+      maxEnemyHp,
+      currentEnemyHp: maxEnemyHp,
+      enemyDamageEvents: [],
+      maxPlayerHp,
+      currentPlayerHp: maxPlayerHp,
+      playerDamageEvents: [],
       victoryPhase: null,
     }));
   },
@@ -332,6 +427,26 @@ const useBattleStore = create((set, get) => ({
    * stage.enemyId)` を呼び出して CLEAR! 演出を起動する（`victory-clear`
    * 要件 1-1, 1-3：実行終了の合図に同期して勝利演出を始める）。
    *
+   * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
+   * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
+   * （`enemyDamageEvents` / `playerDamageEvents`）も空配列にクリアする。これに
+   * より各実行は「フレッシュな状態からの再生」として独立する
+   * （attack-processing 要件 3-1、monster-attack 要件 5-1）。
+   *
+   * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
+   * 効果を発火する：
+   *   - `attack` カード → `applyEnemyDamage(card.power)`（敵 HP を減らす）
+   *   - `monster` カード → `applyPlayerDamage(card.power)`（プレイヤー HP
+   *     を減らす。モンスターカードは `lockedCard` でステージ定義から固定
+   *     配置されているため、ユーザー操作では現れない）
+   * いずれも `card.power > 0` でガードしており、power 欠損や 0 の場合は
+   * 適用しない（要件 4-4）。`else if` ではなく独立 `if` の並列構造にする
+   * ことで、将来カード種別が追加されたときに順序依存無く拡張できる。
+   *
+   * プレイヤー HP=0 に到達してもシーケンスは中断せず、敗北判定や敗北演出
+   * は行わない（monster-attack 要件 3-4：敗北処理は別スペック）。完了タイマー
+   * では `currentEnemyHp === 0` のときのみ勝利演出を起動する。
+   *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`
    *         と `enemyId` を持つ。
@@ -354,7 +469,9 @@ const useBattleStore = create((set, get) => ({
         isExecuting: true,
         currentPhaseMs: phaseMs,
         currentEnemyHp: s.maxEnemyHp,
-        damageEvents: [],
+        enemyDamageEvents: [],
+        currentPlayerHp: s.maxPlayerHp,
+        playerDamageEvents: [],
       }));
       phases.forEach((phase, i) => {
         setTimeout(() => {
@@ -362,7 +479,10 @@ const useBattleStore = create((set, get) => ({
           if (phase.type === 'node') {
             const card = get().slotAssignments[phase.id];
             if (card && card.id === 'attack' && card.power > 0) {
-              get().applyDamage(card.power);
+              get().applyEnemyDamage(card.power);
+            }
+            if (card && card.id === 'monster' && card.power > 0) {
+              get().applyPlayerDamage(card.power);
             }
           }
         }, i * phaseMs);
@@ -389,38 +509,81 @@ const useBattleStore = create((set, get) => ({
   /**
    * 敵に対してダメージを 1 回適用する。
    *                                                                          
-   * `currentEnemyHp` を減算（0 でクランプ）し、`damageEvents`に新規イベントを                                                              
-    * 追加する。`damageEvents` の各要素は `EnemySprite` のフラッシュ演出と
+   * `currentEnemyHp` を減算（0 でクランプ）し、`enemyDamageEvents`に新規イベントを                                                              
+    * 追加する。`enemyDamageEvents` の各要素は `EnemySprite` のフラッシュ演出と
     * `DamageFloater` の浮き数字描画のトリガーとして購読される。`id` は        
-    * `_damageCounter` ベースの単調増加文字列で、React の key として使う。     
+    * `_enemyDamageCounter` ベースの単調増加文字列で、React の key として使う。     
     *                                                                          
     * Args:                                                                    
     *     amount (number): 与えるダメージ量。負の値や 0 は呼び出し側で         
     *         弾く前提だが、内部的には `Math.max(0, ...)` で 0 クランプする。  
     */
-   applyDamage: (amount) => set((state) => {
+   applyEnemyDamage: (amount) => set((state) => {
     const nextHp = Math.max(0, state.currentEnemyHp - amount);
-    const id = `d-${state._damageCounter}`;
+    const id = `d-${state._enemyDamageCounter}`;
     return {
       currentEnemyHp: nextHp,
-      damageEvents: [...state.damageEvents, { id, amount }],
-      _damageCounter: state._damageCounter + 1,
+      enemyDamageEvents: [...state.enemyDamageEvents, { id, amount }],
+      _enemyDamageCounter: state._enemyDamageCounter + 1,
     };
    }),
 
    /**
-   * 指定 id のダメージイベントを `damageEvents` から削除する。               
+    * プレイヤーに対してダメージを 1 回適用する。
+    *
+    * `currentPlayerHp` を減算（0 でクランプ）し、`playerDamageEvents` に
+    * 新規イベントを追加する。`playerDamageEvents` の各要素は
+    * `PlayerDamageFloater` の浮き数字描画と、プレイヤー HP バーラッパーの
+    * shake + flash 演出のトリガーとして購読される。`id` は
+    * `_playerDamageCounter` ベースの単調増加文字列で、敵側 (`d-`) と
+    * 区別するため `pd-` プレフィックスを付ける（React の key として使う）。
+    *
+    * プレイヤー HP=0 に到達しても本アクションは何もせず、敗北判定や
+    * 実行中断は行わない（monster-attack 要件 3-4：敗北処理は別スペック）。
+    *
+    * Args:
+    *     amount (number): 与えるダメージ量。負の値や 0 は呼び出し側で
+    *         弾く前提だが、内部的には `Math.max(0, ...)` で 0 クランプする。
+    */
+   applyPlayerDamage: (amount) => set((state) => {
+    const nextHp = Math.max(0, state.currentPlayerHp - amount);
+    const id = `pd-${state._playerDamageCounter}`;
+    return {
+      currentPlayerHp: nextHp,
+      playerDamageEvents: [...state.playerDamageEvents, { id, amount }],
+      _playerDamageCounter: state._playerDamageCounter + 1,
+    };
+   }),
+
+   /**
+   * 指定 id のダメージイベントを `enemyDamageEvents` から削除する。               
    *                                                                          
    * `DamageFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、自身を
-   * 配列から取り除いて自走 unmount する。これにより `damageEvents` が        
+   * 配列から取り除いて自走 unmount する。これにより `enemyDamageEvents` が        
    * 累積し続けるのを防ぐ。                                                   
    *                                                                          
    * Args:                                                                    
-   *     id (string): 削除対象のダメージイベント id。`damageEvents` 内に      
+   *     id (string): 削除対象のダメージイベント id。`enemyDamageEvents` 内に      
    *         該当が無ければ no-op。                                           
    */
-   dismissDamageEvent: (id) => set((state) => ({
-    damageEvents: state.damageEvents.filter((e) => e.id !== id),
+   dismissEnemyDamageEvent: (id) => set((state) => ({
+    enemyDamageEvents: state.enemyDamageEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
+   * 指定 id のプレイヤー向けダメージイベントを `playerDamageEvents` から削除する。
+   *
+   * `PlayerDamageFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、
+   * 自身を配列から取り除いて自走 unmount する。これにより
+   * `playerDamageEvents` が累積し続けるのを防ぐ。敵側 `dismissEnemyDamageEvent`
+   * と完全対称の責務を持つ。
+   *
+   * Args:
+   *     id (string): 削除対象のダメージイベント id。`playerDamageEvents`
+   *         内に該当が無ければ no-op。
+   */
+   dismissPlayerDamageEvent: (id) => set((state) => ({
+    playerDamageEvents: state.playerDamageEvents.filter((e) => e.id !== id),
    })),
 
    /**

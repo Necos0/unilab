@@ -16,7 +16,7 @@ import useBattleStore from '../../../stores/battleStore';
  * `enemyId` または `state` が定義に存在しない場合は `null` を返し、
  * 親レイアウトを崩さない。画像は原寸で表示する。
  *
- * 攻撃ヒット演出として `battleStore.damageEvents` 末尾の id を購読し、
+ * 攻撃ヒット演出として `battleStore.enemyDamageEvents` 末尾の id を購読し、
  * 新しいダメージイベントが入ったタイミングで `<img>` に `.flashing`
  * クラスを 1 ショット付与する。CSS の `@keyframes enemyFlash` が
  * `filter: brightness/saturate` でスプライトを白く明滅させ、
@@ -52,7 +52,7 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   });
 
   const lastDamageId = useBattleStore(
-    (s) => s.damageEvents[s.damageEvents.length -1]?.id ?? null,
+    (s) => s.enemyDamageEvents[s.enemyDamageEvents.length -1]?.id ?? null,
   );
   const [consumedDamageId, setConsumedDamageId] = useState(null);
   const isFlashing = lastDamageId !== null && lastDamageId !== consumedDamageId;

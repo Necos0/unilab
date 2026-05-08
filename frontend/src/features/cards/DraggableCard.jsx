@@ -22,6 +22,13 @@ import styles from './DraggableCard.module.css';
  * では dnd-kit の pointer 監視を確実に止められない場合があるため、
  * dnd-kit 公式の disabled API でカード側からも明示的に無効化する。
  *
+ * 同様に、ステージ定義側で固定配置されたロックカード（`card.locked === true`）
+ * もドラッグ開始を抑止する（monster-attack 要件 2-3）。モンスターカードの
+ * ようにユーザーが動かせないカードは、UI 上で「掴めない」反応をするのが
+ * 自然な挙動。`battleStore.computeDropTransition` 側にも同等のガードがあり
+ * 二重防御になっている：dnd-kit 側で抑止するのが UX 的に正しいが、万が一
+ * そこを抜けても状態遷移層で弾けるためデータが壊れない。
+ *
  * 配置先のコンテナに合わせてサイズ計算方法を切り替えるため `variant` を
  * 受け取る：
  *   - `'hand'`（既定）: 手札レイアウトで使用。`height: 100%` + `aspect-ratio: 2/3`
@@ -43,7 +50,7 @@ function DraggableCard({ card, source, variant = 'hand' }) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: card.instanceId,
     data: { source },
-    disabled: victoryPhase !== null,
+    disabled: victoryPhase !== null || card.locked === true,
   });
   const isDragging = useBattleStore(
     (s) => s.activeInstanceId === card.instanceId,
