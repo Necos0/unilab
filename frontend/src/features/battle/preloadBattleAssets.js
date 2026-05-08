@@ -32,6 +32,7 @@ function preloadImage(src) {
  * 対象は以下：
  *   - 敵スプライト（`enemies.json` で定義された全アニメーション状態の全フレーム）
  *   - 手札カード画像（`stages.json` の `cards[].id` を deduplicate したもの）
+ *   - スロットにロック配置されたカード画像（`slots[].lockedCard.id`）
  *   - フローチャート用アイコン（start / goal / play / reset）
  *
  * Args:
@@ -54,6 +55,12 @@ function collectBattleAssetUrls(stage) {
 
   for (const card of stage.cards ?? []) {
     urls.add(`/cards/${card.id}.png`);
+  }
+
+  for (const slot of stage.slots ?? []) {
+    if (slot.lockedCard?.id) {
+      urls.add(`/cards/${slot.lockedCard.id}.png`);
+    }
   }
 
   urls.add('/icons/flowchart/start.svg');
