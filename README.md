@@ -136,12 +136,14 @@ unilab/
     │   ├── favicon.svg
     │   ├── cards/                ← カード画像(<id>.png)
     │   ├── icons/                ← UI アイコン
-    │   │   └── flowchart/        ← フローチャート関連アイコン(start.svg / goal.svg)
+    │   │   └── flowchart/        ← フローチャート関連アイコン(goal/play/reset/start.svg)
     │   ├── maps/                 ← マップ画像(map_<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
-    │       └── enemies/
-    │           └── slime/
-    │               └── idle/     ← スライム idle アニメーション(6 フレーム)
+    │       └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
+    │           ├── slime/        ← idle のみ(dead 未実装)
+    │           ├── wolf/         ← idle / dead
+    │           ├── knight/       ← idle / dead
+    │           └── golem/        ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
@@ -168,16 +170,33 @@ unilab/
             │   ├── VictoryClearOverlay.jsx    ← 勝利時の CLEAR! テキスト＋マップへ戻るボタン
             │   ├── VictoryClearOverlay.module.css
             │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
-            │   ├── enemy/        ← 敵スプライトのアニメーション描画
+            │   ├── enemy/        ← 敵側の演出(スプライト・被弾ダメージ表示)
+            │   │   ├── DamageFloater.jsx
+            │   │   ├── DamageFloater.module.css
             │   │   ├── EnemySprite.jsx
             │   │   ├── EnemySprite.module.css
             │   │   ├── enemySpritePath.js
             │   │   └── useSpriteAnimation.js
+            │   ├── player/       ← プレイヤー側の演出(被弾ダメージ表示)
+            │   │   ├── PlayerDamageFloater.jsx
+            │   │   └── PlayerDamageFloater.module.css
             │   └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
+            │       ├── AnimatedProgressEdge.jsx
+            │       ├── AnimatedProgressEdge.module.css
             │       ├── FlowchartArea.jsx
             │       ├── FlowchartArea.module.css
+            │       ├── GoalNode.jsx
+            │       ├── GoalNode.module.css
+            │       ├── PlayButton.jsx
+            │       ├── PlayButton.module.css
+            │       ├── ResetButton.jsx
+            │       ├── ResetButton.module.css
             │       ├── SlotNode.jsx
-            │       └── SlotNode.module.css
+            │       ├── SlotNode.module.css
+            │       ├── StartNode.jsx
+            │       ├── StartNode.module.css
+            │       ├── ZoomButton.jsx
+            │       └── ZoomButton.module.css
             ├── cards/            ← カード UI(個別カード・手札レイアウト)
             │   ├── Card.jsx
             │   ├── Card.module.css

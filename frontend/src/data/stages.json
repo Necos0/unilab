@@ -44,7 +44,7 @@
       ],
       "slots": [
         { "id": "slot-1", "position": { "x": 80,  "y": 120 } },
-        { "id": "slot-2", "position": { "x": 280, "y": 120 } },
+        { "id": "slot-2", "position": { "x": 280, "y": 120 }, "lockedCard": { "id": "monster", "power": 50} },
         { "id": "slot-3", "position": { "x": 480, "y": 120 } }
       ],
       "goal": {

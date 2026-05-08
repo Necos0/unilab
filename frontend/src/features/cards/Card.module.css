@@ -27,3 +27,26 @@
   letter-spacing: 1px;
   pointer-events: none;
 }
+
+.monsterPlaceholder {
+  background: linear-gradient(180deg, #6a0a0a 0%, #2a0303 100%);
+  border: 2px solid #ff5d5d;
+  border-radius: 8px;
+  box-shadow: inset 0 0 12px rgba(255, 93, 93, 0.4);
+}
+
+.placeholderInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholderLabel {
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: #ffd0d0;
+  text-shadow: 0 0 4px #000;
+}
