@@ -19,6 +19,7 @@ import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
 import DamageFloater from './enemy/DamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
+import PlayerHealFloater from './player/PlayerHealFloater';
 import useBattleStore from '../../stores/battleStore';
 import stagesData from '../../data/stages.json';
 import VictoryClearOverlay from './VictoryClearOverlay';
@@ -66,8 +67,9 @@ function selectActiveCard(state) {
  *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
  *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）
  *   - 下段: プレイヤー HP バー（数値併記） + プレイヤー被弾ダメージ数字
- *      フロート層 + 手札カード領域。HP バーラッパーは `playerHpBox` クラス
- *      で、内側に `PlayerDamageFloater` を絶対配置で重ねる
+ *      フロート層 + プレイヤー回復数字フロート層 + 手札カード領域。
+ *      HP バーラッパーは `playerHpBox` クラスで、内側に
+ *      `PlayerDamageFloater` と `PlayerHealFloater` を絶対配置で重ねる
  *
  * `enemyHpBox` と `playerHpBox` は対称的な命名で、それぞれ片側だけに
  * レイアウト・演出変更が入っても他方に影響が出ないように分離している。
@@ -86,11 +88,23 @@ function selectActiveCard(state) {
  * `useEffect` を使わない派生計算パターンにより、React 19 の
  * `react-hooks/set-state-in-effect` ルールにも適合する。
  *
+ * `playerHpBox` には被弾と対称に、ヒール時の緑フラッシュ演出も乗る。
+ * `playerHealEvents` 末尾の `id` を購読する `isPlayerHealed` の派生計算で
+ * `.healed` クラスを付与し、CSS の `@keyframes hpBoxHealed`（shake なし、
+ * `filter` のみで `hue-rotate(+20〜+25deg)` の緑寄せ + 明度上昇）が 0.3 秒
+ * 1 ショット再生される（heal-card 要件 3-1〜3-4）。被弾と回復は同じ
+ * `onAnimationEnd` ハンドラに乗るため、`event.animationName` が `hpBoxHit`
+ * か `hpBoxHealed` かで分岐し、`consumedPlayerDamageId` /
+ * `consumedPlayerHealId` の id 系列を独立に進める。CSS Modules による
+ * キーフレーム名のハッシュ化に備え、`styles.hpBoxHit || 'hpBoxHit'` の
+ * OR 併記で実名・生名どちらでも一致するようにしている。
+ *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
  * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・敵向け
  * ダメージ演出キュー（`enemyDamageEvents`）・プレイヤー HP（`currentPlayerHp`
- * / `maxPlayerHp`）・勝利演出フェーズ（`victoryPhase`）は `battleStore`
- * が保持する。プレイヤー HP は以前ローカル変数で `playerData.maxHp` を
+ * / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー（`playerDamageEvents`）・
+ * プレイヤー向けヒール演出キュー（`playerHealEvents`）・勝利演出フェーズ
+ * （`victoryPhase`）は `battleStore` が保持する。プレイヤー HP は以前ローカル変数で `playerData.maxHp` を
  * 静的に表示していたが、モンスターカード被弾処理（monster-attack 仕様）
  * の導入に合わせてストア値の購読に切り替えた。`DndContext` の
  * `onDragStart` / `onDragEnd` はそれぞれ `beginDrag` / `endDrag` に
@@ -151,6 +165,11 @@ function BattleScreen({ stageId, onExitToMap }) {
   );
   const [consumedPlayerDamageId, setConsumedPlayerDamageId] = useState(null);
   const isPlayerHit = lastPlayerDamageId !== null && lastPlayerDamageId !== consumedPlayerDamageId;
+  const lastPlayerHealId = useBattleStore(
+    (s) => s.playerHealEvents.at(-1)?.id ?? null,
+  );
+  const [consumedPlayerHealId, setConsumedPlayerHealId] = useState(null);
+  const isPlayerHealed = lastPlayerHealId !== null && lastPlayerHealId !== consumedPlayerHealId;
   const lastEnemyDamageId = useBattleStore(
     (s) => s.enemyDamageEvents.at(-1)?.id ?? null,
   );
@@ -228,14 +247,25 @@ function BattleScreen({ stageId, onExitToMap }) {
         </div>
         <div className={styles.playerArea}>
           <div 
-            className={`${styles.playerHpBox} ${isPlayerHit ? styles.hit : ''}`}
-            onAnimationEnd={() => setConsumedPlayerDamageId(lastPlayerDamageId)}
+            className={[
+              styles.playerHpBox,
+              isPlayerHit && styles.hit,
+              isPlayerHealed && styles.healed,
+            ].filter(Boolean).join(' ')}
+            onAnimationEnd={(event) => {
+              if (event.animationName === styles.hpBoxHit || event.animationName === 'hpBoxHit') {
+                setConsumedPlayerDamageId(lastPlayerDamageId);
+              } else if (event.animationName === styles.hpBoxHealed || event.animationName === 'hpBoxHealed') {
+                setConsumedPlayerHealId(lastPlayerHealId);
+              }
+            }}
           >
             <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} />
             <span className={styles.hpText}>
               {currentPlayerHp}/{maxPlayerHp}
             </span>
             <PlayerDamageFloater />
+            <PlayerHealFloater />
           </div>
           <Hand />
         </div>

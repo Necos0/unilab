@@ -177,9 +177,11 @@ unilab/
             │   │   ├── EnemySprite.module.css
             │   │   ├── enemySpritePath.js
             │   │   └── useSpriteAnimation.js
-            │   ├── player/       ← プレイヤー側の演出(被弾ダメージ表示)
+            │   ├── player/       ← プレイヤー側の演出(被弾ダメージ・回復数字表示)
             │   │   ├── PlayerDamageFloater.jsx
-            │   │   └── PlayerDamageFloater.module.css
+            │   │   ├── PlayerDamageFloater.module.css
+            │   │   ├── PlayerHealFloater.jsx
+            │   │   └── PlayerHealFloater.module.css
             │   └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
             │       ├── AnimatedProgressEdge.jsx
             │       ├── AnimatedProgressEdge.module.css
