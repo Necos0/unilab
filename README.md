@@ -244,3 +244,52 @@ unilab/
 | `engine/` を UI から分離 | 純粋関数でテスト容易、将来 Python へ移植しやすい |
 | `data/` を JSON で分離し `src/` に配置 | JS から `import` して同期アクセスでき、ビルド時に JSON の破損を検知できる。ステージ・カード追加はコード変更なしで行える |
 | 画像・フォントを `public/` に集約 | URL で参照する資産（`<img src>` 等）の置き場。JSON からファイル名で参照でき、将来バックエンド配信に切り替えても参照形式が同じ |
+
+## 開発者向けノート（ハマりやすいポイント）
+
+### ピクセル風フォント（`Press Start 2P`）の視覚中央配置
+
+このプロジェクトでは HP バー数値・カード power・CLEAR! テキスト等で `Press Start 2P` のドット絵風等幅フォントを使う。**「box は CSS 的に中央配置なのに、見た目はなぜか左寄り（または右寄り）」** という症状が出ることがあり、以下の点に注意。
+
+#### 症状
+
+- `getBoundingClientRect()` で要素の box 中心を測ると、親要素の中心と完全一致している
+- `Range.getBoundingClientRect()` でテキスト範囲を測っても、中心は box 中心とほぼ同じ
+- それでも定規でディスプレイを測ると、視覚的に明らかにずれている（数 mm〜十数 mm）
+
+#### 原因
+
+`Press Start 2P` は等幅フォントだが、**`!` `i` `l` `.` などのグリフは文字 advance box 内で左寄りに描画される**（縦棒やドットが左半分に集中し、右半分は空白）。CSS のレイアウト計算は **advance box ベース** なので、glyph の実際のインク位置（visual ink box）がどこにあるかは関知しない。`Range.getBoundingClientRect()` も advance box を返すため、CSS では検出できない。結果として「CLEAR!」のような末尾に `!` が来る文字列は、box 中央なのに視覚重心が左に寄って見える。
+
+#### 対処
+
+テキストを `<span>` でラップし、wrapper を flex で中央配置レーンにし、span 側に `padding-left` で glyph 位置を補正する。**`px` の magic number ではなく `em` 単位（フォントサイズ相対）で書く**ことで、`clamp(2rem, 6vw, 3rem)` のようなレスポンシブな font-size 変動にも自動追従する。
+
+```jsx
+<div className={styles.clearText}>
+  <span className={styles.clearTextInner}>CLEAR!</span>
+</div>
+```
+
+```css
+.clearText {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.clearTextInner {
+  padding-left: 0.5em;  /* glyph 位置補正（フォントサイズ相対） */
+}
+```
+
+#### 実例
+
+- `frontend/src/features/battle/VictoryClearOverlay.jsx` / `.module.css`：CLEAR! テキストの中央配置補正
+
+#### デバッグ手順（「視覚的に左寄り」と感じたら）
+
+1. DevTools コンソールで対象要素の `getBoundingClientRect()` を測り、親 box との中心 X が一致しているか確認
+2. 一致していれば `Range.getBoundingClientRect()` でテキスト範囲も中心一致を確認
+3. 両方一致しているのに視覚ズレが残るなら **glyph 位置由来**。`em` 単位の `padding-left` で補正
+4. 一致していないなら CSS の中央配置設定（`justify-content` / `align-items` / `width: 100%`）を見直す

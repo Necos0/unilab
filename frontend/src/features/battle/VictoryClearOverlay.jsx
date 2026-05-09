@@ -10,6 +10,16 @@ import styles from './VictoryClearOverlay.module.css';
  * Start 2P'` のドット絵風フォントを HP バー数値（`.hpText`）と共通化した
  * うえで、3〜4 倍のサイズで強調表示する（`victory-clear` 要件 4-2）。
  *
+ * CLEAR! テキストは `<div class="clearText"><span class="clearTextInner">`
+ * の入れ子構造にし、外側 `clearText` を `width: 100%; justify-content: center`
+ * で overlay 全幅の中央配置レーンとして使い、内側 `clearTextInner` で
+ * テキスト本体を描画する。これは Press Start 2P フォント特有の問題
+ * （`!` グリフが文字 advance box 内で左寄りに描画され、CSS レイアウト上は
+ * 中央なのに視覚的には左寄りに見える）の補正のため。`clearTextInner` に
+ * `padding-left: 0.5em` を当てることで、glyph の見た目重心を box 中央に
+ * 寄せる。フォントサイズ相対（em 単位）にすることで、`clamp` で変動する
+ * font-size にも追従する。
+ *
  * 戦闘画面ルートには勝利演出中に `.root.victory` クラスが付与され
  * `pointer-events: none` で全体がクリック不能になる。本オーバーレイは
  * `.overlay` に `pointer-events: auto` を再付与することで、CLEAR! 中も
@@ -36,7 +46,9 @@ import styles from './VictoryClearOverlay.module.css';
 function VictoryClearOverlay({ onExitToMap }) {
     return (
         <div className={styles.overlay}>
-            <div className={styles.clearText}>CLEAR!</div>
+            <div className={styles.clearText}>
+                <span className={styles.clearTextInner}>CLEAR!</span>
+            </div>
             <div className={styles.buttonRow}>
                 <button
                     type="button"
