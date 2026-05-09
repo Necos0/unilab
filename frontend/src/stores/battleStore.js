@@ -10,7 +10,8 @@ import playerData from '../data/player.json';
  * 切替アニメーション中フラグ（`isTransitioning`）・敵 HP（`currentEnemyHp`
  * / `maxEnemyHp`）・敵向けダメージ演出キュー（`enemyDamageEvents`）・プレイヤー
  * HP（`currentPlayerHp` / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー
- * （`playerDamageEvents`）・勝利演出フェーズ（`victoryPhase`）をグローバル
+ * （`playerDamageEvents`）・プレイヤー向けヒール演出キュー
+ * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）をグローバル
  * に保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
  * スプライト演出・CLEAR! オーバーレイ・プレイヤー HP バーなど複数の
  * コンポーネントから購読・更新できるようにする。
@@ -43,9 +44,10 @@ import playerData from '../data/player.json';
  *                                 切替後は 250ms 後に `isTransitioning` を戻す
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
- *                                 未埋まりは no-op。実行開始時に敵 HP を
- *                                 `maxEnemyHp` に戻し、各 attack カードのフェーズ
- *                                 で `applyEnemyDamage(card.power)` を発火する。
+ *                                 未埋まりは no-op。実行開始時に敵／プレイヤー HP を
+ *                                 各 `maxHp` に戻し、各カードのフェーズで種別ごとに
+ *                                 `applyEnemyDamage` / `applyPlayerDamage` /
+ *                                 `applyPlayerHeal` を発火する（独立 `if` 並列）。
  *                                 シーケンス完了時点で敵 HP が 0 なら、
  *                                 `startVictorySequence(stage.enemyId)` を呼んで
  *                                 勝利演出を起動する
@@ -67,6 +69,19 @@ import playerData from '../data/player.json';
  *                               : 指定 id のプレイヤー向けダメージイベントを
  *                                 `playerDamageEvents` から取り除く
  *                                 （`PlayerDamageFloater` 等の演出側からの自走削除）
+ *   - `applyPlayerHeal(amount)`
+ *                               : プレイヤー HP を amount だけ回復し
+ *                                 （`maxPlayerHp` でクランプ）、プレイヤー向け
+ *                                 ヒール演出イベントを `playerHealEvents` に
+ *                                 push する。HP が満タンでも push は必ず行い、
+ *                                 演出だけは再生される（heal カードを通った
+ *                                 ことの視覚フィードバック）。heal カードの
+ *                                 スロット通過時に `startExecution` から
+ *                                 呼び出される
+ *   - `dismissPlayerHealEvent(id)`
+ *                               : 指定 id のプレイヤー向けヒールイベントを
+ *                                 `playerHealEvents` から取り除く
+ *                                 （`PlayerHealFloater` 等の演出側からの自走削除）
  *   - `startVictorySequence(enemyId)`
  *                               : 勝利演出シーケンスを開始する。`enemies.json` で
  *                                 dead アニメが定義されていれば `'dead' →
@@ -310,13 +325,15 @@ const useBattleStore = create((set, get) => ({
   maxPlayerHp: 0,
   playerDamageEvents: [],
   _playerDamageCounter: 0,
+  playerHealEvents: [],
+  _playerHealCounter: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
    *
    * 手札・スロット割当・ドラッグ中フラグ・敵 HP・敵向けダメージ演出キュー・
-   * プレイヤー HP・プレイヤー向けダメージ演出キュー・勝利演出フェーズ
-   * （`victoryPhase`）を初期化する。`isExpanded` には触れない
+   * プレイヤー HP・プレイヤー向けダメージ演出キュー・プレイヤー向けヒール
+   * 演出キュー・勝利演出フェーズ（`victoryPhase`）を初期化する。`isExpanded` には触れない
    * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
    * `flowchart-zoom` 要件 6-1）。`victoryPhase` を `null` に戻すことで、
    * CLEAR! 演出の名残（透過したスプライト・CLEAR! テキスト）を残さず
@@ -353,6 +370,7 @@ const useBattleStore = create((set, get) => ({
       maxPlayerHp,
       currentPlayerHp: maxPlayerHp,
       playerDamageEvents: [],
+      playerHealEvents: [],
       victoryPhase: null,
     }));
   },
@@ -429,9 +447,10 @@ const useBattleStore = create((set, get) => ({
    *
    * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
    * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
-   * （`enemyDamageEvents` / `playerDamageEvents`）も空配列にクリアする。これに
-   * より各実行は「フレッシュな状態からの再生」として独立する
-   * （attack-processing 要件 3-1、monster-attack 要件 5-1）。
+   * （`enemyDamageEvents` / `playerDamageEvents`）およびヒール演出キュー
+   * （`playerHealEvents`）も空配列にクリアする。これにより各実行は
+   * 「フレッシュな状態からの再生」として独立する
+   * （attack-processing 要件 3-1、monster-attack 要件 5-1、heal-card 要件 6-6）。
    *
    * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
    * 効果を発火する：
@@ -439,6 +458,10 @@ const useBattleStore = create((set, get) => ({
    *   - `monster` カード → `applyPlayerDamage(card.power)`（プレイヤー HP
    *     を減らす。モンスターカードは `lockedCard` でステージ定義から固定
    *     配置されているため、ユーザー操作では現れない）
+   *   - `heal` カード → `applyPlayerHeal(card.power)`（プレイヤー HP を回復し、
+   *     `maxPlayerHp` でクランプする。HP が満タンでも演出キューには push
+   *     されるため、緑フラッシュと「+N」フロートは通常通り再生される
+   *     ／heal-card 要件 2-3, 4-4）
    * いずれも `card.power > 0` でガードしており、power 欠損や 0 の場合は
    * 適用しない（要件 4-4）。`else if` ではなく独立 `if` の並列構造にする
    * ことで、将来カード種別が追加されたときに順序依存無く拡張できる。
@@ -472,6 +495,7 @@ const useBattleStore = create((set, get) => ({
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
         playerDamageEvents: [],
+        playerHealEvents: [],
       }));
       phases.forEach((phase, i) => {
         setTimeout(() => {
@@ -483,6 +507,9 @@ const useBattleStore = create((set, get) => ({
             }
             if (card && card.id === 'monster' && card.power > 0) {
               get().applyPlayerDamage(card.power);
+            }
+            if (card && card.id === 'heal' && card.power > 0) {
+              get().applyPlayerHeal(card.power);
             }
           }
         }, i * phaseMs);
@@ -584,6 +611,54 @@ const useBattleStore = create((set, get) => ({
    */
    dismissPlayerDamageEvent: (id) => set((state) => ({
     playerDamageEvents: state.playerDamageEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
+    * プレイヤーに対して HP 回復を 1 回適用する。
+    *
+    * `currentPlayerHp` を加算（`maxPlayerHp` でクランプ）し、`playerHealEvents`
+    * に新規イベントを追加する。`playerHealEvents` の各要素は
+    * `PlayerHealFloater` の浮き数字描画と、プレイヤー HP バーラッパーの
+    * 緑系フラッシュ演出のトリガーとして購読される。`id` は
+    * `_playerHealCounter` ベースの単調増加文字列で、敵被弾 (`d-`) ／プレイヤー
+    * 被弾 (`pd-`) と区別するため `ph-` プレフィックスを付ける（React の key
+    * として使う）。
+    *
+    * `currentPlayerHp` が既に `maxPlayerHp` のとき（満タン状態）でも
+    * `playerHealEvents` への push は必ず行う。これにより「heal カードを
+    * 通ったが満タンだったから増えなかった」という結果を視覚的に追える
+    * （heal-card 要件 2-3, 4-4）。`amount` には実際の HP 増加量ではなく
+    * カードの `power` 値そのままを保存し、フロート表示で `+<power>` として
+    * 出すようにする。
+    *
+    * Args:
+    *     amount (number): 回復量。負の値や 0 は呼び出し側で弾く前提だが、
+    *         内部的には `Math.min(maxPlayerHp, ...)` で上限クランプする。
+    */
+   applyPlayerHeal: (amount) => set((state) => {
+    const nextHp = Math.min(state.maxPlayerHp, state.currentPlayerHp + amount);
+    const id = `ph-${state._playerHealCounter}`;
+    return {
+      currentPlayerHp: nextHp,
+      playerHealEvents: [...state.playerHealEvents, { id, amount }],
+      _playerHealCounter: state._playerHealCounter + 1,
+    };
+   }),
+
+   /**
+    * 指定 id のプレイヤー向けヒールイベントを `playerHealEvents` から削除する。
+    *
+    * `PlayerHealFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、
+    * 自身を配列から取り除いて自走 unmount する。これにより
+    * `playerHealEvents` が累積し続けるのを防ぐ。被弾側
+    * `dismissPlayerDamageEvent` と完全対称の責務を持つ。
+    *
+    * Args:
+    *     id (string): 削除対象のヒールイベント id。`playerHealEvents`
+    *         内に該当が無ければ no-op。
+    */
+   dismissPlayerHealEvent: (id) => set((state) => ({
+    playerHealEvents: state.playerHealEvents.filter((e) => e.id !== id),
    })),
 
    /**
