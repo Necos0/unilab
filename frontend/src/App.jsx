@@ -2,8 +2,8 @@ import { useCallback, useState } from 'react';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
-import stagesData from './data/stages.json';
 import useProgressStore from './stores/progressStore.js';
+import stagesData from './data/stagesLoader.js';
 
 /**
  * アプリケーションのルートコンポーネント。

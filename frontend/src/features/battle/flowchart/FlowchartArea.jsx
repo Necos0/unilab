@@ -15,6 +15,7 @@ import styles from './FlowchartArea.module.css';
 
 const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode };
 const edgeTypes = { 'animated-progress': AnimatedProgressEdge };
+const EXPANDED_BASELINE_BOUNDS_WIDTH = 720;
 
 /**
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
@@ -137,14 +138,30 @@ function edgesToFlowEdges(edges, slots, hasStart, hasGoal) {
  *   - **縮小状態**：`fitView` に自前の上下限を付けず、React Flow 既定の
  *     自動フィット（0.5〜2.0）に任せる。1 行でエリアが余っているときは
  *     ~2x まで自動拡大、多段で溢れるときは自動縮小する
- *   - **拡大状態**：`fitView` の `minZoom: 1` で「最小でも原寸」を保証した
- *     うえで、React Flow 既定の上限（2.0）まで自動拡大する。スケール 1.0
- *     でもエリアに収まらない場合は `panOnScroll` によるスクロールで
- *     アクセスする
+ *   - **拡大状態**：`setViewport` でズームを
+ *     `(canvasWidth × 0.8) / EXPANDED_BASELINE_BOUNDS_WIDTH` で動的算出し、
+ *     `getNodesBounds` で得たノード集合の中心が canvas の中心に重なるよう
+ *     viewport の x / y を計算する。`EXPANDED_BASELINE_BOUNDS_WIDTH` は
+ *     「1 スロットステージ（start + slot-1 + goal）の bounding box 幅」
+ *     に相当する定数で、実機で見え方を調整しながら決めた基準値。これにより
+ *     全ステージで「1 スロット分のフローチャートが canvas 幅の 80% に
+ *     収まる zoom」が共通の基準として適用される。結果として 1-1 のような
+ *     スロットの少ないステージでは縮小状態とほぼ同じ表示、1-2 / 1-4 の
+ *     ようなスロットの多いステージでは同じカードサイズを維持したまま横に
+ *     はみ出し、`panOnScroll` のホイールスクロールで両端へアクセスできる。
+ *     `<ReactFlow>` の `minZoom` / `maxZoom` はデフォルトを広げて
+ *     `[0.1, 5]` に設定しており、canvas 幅が大きいときに baselineZoom が
+ *     2.0 を超えてもクランプされないようにしている。`fitView` 単体だと
+ *     ステージのノード集合が canvas より大きい場合に縮小フィットされて
+ *     しまい「拡大ボタンを押した意味がない」見た目になったため、位置と
+ *     ズームを `setViewport` で直接制御する方式に切り替えた経緯がある
  *
  * コンテナサイズの変化（CSS トランジションによる `flex-grow` 変化）は
- * `ResizeObserver` で検出し、その都度 `fitView()` を呼び直すことで、
- * アニメーション中もスロットのスケールが滑らかに追従する。
+ * `ResizeObserver` で検出し、その都度 refit ロジックを呼び直すことで、
+ * アニメーション中もスロットのスケールが滑らかに追従する。`nodes` 自体の
+ * 変化（ステージ切り替え時など）も `useEffect` の依存に含めており、
+ * ステージが切り替わった直後に新しいノード集合の bounding box に基づいて
+ * viewport が再計算される。
  *
  * Args:
  *     stage (object): `stages.json` から読み込んだ 1 ステージ分の定義。
@@ -179,16 +196,23 @@ function FlowchartArea({ stage }) {
     }
 
     const refit = () => {
-      reactFlowInstance.fitView({
-        padding: 0.1,
-        // 拡大時は「1.0 を下限」の自動フィット：小さい図なら自動で拡大し、
-        // 大きい図なら 1.0 を維持して overflow を panOnScroll で吸収する。
-        // 縮小時は自前の上下限を付けず React Flow 既定の自動フィットに
-        // 任せる：1 行でエリアが余っているときは ~2x まで拡大、多段で
-        // 溢れるときは自動縮小で全体収容
-        minZoom: isExpanded ? 1 : undefined,
-        duration: 0,
-      });
+      if (isExpanded) {
+        const nodesBounds = reactFlowInstance.getNodesBounds(nodes);
+        const canvasWidth = canvas.clientWidth;
+        const canvasHeight = canvas.clientHeight;
+        const baselineZoom = (canvasWidth * 0.8) / EXPANDED_BASELINE_BOUNDS_WIDTH;
+        const x = canvasWidth / 2 - (nodesBounds.x + nodesBounds.width / 2) * baselineZoom;
+        const y = canvasHeight / 2 - (nodesBounds.y + nodesBounds.height / 2) * baselineZoom;
+        reactFlowInstance.setViewport(
+          { x, y, zoom: baselineZoom },
+          { duration: 0 },
+        );
+      } else {
+        reactFlowInstance.fitView({
+          padding: 0.1,
+          duration: 0,
+        });
+      }
     };
 
     refit();
@@ -196,7 +220,7 @@ function FlowchartArea({ stage }) {
     const observer = new ResizeObserver(refit);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [reactFlowInstance, isExpanded]);
+  }, [reactFlowInstance, isExpanded, nodes]);
 
   return (
     <div ref={canvasRef} className={styles.canvas}>
@@ -213,6 +237,8 @@ function FlowchartArea({ stage }) {
         zoomOnScroll={false}
         zoomOnPinch={false}
         zoomOnDoubleClick={false}
+        minZoom={0.1}
+        maxZoom={5}
         fitView
         fitViewOptions={{ padding: 0.1 }}
         onInit={setReactFlowInstance}

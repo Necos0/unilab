@@ -157,7 +157,8 @@ unilab/
         │   ├── enemies.json
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
-        │   └── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
+        │   ├── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
+        │   └── stagesLoader.js   ← stages.json の短縮形式を完全形式に展開するローダー
         ├── stores/               ← グローバル状態管理(zustand)
         │   ├── battleStore.js    ← 手札・スロット割当・ドラッグ状態
         │   ├── mapStore.js       ← マップ画面の現在位置・移動状態

@@ -9,10 +9,17 @@ import styles from './Card.module.css';
  * パラメータとして `stages.json` 側で定義される）。`monster` を含む全
  * カード ID で同じ描画フローを共有する。
  *
+ * `card.power` は省略可能。`reflect` のような威力値の概念を持たない
+ * カードでは `stages.json` 側で `power` を定義せず、`<span>{undefined}</span>`
+ * を React が描画しない挙動を利用して、自然に数値が表示されない状態を
+ * 実現する。`.power` は absolute 配置なので、`<span>` の中身が空でも
+ * 他のレイアウトには影響しない。
+ *
  * Args:
  *     props (object): React プロパティ。
- *         card (object): カード定義。`id` (string) と `power` (number)
- *             を含む。
+ *         card (object): カード定義。`id` (string) と、オプションで
+ *             `power` (number) を含む。`power` が未定義のカードは
+ *             数値表示なしで描画される。
  *
  * Returns:
  *     JSX.Element: カードを表す要素。
