@@ -2,29 +2,32 @@ import styles from './LandmarkLockOverlay.module.css';
 
 const SCROLL_HALF_WIDTH = 80;
 const SCROLL_HALF_HEIGHT = 16;
-const CHAIN_LINK_COUNT = 6;
 
 /**
- * `LandmarkScroll` 上に重ねて表示する、鎖＋南京錠のロックオーバーレイ。
+ * `LandmarkScroll` 上に重ねて表示する、南京錠のロックオーバーレイ。
  *
  * 視覚要素は 3 層で構成する：
- *   1. 半透明黒の背景矩形（Scroll 全面）— 「鎖がかかって暗くなった」感
- *   2. 対角の鎖 2 本 — `(-80,-16) → (80,16)` と `(-80,16) → (80,-16)` の
- *      対角線に沿って `<ellipse>` をリンク状に等間隔で並べる
+ *   1. 半透明黒の背景矩形（Scroll 全面）— 「ロックされて暗くなった」感
+ *   2. 解放演出用の黄色いバーストリング（解放時のみアニメで外側に拡がる）
  *   3. 中央の南京錠 — `<rect>`（本体）＋ `<path>`（シャックル U 字）＋
  *      `<circle>` / `<rect>`（鍵穴）
  *
  * 座標は `LandmarkScroll` と同じ（中心 (0,0)、Scroll は半幅 80・半高 16）。
  * 描画自体は `pointer-events: none` で、クリック判定の抑止は親
  * `Landmark` 側で行う（要件 2-3）。`isFading` を `true` にすると CSS
- * トランジションで opacity 1 → 0 へフェードアウトする（要件 5-1）。
+ * アニメーションで解放演出が発火する（要件 5-1）：
+ *   - 暗幕（`.dim`）：opacity 1 → 0 に消える
+ *   - 南京錠（`.padlockGroup`）：軽く拡大して傾きながらスケールダウン
+ *     して消える（破壊感）
+ *   - バーストリング（`.burst`）：Scroll 外形に沿う楕円が中央から外側へ
+ *     拡がり、フェードアウトする（発光感）
  * フェード時間は `progressStore.UNLOCK_FADE_DURATION_MS` と CSS の
- * `transition-duration` で共有している。
+ * `animation-duration` で共有している（600ms）。
  *
  * Args:
  *     props (object): React プロパティ。
  *         isFading (boolean): フェードアウト中なら `true`。`data-fading`
- *             属性で CSS 側 opacity 制御に渡される。
+ *             属性で CSS 側のアニメーション制御に渡される。
  *
  * Returns:
  *     JSX.Element: ロックオーバーレイ全体を表す `<g>` 要素。
@@ -44,58 +47,18 @@ function LandmarkLockOverlay({ isFading = false }) {
         ry={4}
         className={styles.dim}
       />
-      <ChainLine
-        from={{ x: -SCROLL_HALF_WIDTH, y: -SCROLL_HALF_HEIGHT }}
-        to={{ x: SCROLL_HALF_WIDTH, y: SCROLL_HALF_HEIGHT }}
-        linkCount={CHAIN_LINK_COUNT}
+      <ellipse
+        cx={0}
+        cy={0}
+        rx={SCROLL_HALF_WIDTH}
+        ry={SCROLL_HALF_HEIGHT}
+        className={styles.burst}
       />
-      <ChainLine
-        from={{ x: -SCROLL_HALF_WIDTH, y: SCROLL_HALF_HEIGHT }}
-        to={{ x: SCROLL_HALF_WIDTH, y: -SCROLL_HALF_HEIGHT }}
-        linkCount={CHAIN_LINK_COUNT}
-      />
-      <Padlock />
+      <g className={styles.padlockGroup}>
+        <Padlock />
+      </g>
     </g>
   );
-}
-
-/**
- * 2 点間に楕円形のリンクを等間隔に並べた「鎖」を描画する内部コンポーネント。
- *
- * リンクは `<ellipse>` で描画し、線の方向に合わせて回転させる。
- * 等間隔配置は `t` を `[0, 1]` の範囲で `linkCount` 等分して計算する。
- *
- * Args:
- *     props (object): React プロパティ。
- *         from (object): 始点座標 `{x, y}`。
- *         to (object): 終点座標 `{x, y}`。
- *         linkCount (number): 並べるリンクの個数。
- *
- * Returns:
- *     JSX.Element: 鎖 1 本分の `<g>` 要素。
- */
-function ChainLine({ from, to, linkCount }) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
-  const links = [];
-  for (let i = 0; i < linkCount; i += 1) {
-    const t = (i + 0.5) / linkCount;
-    const cx = from.x + dx * t;
-    const cy = from.y + dy * t;
-    links.push(
-      <ellipse
-        key={i}
-        cx={cx}
-        cy={cy}
-        rx={5}
-        ry={2.8}
-        transform={`rotate(${angleDeg} ${cx} ${cy})`}
-        className={styles.chainLink}
-      />,
-    );
-  }
-  return <g>{links}</g>;
 }
 
 /**

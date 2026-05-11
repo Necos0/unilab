@@ -40,7 +40,7 @@ import getNextStageId from '../features/map/getNextStageId';
  *                                          pendingUnlock 対象）
  */
 
-const UNLOCK_FADE_DURATION_MS = 600;
+const UNLOCK_FADE_DURATION_MS = 1500;
 
 const useProgressStore = create((set, get) => ({
   clearedStageIds: [],

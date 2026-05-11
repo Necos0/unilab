@@ -35,7 +35,10 @@ function LandmarkScroll({ label, isLocked = false, isFading = false }) {
   const halfHeight = 16;
 
   return (
-    <g className={styles.scroll}>
+    <g
+      className={styles.scroll}
+      data-unlocking={isFading ? 'true' : 'false'}
+    >
       <rect
         x={-halfWidth}
         y={-halfHeight}

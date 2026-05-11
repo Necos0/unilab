@@ -28,3 +28,113 @@
   user-select: none;
   pointer-events: none;
 }
+
+/*
+ * 解放演出は時系列で 4 フェーズに分かれる（合計 1500ms、
+ * progressStore.UNLOCK_FADE_DURATION_MS と同期）：
+ *   - Phase 1 (0〜20% / 0〜300ms) : 細かい揺れ（±1〜2px）。地響きのような
+ *     不穏な前兆を作る
+ *   - Phase 2 (20〜55% / 300〜825ms) : 強い揺れ（±8〜10px がピーク）。
+ *     ロックが破壊される直前の緊張感を最大化する
+ *   - 静止 (55〜70% / 825〜1050ms) : 一瞬の静寂。タメを作ってバースト
+ *     のインパクトを強める
+ *   - Phase 3 (70〜100% / 1050〜1500ms) : 静寂を破ってバーストリング・
+ *     南京錠破壊が走る。パーチメントはこのタイミングで最大輝度のフラッシュ
+ * 振動は scrollShake、明滅は parchmentFlash がそれぞれ担当する。
+ */
+.scroll[data-unlocking='true'] {
+  animation: scrollShake 1500ms ease-out;
+}
+
+.scroll[data-unlocking='true'] .parchment {
+  animation: parchmentFlash 1500ms ease-out;
+}
+
+@keyframes scrollShake {
+  0% {
+    transform: translate(0, 0);
+  }
+  /* Phase 1: 細かい揺れ（0〜20%） */
+  5% {
+    transform: translate(-1px, 1px);
+  }
+  10% {
+    transform: translate(1px, 0);
+  }
+  15% {
+    transform: translate(-1px, -1px);
+  }
+  20% {
+    transform: translate(1px, 1px);
+  }
+  /* Phase 1→2 build up（20〜25%） */
+  25% {
+    transform: translate(-3px, 2px);
+  }
+  /* Phase 2: 強い揺れ（25〜55%、ピーク ±10px） */
+  30% {
+    transform: translate(7px, -2px);
+  }
+  35% {
+    transform: translate(-9px, 2px);
+  }
+  40% {
+    transform: translate(10px, -3px);
+  }
+  45% {
+    transform: translate(-10px, 2px);
+  }
+  50% {
+    transform: translate(8px, -2px);
+  }
+  /* 静止フェーズへの収束（55〜60%） */
+  55% {
+    transform: translate(-3px, 1px);
+  }
+  60% {
+    transform: translate(0, 0);
+  }
+  /* 静止: 一瞬の静寂（60〜70%、約 150ms 完全停止） */
+  70% {
+    transform: translate(0, 0);
+  }
+  /* Phase 3: バースト中はスクロール自体は静止のまま（70〜100%） */
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes parchmentFlash {
+  0% {
+    fill: #f5e6c4;
+    filter: brightness(1);
+  }
+  /* Phase 1: 微かな暗転で不穏さを出す */
+  20% {
+    fill: #e8d5a8;
+    filter: brightness(0.95);
+  }
+  /* Phase 2: 少しずつ明るくして高揚感を作る */
+  55% {
+    fill: #f5e6c4;
+    filter: brightness(1.1);
+  }
+  /* 静止中: 微かに明度が増していくことで「タメ」のエネルギー蓄積を表現 */
+  70% {
+    fill: #f8eccc;
+    filter: brightness(1.2);
+  }
+  /* Phase 3 peak: バースト発生と同時に最大輝度の閃光 */
+  80% {
+    fill: #fff8c8;
+    filter: brightness(1.6);
+  }
+  92% {
+    fill: #fff2b0;
+    filter: brightness(1.2);
+  }
+  100% {
+    fill: #f5e6c4;
+    filter: brightness(1);
+  }
+}
