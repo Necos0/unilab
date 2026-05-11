@@ -3,6 +3,7 @@ import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import stagesData from './data/stages.json';
+import useProgressStore from './stores/progressStore.js';
 
 /**
  * アプリケーションのルートコンポーネント。
@@ -20,6 +21,15 @@ import stagesData from './data/stages.json';
  * アイコン）を並列で事前読み込みする。フェードイン完了とプリロード完了の
  * 両方が揃ったタイミング（`handleTransitionMidpoint`）で `BattleScreen` に
  * 切り替え、その後フェードアウトでバトル画面を露出させる。
+ *
+ * 戦闘 → マップの帰り道は 2 経路ある：
+ *   - 右上テスト用 `BackToMapButton` → `handleExitToMap`：画面遷移のみ。
+ *     クリア記録は変更しない（要件 3-3）。
+ *   - 勝利演出 `VictoryClearOverlay` の「マップへ戻る」 → `handleClearedExitToMap`：
+ *     `progressStore.markStageCleared(stageId)` でクリア記録を更新してから
+ *     マップ画面へ遷移する（要件 3-1）。`markStageCleared` 内で次ステージの
+ *     解放判定と `pendingUnlockStageId` のセットも行われ、`MapScreen` の
+ *     マウント時 useEffect が拾って解放アニメを起動する。
  *
  * 将来「ステージ選択画面」「タイトル画面」「戦闘終了→マップ復帰」など
  * 本格的な画面遷移ロジックを追加する際は、ここの `useState` を Zustand
@@ -49,9 +59,22 @@ function App() {
     setPendingStageId(null);
   }, []);
 
+  const handleExitToMap = useCallback(() => {
+    setScreen('map');
+  }, []);
+
+  const handleClearedExitToMap = useCallback((clearedStageId) => {
+    useProgressStore.getState().markStageCleared(clearedStageId);
+    setScreen('map');
+  }, []);
+
   const currentScreen =
     screen === 'battle' ? (
-      <BattleScreen stageId={stageId} onExitToMap={() => setScreen('map')} />
+      <BattleScreen
+        stageId={stageId}
+        onExitToMap={handleExitToMap}
+        onClearedExitToMap={handleClearedExitToMap}
+      />
     ) : (
       <MapScreen
         onStartBattle={handleStartBattle}

@@ -25,6 +25,14 @@
   pointer-events: none;
 }
 
+.clearedLabel {
+  fill: #2f8a3e;
+  font-size: 14px;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  user-select: none;
+  pointer-events: none;
+}
+
 .stars {
   fill: #c47a1a;
   font-size: 24px;

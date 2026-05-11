@@ -28,15 +28,22 @@ function formatStars(difficulty) {
  * 呼ばれる（ラベルクリック＝移動要求と区別するため）。表示中は必ず
  * プレイヤーが到着済みなので、ボタン側に到着判定は不要。
  *
+ * `isCleared === true` のとき、難易度ラベルの上に「クリア済み」テキストを
+ * 追加で表示する（要件 6-1）。たたかうボタンは引き続き有効に保ち、
+ * 再挑戦を許可する（要件 6-2）。`isCleared === false` のときは
+ * 「クリア済み」テキスト自体を描画しない。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         difficulty (number): 1〜5 の難易度。
  *         onFight (function): 「たたかう」ボタンのクリックハンドラ。引数なし。
+ *         isCleared (boolean, optional): クリア済みなら `true`。デフォルト
+ *             `false`。
  *
  * Returns:
  *     JSX.Element: 詳細パネル全体を表す `<g>` 要素。
  */
-function LandmarkDetail({ difficulty, onFight }) {
+function LandmarkDetail({ difficulty, onFight, isCleared = false }) {
   const halfWidth = 100;
   const halfHeight = 70;
 
@@ -56,6 +63,16 @@ function LandmarkDetail({ difficulty, onFight }) {
         ry={6}
         className={styles.panel}
       />
+      {isCleared && (
+        <text
+          x={0}
+          y={-halfHeight + 14}
+          textAnchor="middle"
+          className={styles.clearedLabel}
+        >
+          クリア済み
+        </text>
+      )}
       <text x={0} y={-halfHeight + 28} textAnchor="middle" className={styles.label}>
         難易度
       </text>

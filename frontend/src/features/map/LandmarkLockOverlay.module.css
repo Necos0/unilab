@@ -1,0 +1,119 @@
+/* ランドマーク名バナーに重ねる、鎖＋南京錠のロックオーバーレイ。 */
+
+/*
+ * オーバーレイ自体はクリックを拾わない（要件 2-3：ロック上のクリックも
+ * 何も発火しない）。Landmark 側で全体の click を抑止しているため、
+ * pointer-events: none でロック領域のイベントは下層に抜ける。
+ *
+ * data-fading="true" のときフェードアウトアニメーションを再生する。
+ * 当初は CSS transition を使っていたが、React の StrictMode による
+ * 2 重マウントで「最初から data-fading="true" でマウント」される
+ * ケースがあり、その場合 transition は発火しない（変化前のレンダリング
+ * 状態が存在しないため）。CSS animation なら要素マウント時点での
+ * data-fading="true" でもアニメが頭から再生されるため、StrictMode と
+ * 通常マウントの両方で安定して動作する。継続時間は progressStore.js の
+ * UNLOCK_FADE_DURATION_MS と同期させる（600ms）。
+ */
+.overlay {
+  pointer-events: none;
+}
+
+.dim {
+  fill: rgba(0, 0, 0, 0.45);
+}
+
+/* 南京錠本体。やや暗い色で重量感を出す。 */
+.body {
+  fill: #1a1a1a;
+  stroke: #7a7a7a;
+  stroke-width: 1.2;
+}
+
+.shackle {
+  fill: none;
+  stroke: #8a8a8a;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.keyhole {
+  fill: #7a7a7a;
+}
+
+/* 解放演出用のバーストリング。通常時は不可視で、isFading 時のみアニメで現れる。 */
+.burst {
+  fill: none;
+  stroke: #ffd966;
+  stroke-width: 3;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* padlock 全体に scale/rotate を効かせるためのラッパー。transform-origin を
+ * 中央に固定して、スケール時のブレを防ぐ。 */
+.padlockGroup {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/*
+ * 解放アニメーションは時系列の 4 フェーズで構成する：
+ *   - Phase 1 (0〜300ms) : 細かい揺れ（LandmarkScroll 側担当。LockOverlay
+ *     は静止）
+ *   - Phase 2 (300〜825ms) : 強い揺れ（±10px、LandmarkScroll 担当。
+ *     LockOverlay は静止）
+ *   - 静止 (825〜1050ms) : 振動が収束して一瞬の静寂。バーストの「タメ」
+ *   - Phase 3 (1050〜1500ms) : 静寂を破って暗幕フェード・南京錠破壊・
+ *     バーストリング拡散が同時発火する。`animation-delay: 1050ms` で位相を
+ *     静止後に固定する。
+ * 継続時間（delay 1050ms + duration 450ms = 1500ms）は
+ * progressStore.UNLOCK_FADE_DURATION_MS と同期している。
+ */
+.overlay[data-fading='true'] .dim {
+  animation: dimFadeOut 450ms ease-out 1050ms forwards;
+}
+
+.overlay[data-fading='true'] .padlockGroup {
+  animation: padlockShatter 450ms ease-out 1050ms forwards;
+}
+
+.overlay[data-fading='true'] .burst {
+  animation: burstExpand 450ms ease-out 1050ms forwards;
+}
+
+@keyframes dimFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes padlockShatter {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.3) rotate(-8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.5) rotate(22deg);
+    opacity: 0;
+  }
+}
+
+@keyframes burstExpand {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+    stroke-width: 4;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+    stroke-width: 0.6;
+  }
+}
