@@ -149,6 +149,7 @@ unilab/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
         ├── index.css             ← グローバル CSS
+        ├── disableBrowserZoom.js ← ブラウザの拡大縮小を抑制するグローバルリスナー
         ├── components/           ← 汎用 UI パーツ
         │   ├── HpBar.jsx
         │   └── HpBar.module.css
