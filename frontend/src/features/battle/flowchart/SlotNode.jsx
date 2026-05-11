@@ -25,6 +25,13 @@ import styles from './SlotNode.module.css';
  *   - `executionStep` が自身（`type: 'node', id: props.id`）と一致したとき：
  *     `.active` クラスで `@keyframes slotHighlight` を起動し、内側のカードを
  *     発光・点滅させる（play-button 要件 5-3）
+ *   - `traversedNodeIds` に自身の id が含まれているとき：`.traversed` クラス
+ *     で固定の発光（`@keyframes slotHighlight` の終端と同じ filter 値を静的に
+ *     当てた光り方）を維持する（`battle-fail-retry` 要件 1-3, 1-4, 1-6）。
+ *     `.active` のキーフレーム終端と `.traversed` の固定値を一致させているので、
+ *     フェーズ突入時の点滅 → 終了 → 固定光 の遷移が明度差なくシームレスに
+ *     繋がる。`initializeBattle` または `retryFromFail` が呼ばれるまで残るため、
+ *     失敗時にプレイヤーが「どのスロットを通ったか」を後から振り返れる
  *
  * `Handle` はエッジの接続点として必要なため配置するが、ユーザーが手動で
  * エッジを引く用途ではないため CSS で視覚的に非表示にしている。
@@ -45,6 +52,7 @@ function SlotNode({ id }) {
   const isActive = useBattleStore(
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === id,
   );
+  const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes(id));
 
   const isDragActive = activeInstanceId !== null;
   const isDraggingThisCard =
@@ -57,7 +65,8 @@ function SlotNode({ id }) {
     isDragActive && styles.dropTarget,
     isOver && styles.isOver,
     (isExecuting || isTransitioning) && styles.locked,
-    isActive && styles.active
+    isActive && styles.active,
+    isTraversed && styles.traversed
   ]
     .filter(Boolean)
     .join(' ');

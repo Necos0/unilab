@@ -15,15 +15,31 @@ import useBattleStore from '../../../stores/battleStore';
  * `.active` クラスを付与し、CSS の `@keyframes startGoalHighlight` で
  * アイコンを発光・点滅させる（play-button 要件 5-5）。
  *
+ * 通過済みの可視化（`battle-fail-retry` 要件 1-3, 1-4, 1-6）：
+ * `traversedNodeIds` に `'goal'` が含まれていれば `.traversed` クラスを
+ * 付与し、`startGoalHighlight` キーフレーム終端と同一値の `filter` を静的に
+ * 当てた固定光を維持する。`.active` の点滅終了から `.traversed` の固定光へ
+ * 明度差なく遷移する。ゴールに到達したかどうかが Fail 後にも残り、フロー
+ * チャート末端まで処理が進んだか／途中で打ち切られたかをプレイヤーが
+ * 振り返れる。中断機構（`applyPlayerDamage` の死亡検知）でゴール到達前に
+ * Fail へ遷移した場合、`'goal'` は `traversedNodeIds` に含まれないため
+ * 本マーカーは光らない（経路の到達範囲が一目でわかる）。`SlotNode` ／
+ * `StartNode` と同一パターン。
+ *
  * Returns:
- *     JSX.Element: ゴールマーカーを表す div 要素。                           
+ *     JSX.Element: ゴールマーカーを表す div 要素。
  */
 function GoalNode() {               
     const isActive = useBattleStore(
         (s) => s.executionStep?.type === 'node' && s.executionStep?.id === 'goal',
     );
-    
-    const className = [styles.marker, isActive && styles.active]
+    const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes('goal'));
+
+    const className = [
+        styles.marker, 
+        isActive && styles.active, 
+        isTraversed && styles.traversed
+    ]
         .filter(Boolean)
         .join(' ');
     

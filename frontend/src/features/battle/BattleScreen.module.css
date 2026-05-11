@@ -88,6 +88,14 @@
   pointer-events: none;
 }
 
+/* 失敗演出中（failPhase が 'shown'）の全ユーザー操作をブロックする           
+    （battle-fail-retry 要件 2-7, 7-4）。BattleFailOverlay の .overlay は内側で
+    pointer-events: auto                                                       
+を再付与するため、やり直す／マップへ戻るボタンだけは押せる */ 
+.root.failed {
+  pointer-events: none;
+}
+
 /* フローチャート領域の右上に配置するボタングループ。                         
      上段に ZoomButton + ResetButton を横並び（.topRow）、    
      下段に PlayButton を横長で配置する縦 2 段構成 */
@@ -133,6 +141,14 @@
   opacity: 0;
   transition: opacity 0.5s ease-out;
 }
+
+/* 失敗演出フェーズで敵 HP バー＋数値ラベルを半透過にする。                   
+    EnemySprite の .dimmed と同じ 0.3 秒で同期させ、敵が薄く表示されるのと
+    同時に HP 表示も薄くする（battle-fail-retry 要件 3-6） */ 
+.dimmed {
+  opacity: 0.4;
+  transition: opacity 0.3s ease-out;
+} 
 
 /* DragOverlay 内で Card をサイズ付きで描画するためのラッパー。
    Card は height:100% + aspect-ratio で自身のサイズを決めるため、

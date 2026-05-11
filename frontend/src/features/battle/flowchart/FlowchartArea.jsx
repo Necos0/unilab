@@ -81,6 +81,13 @@ function goalToNode(goal) {
  * `console.warn` に記録する。描画エラーで画面が落ちることを防ぐための
  * ガードレール。
  *
+ * 各エッジには `type: 'animated-progress'` を付与して `AnimatedProgressEdge`
+ * 経由で描画する。矢印マーカーは `MarkerType.ArrowClosed` で `color: '#6a6a78'`
+ * を渡し、`AnimatedProgressEdge` 側 `.basePath` の `stroke: #6a6a78` と色味を
+ * 揃える。両者をまとめて指定することでデフォルト状態のエッジ線と矢印が同じ
+ * 暗めグレーとして表示され、通過後の白いネオン光（`.traversed`）とのコントラスト
+ * が際立つ設計。
+ *
  * Args:
  *     edges (Array<{id: string, source: string, target: string}>):
  *         ステージ定義に含まれるエッジ配列。
@@ -112,7 +119,7 @@ function edgesToFlowEdges(edges, slots, hasStart, hasGoal) {
       source: edge.source,
       target: edge.target,
       type: 'animated-progress',
-      markerEnd: { type: MarkerType.ArrowClosed },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#6a6a78' },
     }));
 }
 

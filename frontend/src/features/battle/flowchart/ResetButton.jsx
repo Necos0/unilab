@@ -18,10 +18,14 @@ import styles from './ResetButton.module.css';
   * （flowchart-zoom スペック）。
   *
   * 実行中（`isExecuting`）・拡大／縮小切替アニメ中（`isTransitioning`）・
-  * 勝利演出中（`victoryPhase !== null`）は `disabled` 属性を付与して
-  * クリック不可にする。CSS の `.button:disabled` で半透明＋
-  * `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
-  * （play-button 要件 3-2、victory-clear 要件 6-2）。
+  * 勝利演出中（`victoryPhase !== null`）・失敗演出中（`failPhase !== null`）は
+  * `disabled` 属性を付与してクリック不可にする。CSS の `.button:disabled` で
+  * 半透明＋ `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
+  * （play-button 要件 3-2、victory-clear 要件 6-2、`battle-fail-retry` 要件 7-2）。
+  * 失敗時に `disabled` を併用するのは、`.root.failed` の `pointer-events: none`
+  * による全体ロックではキーボード経由の発火が通ってしまうため、二重防御として
+  * disable 属性も加える設計。「やり直す」直後（`failPhase: null`）には通常通り
+  * 押せる状態に戻る。
   *
   * Args:
 
@@ -37,8 +41,9 @@ function ResetButton({ stage }) {
   const isExecuting = useBattleStore((s) => s.isExecuting);
   const isTransitioning = useBattleStore((s) => s.isTransitioning);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
+  const failPhase = useBattleStore((s) => s.failPhase);
 
-  const isDisabled = isExecuting || isTransitioning || victoryPhase !== null;
+  const isDisabled = isExecuting || isTransitioning || victoryPhase !== null || failPhase !== null;
 
   const handleClick = () => {
     initializeBattle(stage);

@@ -1,3 +1,8 @@
+.basePath {
+    stroke: #6a6a78;
+    stroke-width: 2;
+}
+
 .dot {
     offset-distance: 0%;
     animation-name: traverseEdge;
@@ -9,4 +14,9 @@
     to {
         offset-distance: 100%;
     }
+}
+
+.traversed {
+    stroke: #f5f5ff;
+    filter: drop-shadow(0 0 4px rgba(229, 229, 225, 0.9));
 }
