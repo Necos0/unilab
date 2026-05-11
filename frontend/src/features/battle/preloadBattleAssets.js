@@ -1,4 +1,4 @@
-import stagesData from '../../data/stages.json';
+import stagesData from '../../data/stagesLoader.js';
 import enemiesData from '../../data/enemies.json';
 import { getEnemyFramePath } from './enemy/enemySpritePath';
 

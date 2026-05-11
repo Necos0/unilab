@@ -21,7 +21,7 @@ import DamageFloater from './enemy/DamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
 import PlayerHealFloater from './player/PlayerHealFloater';
 import useBattleStore from '../../stores/battleStore';
-import stagesData from '../../data/stages.json';
+import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
 import BattleFailOverlay from './BattleFailOverlay';
 import enemiesData from '../../data/enemies.json';

@@ -20,7 +20,7 @@
     {
       "id": "wolf",
       "displayName": "ウルフ",
-      "maxHp": 50,
+      "maxHp": 20,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -37,7 +37,7 @@
     {
       "id": "knight",
       "displayName": "ナイト",
-      "maxHp": 80,
+      "maxHp": 50,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -54,7 +54,7 @@
     {
       "id": "golem",
       "displayName": "ゴーレム",
-      "maxHp": 130,
+      "maxHp": 100,
       "animations": {
         "idle": {
           "frameCount": 6,
