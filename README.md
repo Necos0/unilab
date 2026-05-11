@@ -158,7 +158,8 @@ unilab/
         │   └── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
         ├── stores/               ← グローバル状態管理(zustand)
         │   ├── battleStore.js    ← 手札・スロット割当・ドラッグ状態
-        │   └── mapStore.js       ← マップ画面の現在位置・移動状態
+        │   ├── mapStore.js       ← マップ画面の現在位置・移動状態
+        │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
@@ -216,13 +217,17 @@ unilab/
                 ├── Landmark.module.css
                 ├── LandmarkScroll.jsx     ← 巻物形のステージ名バナー
                 ├── LandmarkScroll.module.css
-                ├── LandmarkDetail.jsx     ← 到着時の詳細パネル(難易度・たたかう)
+                ├── LandmarkDetail.jsx     ← 到着時の詳細パネル(難易度・たたかう・クリア済み)
                 ├── LandmarkDetail.module.css
+                ├── LandmarkLockOverlay.jsx        ← 未解放ステージに重ねる鎖＋南京錠の SVG
+                ├── LandmarkLockOverlay.module.css
                 ├── FullscreenToggleButton.jsx     ← 左上の大画面表示トグル
                 ├── FullscreenToggleButton.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
                 ├── findNodeById.js        ← ランドマーク/分岐点を ID 横断で引く(純関数)
-                └── findShortestPath.js    ← BFS による最短経路探索(純関数)
+                ├── findShortestPath.js    ← BFS による最短経路探索(純関数)
+                ├── parseStageId.js        ← ステージ ID を world/number に分解(純関数)
+                └── getNextStageId.js      ← 次ステージ ID を算出(純関数)
 ```
 
 ### 今後追加予定のディレクトリ

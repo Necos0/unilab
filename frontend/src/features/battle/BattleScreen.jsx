@@ -148,28 +148,41 @@ function selectActiveCard(state) {
  *   - 「やり直す」ボタンは `retryFromFail` を直接 `onRetry` プロップとして
  *     渡し、押下時に `slotAssignments` / `handCards` を保ったまま HP・軌跡・
  *     演出キューだけがリセットされて A 状態に戻る（要件 5-1〜5-6）
- *   - 「マップへ戻る」ボタンは `onExitToMap` を渡し、勝利時の
- *     `VictoryClearOverlay` と同じハンドラでマップ画面へ遷移する（要件 4-1）
+ *   - 「マップへ戻る」ボタンは `onExitToMap` を渡し、敗北はクリア記録の
+ *     対象外（stage-unlock 要件 3-4）であるため通常退出と同じハンドラを
+ *     共有する。
  *
  * `victoryPhase` と `failPhase` は `startExecution` 完了時の判定で必ず
  * どちらか片方しか立たないため、両オーバーレイが同時にマウントされること
  * はない。両者の出し分け分岐は兄弟として並列に書くことで、勝利／失敗が
  * 対称な選択肢であることがコード構造から読み取れるようにしている。
  *
+ * 「マップへ戻る」操作は退出経路を 2 系統に分けている（stage-unlock 要件 3）：
+ *   - 右上 `BackToMapButton`（テスト用）・`BattleFailOverlay` 内ボタン →
+ *     `onExitToMap()` のみ呼ぶ。クリア記録には影響を与えない（要件 3-3,
+ *     3-4：勝利演出を経由していないため、クリアとして扱わない）。
+ *   - `VictoryClearOverlay` 内「マップへ戻る」→ `onClearedExitToMap(stageId)`
+ *     を呼ぶ。`App.jsx` 側でクリア記録（`progressStore.markStageCleared`）
+ *     を行ってからマップ画面へ遷移する（要件 3-1）。
+ * `onClearedExitToMap` が未指定（呼び出し側がこの分岐を扱わない場合）は、
+ * フォールバックとして `onExitToMap` を使う。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         stageId (string): 戦うステージの ID。`stages.json` のキーに対応。
  *             未指定時は `demoStageId` をフォールバックとして使う。
- *         onExitToMap (function): 「マップへ戻る」ボタン押下時に呼ぶ
- *             ハンドラ。引数なし。通常時は右上の `BackToMapButton`、
- *             勝利時は `VictoryClearOverlay` 内のボタン、失敗時は
- *             `BattleFailOverlay` 内のボタンが、いずれも同じハンドラを
- *             呼んでマップ画面へ遷移する。
+ *         onExitToMap (function): 通常退出時に呼ぶハンドラ。引数なし。
+ *             右上の `BackToMapButton`（テスト用）と `BattleFailOverlay`
+ *             内「マップへ戻る」ボタンから呼ばれる（敗北はクリア対象外）。
+ *         onClearedExitToMap (function, optional): 勝利演出経由の退出時に
+ *             呼ぶハンドラ。`stageId` 1 引数で呼ばれる。`App.jsx` 側で
+ *             `progressStore.markStageCleared(stageId)` を実行してから
+ *             画面遷移する想定。未指定なら `onExitToMap` がフォールバック。
  *
  * Returns:
  *     JSX.Element: 戦闘画面全体を表す section 要素。
  */
-function BattleScreen({ stageId, onExitToMap }) {
+function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const resolvedStageId = stageId ?? stagesData.demoStageId;
   const stage = stagesData.stages[resolvedStageId];
 
@@ -230,6 +243,14 @@ function BattleScreen({ stageId, onExitToMap }) {
     });
   };
 
+  const handleClearedExitToMap = () => {
+    if (onClearedExitToMap) {
+      onClearedExitToMap(resolvedStageId);
+    } else {
+      onExitToMap();
+    }
+  };
+
   const rootClassName = [
     styles.root,
     isExpanded && styles.expanded,
@@ -262,7 +283,7 @@ function BattleScreen({ stageId, onExitToMap }) {
           </div>
           <DamageFloater />
           {victoryPhase === 'cleared' && (
-            <VictoryClearOverlay onExitToMap={onExitToMap} />
+            <VictoryClearOverlay onExitToMap={handleClearedExitToMap} />
           )}
           {failPhase === 'shown' && (
             <BattleFailOverlay onExitToMap={onExitToMap} onRetry={retryFromFail} />

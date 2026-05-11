@@ -7,6 +7,7 @@ import PlayerSprite from './PlayerSprite';
 import BattleDemoButton from './BattleDemoButton';
 import FullscreenToggleButton from './FullscreenToggleButton';
 import useMapStore from '../../stores/mapStore';
+import useProgressStore from '../../stores/progressStore';
 import mapsData from '../../data/maps.json';
 
 const mapDef = mapsData.maps.map_1;
@@ -45,6 +46,21 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
       initializeMap(mapDef);
     }
   }, [initializeMap]);
+
+  /*
+   * バトル画面から戻った直後に `pendingUnlockStageId` が立っていれば、
+   * 解放アニメーションを起動する（要件 5-1）。既にアニメ中であれば
+   * `startUnlockAnimation` 側で no-op になるため、マウント時に毎回
+   * 呼んで構わない。空依存配列にして「マウントごとに 1 回だけ判定」
+   * の挙動にする。
+   */
+  useEffect(() => {
+    const { pendingUnlockStageId, startUnlockAnimation } =
+      useProgressStore.getState();
+    if (pendingUnlockStageId !== null) {
+      startUnlockAnimation();
+    }
+  }, []);
 
   const { viewBox } = mapDef;
 

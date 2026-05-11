@@ -1,0 +1,48 @@
+/* ランドマーク名バナーに重ねる、鎖＋南京錠のロックオーバーレイ。 */
+
+/*
+ * オーバーレイ自体はクリックを拾わない（要件 2-3：ロック上のクリックも
+ * 何も発火しない）。Landmark 側で全体の click を抑止しているため、
+ * pointer-events: none でロック領域のイベントは下層に抜ける。
+ *
+ * data-fading="true" のとき opacity 0 へトランジション。継続時間は
+ * progressStore.js の UNLOCK_FADE_DURATION_MS と同期させる（600ms）。
+ */
+.overlay {
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 600ms ease-out;
+}
+
+.overlay[data-fading='true'] {
+  opacity: 0;
+}
+
+.dim {
+  fill: rgba(0, 0, 0, 0.45);
+}
+
+/* 鎖リンクの色味。やや明度差のあるダークグレーで金属感を出す。 */
+.chainLink {
+  fill: #2a2a2a;
+  stroke: #6a6a6a;
+  stroke-width: 1;
+}
+
+/* 南京錠本体。鎖よりやや暗い色で重量感を出す。 */
+.body {
+  fill: #1a1a1a;
+  stroke: #7a7a7a;
+  stroke-width: 1.2;
+}
+
+.shackle {
+  fill: none;
+  stroke: #8a8a8a;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.keyhole {
+  fill: #7a7a7a;
+}
