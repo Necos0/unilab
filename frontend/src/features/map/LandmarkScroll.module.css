@@ -1,7 +1,7 @@
-/* ランドマーク名を載せた矩形ラベルの見た目。SVG 内の `<g>` をスタイリングする。 */
+/* ランドマーク名を載せた巻物ラベルの見た目。SVG 内の `<g>` をスタイリングする。 */
 
 /*
- * ラベル自体がランドマークの主たるカーソル判定対象。filled な矩形で
+ * ラベル自体がランドマークの主たるカーソル判定対象。背景画像で
  * ホバーとクリックを拾い、cursor: pointer で「インタラクション可能」を
  * 視覚的に伝える。
  */
@@ -9,16 +9,21 @@
   cursor: pointer;
 }
 
+/*
+ * パーチメント背景は `/icons/landmark_scroll.png` を `<image>` で読み込む。
+ * `<image>` 要素は `fill` を持たないため、明滅は filter で表現する。
+ * `image-rendering: pixelated` で拡縮時も補間ぼけを避け、ピクセルアートの
+ * くっきりした輪郭を保つ。
+ */
 .parchment {
-  fill: #f5e6c4;
-  stroke: #7c5e2c;
-  stroke-width: 1.5;
-  transition: fill 0.12s;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transition: filter 0.12s;
 }
 
-/* ホバー時は紙を明るくして「反応している」ことを伝える。 */
+/* ホバー時は明度を上げて「反応している」ことを伝える。 */
 .scroll:hover .parchment {
-  fill: #fff5dc;
+  filter: brightness(1.15);
 }
 
 .text {
@@ -105,36 +110,34 @@
 }
 
 @keyframes parchmentFlash {
+  /*
+   * `<image>` は `fill` を取らないため、明滅は filter のみで表現する。
+   * `brightness` で全体の明度を、`sepia + saturate` で「金色の閃光」感を
+   * 演出する（Phase 3 のピーク時にのみ強くかける）。
+   */
   0% {
-    fill: #f5e6c4;
     filter: brightness(1);
   }
   /* Phase 1: 微かな暗転で不穏さを出す */
   20% {
-    fill: #e8d5a8;
-    filter: brightness(0.95);
+    filter: brightness(0.92);
   }
   /* Phase 2: 少しずつ明るくして高揚感を作る */
   55% {
-    fill: #f5e6c4;
     filter: brightness(1.1);
   }
-  /* 静止中: 微かに明度が増していくことで「タメ」のエネルギー蓄積を表現 */
+  /* 静止中: 「タメ」のエネルギー蓄積 */
   70% {
-    fill: #f8eccc;
-    filter: brightness(1.2);
+    filter: brightness(1.25);
   }
-  /* Phase 3 peak: バースト発生と同時に最大輝度の閃光 */
+  /* Phase 3 peak: バースト発生と同時に金色の閃光 */
   80% {
-    fill: #fff8c8;
-    filter: brightness(1.6);
+    filter: brightness(1.7) sepia(0.4) saturate(1.8);
   }
   92% {
-    fill: #fff2b0;
-    filter: brightness(1.2);
+    filter: brightness(1.25) sepia(0.2) saturate(1.3);
   }
   100% {
-    fill: #f5e6c4;
     filter: brightness(1);
   }
 }

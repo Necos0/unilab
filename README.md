@@ -136,6 +136,7 @@ unilab/
     │   ├── favicon.svg
     │   ├── cards/                ← カード画像(<id>.png)
     │   ├── icons/                ← UI アイコン
+    │   │   ├── landmark_scroll.png  ← マップ上のステージ名バナー(巻物背景)
     │   │   └── flowchart/        ← フローチャート関連アイコン(goal/play/reset/start.svg)
     │   ├── maps/                 ← マップ画像(map_<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
