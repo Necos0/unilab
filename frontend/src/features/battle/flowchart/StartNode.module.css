@@ -47,3 +47,7 @@
         filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
     }
 }
+
+.marker.traversed {
+    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+}

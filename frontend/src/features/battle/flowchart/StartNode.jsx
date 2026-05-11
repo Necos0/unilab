@@ -15,6 +15,14 @@ import useBattleStore from '../../../stores/battleStore';
  * `.active` クラスを付与し、CSS の `@keyframes startGoalHighlight` で
  * アイコンを発光・点滅させる（play-button 要件 5-1）。
  *
+ * 通過済みの可視化（`battle-fail-retry` 要件 1-3, 1-4, 1-6）：
+ * `traversedNodeIds` に `'start'` が含まれていれば `.traversed` クラスを
+ * 付与し、`startGoalHighlight` キーフレーム終端と同一値の `filter` を静的に
+ * 当てた固定光を維持する。`.active` の点滅終了から `.traversed` の固定光へ
+ * 明度差なく遷移する。実行終了後も `initializeBattle` または `retryFromFail`
+ * が呼ばれるまで残るため、失敗時に「実行がここから始まった」ことを白く
+ * 光った経路の起点として確認できる。`SlotNode` ／ `GoalNode` と同一パターン。
+ *
  * Returns:
  *     JSX.Element: スタートマーカーを表す div 要素。
  */
@@ -22,8 +30,13 @@ function StartNode(){
     const isActive = useBattleStore(
         (s) => s.executionStep?.type === 'node' && s.executionStep?.id === 'start',
     );
+    const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes('start'));
 
-    const className = [styles.marker, isActive && styles.active]
+    const className = [
+        styles.marker, 
+        isActive && styles.active, 
+        isTraversed && styles.traversed
+    ]
         .filter(Boolean)
         .join(' ');
     

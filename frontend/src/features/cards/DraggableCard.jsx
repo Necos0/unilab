@@ -16,11 +16,15 @@ import styles from './DraggableCard.module.css';
  * ポインタに追従するカードは `BattleScreen` 側の `DragOverlay` が
  * 別途描画する。
  *
- * 勝利演出中（`victoryPhase !== null`）は `useDraggable` に `disabled: true`
- * を渡し、ライブラリ側でドラッグ開始を抑止する（`victory-clear` 要件 6-1）。
- * 戦闘画面ルートに付与される `.root.victory` の `pointer-events: none` だけ
- * では dnd-kit の pointer 監視を確実に止められない場合があるため、
- * dnd-kit 公式の disabled API でカード側からも明示的に無効化する。
+ * 勝利演出中（`victoryPhase !== null`）と失敗演出中（`failPhase !== null`）は
+ * `useDraggable` に `disabled: true` を渡し、ライブラリ側でドラッグ開始を
+ * 抑止する（`victory-clear` 要件 6-1、`battle-fail-retry` 要件 7-4）。戦闘画面
+ * ルートに付与される `.root.victory` ／ `.root.failed` の `pointer-events: none`
+ * だけでは dnd-kit の pointer 監視を確実に止められない場合があるため、
+ * dnd-kit 公式の disabled API でカード側からも明示的に無効化する。とくに
+ * `SlotNode` 側で `pointer-events: auto` をローカルに当てているため、ルートの
+ * `none` がスロット配下で突き抜けてしまう。両演出とも CSS と dnd-kit API の
+ * 二重防御で確実にドラッグ開始を抑止する設計。
  *
  * 同様に、ステージ定義側で固定配置されたロックカード（`card.locked === true`）
  * もドラッグ開始を抑止する（monster-attack 要件 2-3）。モンスターカードの
@@ -47,10 +51,11 @@ import styles from './DraggableCard.module.css';
  */
 function DraggableCard({ card, source, variant = 'hand' }) {
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
+  const failPhase = useBattleStore((s) => s.failPhase);
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: card.instanceId,
     data: { source },
-    disabled: victoryPhase !== null || card.locked === true,
+    disabled: victoryPhase !== null || failPhase !== null || card.locked === true,
   });
   const isDragging = useBattleStore(
     (s) => s.activeInstanceId === card.instanceId,

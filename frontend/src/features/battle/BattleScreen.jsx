@@ -23,6 +23,7 @@ import PlayerHealFloater from './player/PlayerHealFloater';
 import useBattleStore from '../../stores/battleStore';
 import stagesData from '../../data/stages.json';
 import VictoryClearOverlay from './VictoryClearOverlay';
+import BattleFailOverlay from './BattleFailOverlay';
 import enemiesData from '../../data/enemies.json';
 
 
@@ -116,9 +117,10 @@ function selectActiveCard(state) {
  * フローチャートの拡大／縮小状態はストアの `isExpanded` を購読して
  * ルート `<section>` の className に `.expanded` を条件付与することで
  * レイアウトを切り替える。切替アニメーション中（`isTransitioning`）と
- * 実行中（`isExecuting`）と勝利演出中（`victoryPhase` 非 null）は
- * `.transitioning` ／ `.executing` ／ `.victory` クラスを付与して
- * pointer-events を無効化し、ユーザー操作をブロックする。
+ * 実行中（`isExecuting`）と勝利演出中（`victoryPhase` 非 null）と失敗
+ * 演出中（`failPhase` 非 null）は `.transitioning` ／ `.executing` ／
+ * `.victory` ／ `.failed` クラスを付与して pointer-events を無効化し、
+ * ユーザー操作をブロックする。
  *
  * 勝利演出（`victory-clear` 仕様）の組み込み：
  *   - `EnemySprite` に渡す `state` は、`victoryPhase` 非 null かつ対象敵に
@@ -131,14 +133,38 @@ function selectActiveCard(state) {
  *   - dead/fading フェーズ中は右上 `BackToMapButton` は残るが
  *     `.root.victory` の `pointer-events: none` で押せない状態になる
  *
+ * 失敗演出（`battle-fail-retry` 仕様）の組み込み：
+ *   - `failPhase === 'shown'` のとき、敵エリアに `BattleFailOverlay` を
+ *     マウントして Fail テキストと「マップへ戻る」「やり直す」の 2 ボタンを
+ *     表示する。同時に右上の `BackToMapButton` を unmount してボタンの
+ *     重複を避ける（要件 3-1, 3-3, 3-4）
+ *   - `enemyHpBox` には `failPhase === 'shown'` 連動で `.dimmed` クラスを
+ *     付与し、敵 HP バー＋数値ラベルを半透過にする。`EnemySprite` 側にも
+ *     対称な `.dimmed` を付与し、敵スプライトと HP バーが同じ透過度で
+ *     残る視覚を作る（要件 3-5, 3-6）
+ *   - `.root.failed` の `pointer-events: none` で全体ロック。`BattleFailOverlay`
+ *     内の `.overlay` は `pointer-events: auto` を再付与して 2 ボタンだけは
+ *     押せる状態にする（`VictoryClearOverlay` と同じロック解除パターン）
+ *   - 「やり直す」ボタンは `retryFromFail` を直接 `onRetry` プロップとして
+ *     渡し、押下時に `slotAssignments` / `handCards` を保ったまま HP・軌跡・
+ *     演出キューだけがリセットされて A 状態に戻る（要件 5-1〜5-6）
+ *   - 「マップへ戻る」ボタンは `onExitToMap` を渡し、勝利時の
+ *     `VictoryClearOverlay` と同じハンドラでマップ画面へ遷移する（要件 4-1）
+ *
+ * `victoryPhase` と `failPhase` は `startExecution` 完了時の判定で必ず
+ * どちらか片方しか立たないため、両オーバーレイが同時にマウントされること
+ * はない。両者の出し分け分岐は兄弟として並列に書くことで、勝利／失敗が
+ * 対称な選択肢であることがコード構造から読み取れるようにしている。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         stageId (string): 戦うステージの ID。`stages.json` のキーに対応。
  *             未指定時は `demoStageId` をフォールバックとして使う。
  *         onExitToMap (function): 「マップへ戻る」ボタン押下時に呼ぶ
  *             ハンドラ。引数なし。通常時は右上の `BackToMapButton`、
- *             勝利時は `VictoryClearOverlay` 内のボタンが、いずれも同じ
- *             ハンドラを呼んでマップ画面へ遷移する。
+ *             勝利時は `VictoryClearOverlay` 内のボタン、失敗時は
+ *             `BattleFailOverlay` 内のボタンが、いずれも同じハンドラを
+ *             呼んでマップ画面へ遷移する。
  *
  * Returns:
  *     JSX.Element: 戦闘画面全体を表す section 要素。
@@ -159,7 +185,10 @@ function BattleScreen({ stageId, onExitToMap }) {
   const currentPlayerHp = useBattleStore((s) => s.currentPlayerHp);
   const maxPlayerHp = useBattleStore((s) => s.maxPlayerHp);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
+  const failPhase = useBattleStore((s) => s.failPhase);
+  const retryFromFail = useBattleStore((s) => s.retryFromFail);
   const isEnemyFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
+  const isEnemyDimmed = failPhase === 'shown';
   const lastPlayerDamageId = useBattleStore(
     (s) => s.playerDamageEvents.at(-1)?.id ?? null,
   );
@@ -207,6 +236,7 @@ function BattleScreen({ stageId, onExitToMap }) {
     isTransitioning && styles.transitioning,
     isExecuting && styles.executing,
     victoryPhase && styles.victory,
+    failPhase && styles.failed,
   ]
     .filter(Boolean)
     .join(' ');
@@ -218,11 +248,11 @@ function BattleScreen({ stageId, onExitToMap }) {
       onDragEnd={handleDragEnd}
     >
       <section className={rootClassName}>
-        {victoryPhase !== 'cleared' && <BackToMapButton onClick={onExitToMap} />}
+        {victoryPhase !== 'cleared' && failPhase !== 'shown' && <BackToMapButton onClick={onExitToMap} />}
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
           <div 
-            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyHit ? styles.hit : ''}`}
+            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''}`}
             onAnimationEnd={() => setConsumedEnemyDamageId(lastEnemyDamageId)}
           >
             <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
@@ -233,6 +263,9 @@ function BattleScreen({ stageId, onExitToMap }) {
           <DamageFloater />
           {victoryPhase === 'cleared' && (
             <VictoryClearOverlay onExitToMap={onExitToMap} />
+          )}
+          {failPhase === 'shown' && (
+            <BattleFailOverlay onExitToMap={onExitToMap} onRetry={retryFromFail} />
           )}
         </div>
         <div className={styles.flowchartArea}>

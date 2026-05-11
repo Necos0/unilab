@@ -33,6 +33,16 @@ import useBattleStore from '../../../stores/battleStore';
  * `filter`、`.fading` は `opacity` で別プロパティのため、両方が同時に
  * 当たっても干渉しない。
  *
+ * 失敗演出への連動として `battleStore.failPhase` を購読し、`'shown'` の
+ * とき `<img>` に `.dimmed` クラスを付与して `opacity: 0.4` へ 0.3 秒の
+ * トランジションをかける（`battle-fail-retry` 要件 3-5）。CLEAR! 時の
+ * 完全透明（`.fading`）と区別できる「敵がまだ残っているが弱まって見える」
+ * 半透過状態を表現する。`failPhase` と `victoryPhase` は相互排他なので
+ * `.fading` と `.dimmed` が同時に当たることは無いが、CSS は独立クラスに
+ * しておくことで責務の分離を明確化している（勝利＝完全消失、失敗＝薄く
+ * 残る）。`.dimmed` も `opacity` プロパティで描かれるため、`.flashing`
+ * の `filter` 系演出（実行中の被弾フラッシュなど）とは干渉しない。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         enemyId (string): 敵識別子。
@@ -58,6 +68,8 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   const isFlashing = lastDamageId !== null && lastDamageId !== consumedDamageId;
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const isFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
+  const failPhase = useBattleStore((s) => s.failPhase);
+  const isDimmed = failPhase === 'shown';
 
   useEffect(() => {
     if (!animation) return;
@@ -76,7 +88,7 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   return (
     <div className={styles.root}>
       <img
-        className={`${styles.sprite} ${isFlashing ? styles.flashing : ''} ${isFading ? styles.fading : ''}`}
+        className={`${styles.sprite} ${isFlashing ? styles.flashing : ''} ${isFading ? styles.fading : ''} ${isDimmed ? styles.dimmed : ''}`}
         onAnimationEnd={() => setConsumedDamageId(lastDamageId)}
         src={src}
         alt={enemy.displayName}

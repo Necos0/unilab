@@ -11,10 +11,12 @@ import playerData from '../data/player.json';
  * / `maxEnemyHp`）・敵向けダメージ演出キュー（`enemyDamageEvents`）・プレイヤー
  * HP（`currentPlayerHp` / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー
  * （`playerDamageEvents`）・プレイヤー向けヒール演出キュー
- * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）をグローバル
- * に保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
- * スプライト演出・CLEAR! オーバーレイ・プレイヤー HP バーなど複数の
- * コンポーネントから購読・更新できるようにする。
+ * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
+ * （`failPhase`）・通過済みエッジ ID 配列（`traversedEdgeIds`）・通過済みノード
+ * ID 配列（`traversedNodeIds`）をグローバルに保持し、手札 UI・フローチャート・
+ * 拡大トグルボタン・敵 HP バー・スプライト演出・CLEAR! オーバーレイ・Fail
+ * オーバーレイ・プレイヤー HP バーなど複数のコンポーネントから購読・更新
+ * できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
@@ -27,15 +29,30 @@ import playerData from '../data/player.json';
  * 線形 enum で、勝利演出（敵 dead アニメ → スプライトのフェードアウト →
  * CLEAR! テキスト表示）の進行を 1 フィールドで表現する。
  *
+ * `failPhase` は `null | 'shown'` の 2 状態を取る enum で、実行シーケンス完了時に
+ * 「敵 HP === 0 かつ プレイヤー HP > 0」が成立しない（敗北または相打ち）場合に
+ * `'shown'` になり、Fail オーバーレイ表示・敵スプライト半透過・画面ロックの
+ * トリガーになる（`battle-fail-retry` 要件 2, 3）。`victoryPhase` とは相互排他で、
+ * 両方が同時に非 null になることはない。
+ *
+ * `traversedEdgeIds` / `traversedNodeIds` は実行シーケンス中に通過したエッジ／
+ * ノードの ID を時系列で蓄積する配列。各エッジ・ノード描画コンポーネントが
+ * 自身の id の含有を購読することで、「通過済み」の固定ハイライト（白いネオン光）
+ * を表現する（`battle-fail-retry` 要件 1）。実行終了後も `initializeBattle` または
+ * `retryFromFail` が呼ばれるまでクリアされず、失敗時にプレイヤーが「どの経路を
+ * 通ったか」を振り返れるよう経路の痕跡を残す。
+ *
  * 公開アクション：
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
  *                                 ユーザー選好は引き継ぐ）。敵 HP は
  *                                 `enemies.json` の `maxHp`、プレイヤー HP は
  *                                 `player.json` の `maxHp` で初期化し、
- *                                 `victoryPhase` も `null` に戻す。スロット
- *                                 割当は `lockedCard` を持つステージ定義
- *                                 から復元される
+ *                                 `victoryPhase` / `failPhase` も `null` に戻す。
+ *                                 `traversedEdgeIds` / `traversedNodeIds` も
+ *                                 空配列に戻して通過軌跡の白い光をクリアする。
+ *                                 スロット割当は `lockedCard` を持つステージ
+ *                                 定義から復元される
  *   - `beginDrag(instanceId)`   : ドラッグ開始時に呼び出す
  *   - `endDrag(result)`         : ドラッグ終了時に呼び出し、配置・差し替え・
  *                                 撤回を 1 箇所で処理する
@@ -48,9 +65,12 @@ import playerData from '../data/player.json';
  *                                 各 `maxHp` に戻し、各カードのフェーズで種別ごとに
  *                                 `applyEnemyDamage` / `applyPlayerDamage` /
  *                                 `applyPlayerHeal` を発火する（独立 `if` 並列）。
- *                                 シーケンス完了時点で敵 HP が 0 なら、
- *                                 `startVictorySequence(stage.enemyId)` を呼んで
- *                                 勝利演出を起動する
+ *                                 各フェーズで通過したエッジ／ノード id を
+ *                                 `traversedEdgeIds` / `traversedNodeIds` に
+ *                                 蓄積する。シーケンス完了時点で「敵 HP === 0
+ *                                 かつ プレイヤー HP > 0」なら `startVictorySequence`
+ *                                 を起動し、それ以外（敵残存／相打ち）は
+ *                                 `failPhase: 'shown'` で Fail フェーズに遷移する
  *   - `applyEnemyDamage(amount)`
  *                               : 敵 HP を amount だけ減らし（0 クランプ）、
  *                                 敵向けダメージ演出イベントを
@@ -64,7 +84,9 @@ import playerData from '../data/player.json';
  *                                 プレイヤー向けダメージ演出イベントを
  *                                 `playerDamageEvents` に push する。モンスター
  *                                 カードのスロット通過時に `startExecution` から
- *                                 呼び出される
+ *                                 呼び出される。実行中に HP=0 に達したときは
+ *                                 同じ set 内で `failPhase: 'shown'` などを
+ *                                 立てて即座に Fail フェーズへ遷移する
  *   - `dismissPlayerDamageEvent(id)`
  *                               : 指定 id のプレイヤー向けダメージイベントを
  *                                 `playerDamageEvents` から取り除く
@@ -88,6 +110,12 @@ import playerData from '../data/player.json';
  *                                 'fading' → 'cleared'` の 3 段、未定義なら
  *                                 `'fading' → 'cleared'` の 2 段で `victoryPhase`
  *                                 を遷移させる
+ *   - `retryFromFail()`         : Fail オーバーレイの「やり直す」から呼ばれる。
+ *                                 `failPhase` を `null` に戻し、HP・演出キュー・
+ *                                 通過軌跡をすべてクリアして A 状態に戻す。
+ *                                 `slotAssignments` / `handCards` は意図的に
+ *                                 触らないため、プレイヤーは前回のカード配置を
+ *                                 残したままピンポイントで直して再挑戦できる
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
@@ -316,10 +344,13 @@ const useBattleStore = create((set, get) => ({
   isExecuting: false,
   executionStep: null,
   currentPhaseMs: null,
+  traversedEdgeIds: [],
+  traversedNodeIds: [],
   currentEnemyHp: 0,
   maxEnemyHp: 0,
   enemyDamageEvents: [],
   victoryPhase: null,
+  failPhase: null,
   _enemyDamageCounter: 0,
   currentPlayerHp: 0,
   maxPlayerHp: 0,
@@ -333,11 +364,16 @@ const useBattleStore = create((set, get) => ({
    *
    * 手札・スロット割当・ドラッグ中フラグ・敵 HP・敵向けダメージ演出キュー・
    * プレイヤー HP・プレイヤー向けダメージ演出キュー・プレイヤー向けヒール
-   * 演出キュー・勝利演出フェーズ（`victoryPhase`）を初期化する。`isExpanded` には触れない
+   * 演出キュー・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
+   * （`failPhase`）・通過済みエッジ／ノード配列（`traversedEdgeIds` /
+   * `traversedNodeIds`）を初期化する。`isExpanded` には触れない
    * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
-   * `flowchart-zoom` 要件 6-1）。`victoryPhase` を `null` に戻すことで、
-   * CLEAR! 演出の名残（透過したスプライト・CLEAR! テキスト）を残さず
-   * 通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4）。
+   * `flowchart-zoom` 要件 6-1）。`victoryPhase` / `failPhase` を `null` に戻し、
+   * `traversedEdgeIds` / `traversedNodeIds` を空配列に戻すことで、CLEAR!
+   * 演出の名残（透過したスプライト・CLEAR! テキスト）も Fail 演出の名残
+   * （半透過した敵スプライト・Fail オーバーレイ・通過軌跡の白い光）も
+   * 残さず通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4 ／
+   * `battle-fail-retry` 要件 6-1, 6-2）。
    *
    * 敵 HP は `enemies.json` から `stage.enemyId` に対応する `maxHp` を
    * 取得して `maxEnemyHp` / `currentEnemyHp` の双方に設定する。プレイヤー
@@ -372,6 +408,9 @@ const useBattleStore = create((set, get) => ({
       playerDamageEvents: [],
       playerHealEvents: [],
       victoryPhase: null,
+      failPhase: null,
+      traversedEdgeIds: [],
+      traversedNodeIds: [],
     }));
   },
 
@@ -466,9 +505,25 @@ const useBattleStore = create((set, get) => ({
    * 適用しない（要件 4-4）。`else if` ではなく独立 `if` の並列構造にする
    * ことで、将来カード種別が追加されたときに順序依存無く拡張できる。
    *
-   * プレイヤー HP=0 に到達してもシーケンスは中断せず、敗北判定や敗北演出
-   * は行わない（monster-attack 要件 3-4：敗北処理は別スペック）。完了タイマー
-   * では `currentEnemyHp === 0` のときのみ勝利演出を起動する。
+   * 各フェーズの `setTimeout` 内では、`executionStep` の更新と同時に通過軌跡
+   * （`traversedEdgeIds` / `traversedNodeIds`）にもエッジ／ノードの id を
+   * 蓄積する（`battle-fail-retry` 要件 1-1〜1-4）。`set` の関数形式で
+   * `[...s.traversedEdgeIds, phase.id]` のように不変更新し、3 項演算子で
+   * `phase.type` による振り分けを 1 つの状態更新オブジェクト内にまとめる
+   * ことで React の再レンダリング回数を抑える。
+   *
+   * 完了タイマーでは「敵 HP === 0 かつ プレイヤー HP > 0」のときのみ勝利演出
+   * （`startVictorySequence`）を起動し、それ以外（敵が残っている／相打ち）は
+   * `failPhase: 'shown'` をセットして Fail フェーズに遷移する
+   * （`battle-fail-retry` 要件 2-1, 2-2, 2-3、README 「勝利条件」記述に既存
+   * 実装を合わせる訂正）。
+   *
+   * 各フェーズ `setTimeout` および完了タイマーの先頭で `if (get().failPhase
+   * !== null) return;` の中断ガードを設ける。実行中にプレイヤー HP=0 で
+   * `applyPlayerDamage` が `failPhase: 'shown'` を立てた場合、後続フェーズの
+   * 副作用（軌跡 push・カード効果発火）と完了タイマーの勝敗判定をすべて
+   * 打ち切る（`battle-fail-retry` 要件 2-4, 2-5）。`clearTimeout` で明示破棄
+   * しなくても early-return ガードで十分機能する。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`
@@ -496,10 +551,20 @@ const useBattleStore = create((set, get) => ({
         currentPlayerHp: s.maxPlayerHp,
         playerDamageEvents: [],
         playerHealEvents: [],
+        traversedEdgeIds: [],
+        traversedNodeIds: [],
+        failPhase: null,
       }));
       phases.forEach((phase, i) => {
         setTimeout(() => {
-          set({ executionStep: phase });
+          if (get().failPhase !== null) return;
+          set((s) => ({
+            executionStep: phase,
+            ...(phase.type === 'edge'
+              ? { traversedEdgeIds: [...s.traversedEdgeIds, phase.id] }
+              : { traversedNodeIds: [...s.traversedNodeIds, phase.id] }
+            ),
+          }));
           if (phase.type === 'node') {
             const card = get().slotAssignments[phase.id];
             if (card && card.id === 'attack' && card.power > 0) {
@@ -515,9 +580,13 @@ const useBattleStore = create((set, get) => ({
         }, i * phaseMs);
       });
       setTimeout(() => {
+        if (get().failPhase !== null)return;
         set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
-        if (get().currentEnemyHp === 0) {
+        const { currentEnemyHp, currentPlayerHp } = get();
+        if (currentEnemyHp === 0 && currentPlayerHp > 0) {
           get().startVictorySequence(stage.enemyId);
+        } else {
+          set({ failPhase: 'shown' });
         }
       }, phases.length * phaseMs);
     };
@@ -565,8 +634,19 @@ const useBattleStore = create((set, get) => ({
     * `_playerDamageCounter` ベースの単調増加文字列で、敵側 (`d-`) と
     * 区別するため `pd-` プレフィックスを付ける（React の key として使う）。
     *
-    * プレイヤー HP=0 に到達しても本アクションは何もせず、敗北判定や
-    * 実行中断は行わない（monster-attack 要件 3-4：敗北処理は別スペック）。
+    * 実行中（`state.isExecuting === true`）にプレイヤー HP が 0 に達した場合は、
+    * 同じ `set` トランザクション内で `failPhase: 'shown'` ／ `isExecuting: false`
+    * ／ `executionStep: null` ／ `currentPhaseMs: null` を一括で更新し、
+    * 残りのフェーズ実行を即座に中断する（`battle-fail-retry` 要件 2-4）。
+    * 1 つの `set` 呼び出しで全フィールドを変更することで「`currentPlayerHp === 0`
+    * だけど `failPhase === null`」のような途中状態を観測されないようにする。
+    * これにより「HP=0 でモンスター被弾を受けたあと heal カードで復活すれば
+    * 勝利できる」という抜け道を防ぐ。実行中以外（`isExecuting === false`）の
+    * 経路で HP=0 に到達しても中断状態にはしない（防御的なガード）。
+    *
+    * 中断後にスケジュール済みの `setTimeout` が発火しても、`startExecution`
+    * 内の各 `setTimeout` コールバック先頭で `failPhase !== null` をガードして
+    * いるため、軌跡 push やカード効果発火は実行されない（要件 2-5）。
     *
     * Args:
     *     amount (number): 与えるダメージ量。負の値や 0 は呼び出し側で
@@ -575,11 +655,18 @@ const useBattleStore = create((set, get) => ({
    applyPlayerDamage: (amount) => set((state) => {
     const nextHp = Math.max(0, state.currentPlayerHp - amount);
     const id = `pd-${state._playerDamageCounter}`;
-    return {
+    const result = {
       currentPlayerHp: nextHp,
       playerDamageEvents: [...state.playerDamageEvents, { id, amount }],
       _playerDamageCounter: state._playerDamageCounter + 1,
     };
+    if (nextHp === 0 && state.isExecuting) {
+      result.failPhase = 'shown';
+      result.isExecuting = false;
+      result.executionStep = null;
+      result.currentPhaseMs = null;
+    }
+    return result;
    }),
 
    /**
@@ -688,6 +775,49 @@ const useBattleStore = create((set, get) => ({
     }
     setTimeout(() => set({ victoryPhase: 'cleared' }), deadDurationMs + VICTORY_FADE_DURATION_MS, );
    },
+
+   /**
+    * Fail フェーズからの「やり直す」アクション。
+    *
+    * Fail オーバーレイの「やり直す」ボタンから呼び出される。`failPhase` を
+    * `null` に戻し、敵 HP・プレイヤー HP を各 `maxHp` に復元、敵向け／プレイヤー
+    * 向けのダメージ演出キューおよびヒール演出キューをすべて空にし、通過軌跡
+    * （`traversedEdgeIds` / `traversedNodeIds`）もクリアする。これにより画面は
+    * 「実行前の操作可能状態（A 状態）」に戻る（`battle-fail-retry` 要件 5-1, 5-3,
+    * 5-4, 5-5）。
+    *
+    * `initializeBattle` との最大の違いは、**`slotAssignments` と `handCards`
+    * を意図的に触らないこと**（`battle-fail-retry` 要件 5-2）。これにより
+    * プレイヤーは前回のフローチャートの構成をそのまま残した状態で、直したい
+    * カードだけをピンポイントで差し替えて再挑戦できる。`initializeBattle` は
+    * スロット配置をステージ定義から再構築する（ロックカード復元含む）責務な
+    * ので、引数オプションで分岐させずに別アクションとして分離する設計を採用
+    * している。
+    *
+    * 演出キュー 3 種を空にする理由：これらを残したまま再実行すると、前回の
+    * 被弾・回復フロート演出が画面に残ったまま新しい実行が始まり、「いつの
+    * 演出か」がわからなくなる。`startExecution` 開始時にも同様のクリアが走る
+    * が、本アクションでクリアすることで「やり直すボタンを押した瞬間に画面が
+    * 綺麗な状態に戻る」体験を担保する。
+    *
+    * 敵スプライトの半透過（`.dimmed`）と敵 HP バーの半透過は `failPhase ===
+    * 'shown'` に連動するクラス制御で実装されているため、`failPhase` を
+    * `null` に戻すだけで自動的に解除される（明示的な状態フィールドは持たない）。
+    *
+    * `set` の関数形式 `(state) => (...)` を使うのは、`state.maxEnemyHp` /
+    * `state.maxPlayerHp` を読みたいため。オブジェクト形式 `set({...})` だと
+    * 現在の状態を参照できない。
+    */
+   retryFromFail: () => set((state) => ({
+      failPhase: null,
+      currentEnemyHp: state.maxEnemyHp,
+      currentPlayerHp: state.maxPlayerHp,
+      enemyDamageEvents: [],
+      playerDamageEvents: [],
+      playerHealEvents: [],
+      traversedEdgeIds: [],
+      traversedNodeIds: [],
+   })),
 }));
 
 export default useBattleStore;

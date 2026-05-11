@@ -14,6 +14,11 @@ import styles from './PlayButton.module.css';
  *   - 全スロットが埋まっていない：要件 2-1（部分配置での実行を許可しない）
  *   - 勝利演出中（`victoryPhase !== null`）：CLEAR! 後の再実行を抑止し、
  *     プレイヤーをマップへ戻る動線へ誘導する（victory-clear 要件 6-2）
+ *   - 失敗演出中（`failPhase !== null`）：Fail オーバーレイ表示中の再実行を
+ *     抑止し、「やり直す」「マップへ戻る」のいずれかを選ばせる動線にする
+ *     （`battle-fail-retry` 要件 7-1）。`.root.failed` の `pointer-events: none`
+ *     による全体ロックに加え、`disabled` 属性を併用することでキーボード経由の
+ *     発火も防ぐ二重防御
  *
  * 表示は `/icons/flowchart/play.svg` の緑色再生アイコンのみで、テキストは
  * 持たない。意味は `aria-label="実行"` で支援技術に伝える。
@@ -32,8 +37,9 @@ function PlayButton({ stage }) {
     const allFilled = useBattleStore(selectAllSlotsFilled);
     const startExecution = useBattleStore((s) => s.startExecution);
     const victoryPhase = useBattleStore((s) => s.victoryPhase);
+    const failPhase = useBattleStore((s) => s.failPhase);
 
-    const isDisabled = isExecuting || isTransitioning || !allFilled || victoryPhase !== null;
+    const isDisabled = isExecuting || isTransitioning || !allFilled || victoryPhase !== null || failPhase !== null;
 
     const handleClick = () => {
         startExecution(stage);

@@ -169,6 +169,8 @@ unilab/
             │   ├── BattleTransition.module.css
             │   ├── VictoryClearOverlay.jsx    ← 勝利時の CLEAR! テキスト＋マップへ戻るボタン
             │   ├── VictoryClearOverlay.module.css
+            │   ├── BattleFailOverlay.jsx      ← 失敗時の Fail テキスト＋やり直す／マップへ戻るボタン
+            │   ├── BattleFailOverlay.module.css
             │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
             │   ├── enemy/        ← 敵側の演出(スプライト・被弾ダメージ表示)
             │   │   ├── DamageFloater.jsx
