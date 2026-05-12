@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -100,12 +100,27 @@ function selectActiveCard(state) {
  * キーフレーム名のハッシュ化に備え、`styles.hpBoxHit || 'hpBoxHit'` の
  * OR 併記で実名・生名どちらでも一致するようにしている。
  *
+ * `playerHpBox` には防御カード通過時の青フラッシュ演出も乗る
+ * （`guard-card-effect` 要件 6-5）。`battleStore.guardShield` の値を購読し、
+ * `useRef` で前回値を保持して「増加方向（0→正、または正→より大きい正）」
+ * のときのみ `isShielded` フラグを 500ms 立てる。これにより、シールド消費
+ * （減少）やクリア（正→0）ではフラッシュが発火せず、純粋な「付与イベント」
+ * だけが視覚化される。`isShielded` の自動オフは `setTimeout` で行い、
+ * `useEffect` の cleanup と組み合わせて連続発火時のタイマー破棄も担保する。
+ * CSS の `@keyframes hpBoxShielded` は 0% → 30% で青い box-shadow が広がり、
+ * 30% → 100% でフェードアウトする 1 ショットアニメで、`hpBoxHit`（赤）／
+ * `hpBoxHealed`（緑）と同じ意匠系。プレイヤー HP 数値表示は `guardShield > 0`
+ * のとき `currentPlayerHp + guardShield` を分子として表示し、内側 `<span>`
+ * に `.hpNumeratorShielded` クラスを条件付与して分子のみを青色化する
+ * （要件 1-4, 1-5, 1-6）。プレイヤー側 `HpBar` には `shield={guardShield}`
+ * を渡すことで box 幅と右側の青い領域が連動して可変表示される（要件 6-1〜6-4）。
+ *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
  * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・敵向け
  * ダメージ演出キュー（`enemyDamageEvents`）・プレイヤー HP（`currentPlayerHp`
  * / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー（`playerDamageEvents`）・
  * プレイヤー向けヒール演出キュー（`playerHealEvents`）・勝利演出フェーズ
- * （`victoryPhase`）は `battleStore` が保持する。プレイヤー HP は以前ローカル変数で `playerData.maxHp` を
+ * （`victoryPhase`）・防御シールド残量（`guardShield`）は `battleStore` が保持する。プレイヤー HP は以前ローカル変数で `playerData.maxHp` を
  * 静的に表示していたが、モンスターカード被弾処理（monster-attack 仕様）
  * の導入に合わせてストア値の購読に切り替えた。`DndContext` の
  * `onDragStart` / `onDragEnd` はそれぞれ `beginDrag` / `endDrag` に
@@ -197,6 +212,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const maxEnemyHp = useBattleStore((s) => s.maxEnemyHp);
   const currentPlayerHp = useBattleStore((s) => s.currentPlayerHp);
   const maxPlayerHp = useBattleStore((s) => s.maxPlayerHp);
+  const guardShield = useBattleStore((s) => s.guardShield);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const failPhase = useBattleStore((s) => s.failPhase);
   const retryFromFail = useBattleStore((s) => s.retryFromFail);
@@ -217,6 +233,19 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   );
   const [consumedEnemyDamageId, setConsumedEnemyDamageId] = useState(null);
   const isEnemyHit = lastEnemyDamageId !== null && lastEnemyDamageId !== consumedEnemyDamageId;
+
+  const [isShielded, setIsShielded] = useState(false);
+  const prevGuardShieldRef = useRef(0);
+  useEffect(() => {
+    if (guardShield > prevGuardShieldRef.current && guardShield > 0) {
+      setIsShielded(true);
+      const timer = setTimeout(() => setIsShielded(false), 500);
+      prevGuardShieldRef.current = guardShield;
+      return () => clearTimeout(timer);
+    }
+    prevGuardShieldRef.current = guardShield;
+    return undefined;
+  }, [guardShield]);
 
   useEffect(() => {
     initializeBattle(stage);
@@ -305,6 +334,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               styles.playerHpBox,
               isPlayerHit && styles.hit,
               isPlayerHealed && styles.healed,
+              isShielded && styles.shielded,
             ].filter(Boolean).join(' ')}
             onAnimationEnd={(event) => {
               if (event.animationName === styles.hpBoxHit || event.animationName === 'hpBoxHit') {
@@ -314,9 +344,12 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               }
             }}
           >
-            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} />
+            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} shield={guardShield} />
             <span className={styles.hpText}>
-              {currentPlayerHp}/{maxPlayerHp}
+              <span className={guardShield > 0 ? styles.hpNumeratorShielded : undefined}>
+                {currentPlayerHp + guardShield}
+              </span>
+              /{maxPlayerHp}
             </span>
             <PlayerDamageFloater />
             <PlayerHealFloater />

@@ -13,10 +13,10 @@ import playerData from '../data/player.json';
  * （`playerDamageEvents`）・プレイヤー向けヒール演出キュー
  * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
  * （`failPhase`）・通過済みエッジ ID 配列（`traversedEdgeIds`）・通過済みノード
- * ID 配列（`traversedNodeIds`）をグローバルに保持し、手札 UI・フローチャート・
- * 拡大トグルボタン・敵 HP バー・スプライト演出・CLEAR! オーバーレイ・Fail
- * オーバーレイ・プレイヤー HP バーなど複数のコンポーネントから購読・更新
- * できるようにする。
+ * ID 配列（`traversedNodeIds`）・防御シールド残量（`guardShield`）をグローバルに
+ * 保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・スプライト演出・
+ * CLEAR! オーバーレイ・Fail オーバーレイ・プレイヤー HP バーなど複数の
+ * コンポーネントから購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
@@ -42,6 +42,16 @@ import playerData from '../data/player.json';
  * `retryFromFail` が呼ばれるまでクリアされず、失敗時にプレイヤーが「どの経路を
  * 通ったか」を振り返れるよう経路の痕跡を残す。
  *
+ * `guardShield` は防御カード通過時に付与される一時シールド残量（0 以上の数値）。
+ * 防御カードノードで `power` 値がセットされ、その直後 1 ノード分のみ有効。次の
+ * ノードがモンスターカードなら `consumeShieldOnDamage` で吸収量を差し引いてから
+ * 残ダメージを `applyPlayerDamage` に流し、シールド以外のカードでは何もせず通過。
+ * 通過後の次のエッジフェーズで「直前ノードが guard でなければ」`clearGuard` が
+ * 呼ばれて 0 に戻る（`guard-card-effect` 要件 1〜3）。プレイヤー HP バーは
+ * `guardShield > 0` の間だけ右側に青い拡張領域を持ち、数値表示も
+ * `currentPlayerHp + guardShield` の合算形式で「分子のみ青色」で描画される
+ * （要件 6）。
+ *
  * 公開アクション：
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
@@ -62,15 +72,19 @@ import playerData from '../data/player.json';
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
  *                                 未埋まりは no-op。実行開始時に敵／プレイヤー HP を
- *                                 各 `maxHp` に戻し、各カードのフェーズで種別ごとに
- *                                 `applyEnemyDamage` / `applyPlayerDamage` /
- *                                 `applyPlayerHeal` を発火する（独立 `if` 並列）。
- *                                 各フェーズで通過したエッジ／ノード id を
- *                                 `traversedEdgeIds` / `traversedNodeIds` に
- *                                 蓄積する。シーケンス完了時点で「敵 HP === 0
- *                                 かつ プレイヤー HP > 0」なら `startVictorySequence`
- *                                 を起動し、それ以外（敵残存／相打ち）は
- *                                 `failPhase: 'shown'` で Fail フェーズに遷移する
+ *                                 各 `maxHp` に戻し、`guardShield` も 0 にクリアする。
+ *                                 各カードのフェーズで種別ごとに `applyEnemyDamage`
+ *                                 / `consumeShieldOnDamage` / `applyPlayerHeal` /
+ *                                 `applyGuard` を発火する（独立 `if` 並列）。
+ *                                 各エッジフェーズでは「直前ノードが guard でなく
+ *                                 シールドが残っている」場合のみ `clearGuard` を
+ *                                 呼んでシールドを 0 に戻す。各フェーズで通過した
+ *                                 エッジ／ノード id を `traversedEdgeIds` /
+ *                                 `traversedNodeIds` に蓄積する。シーケンス完了
+ *                                 時点で「敵 HP === 0 かつ プレイヤー HP > 0」なら
+ *                                 `startVictorySequence` を起動し、それ以外
+ *                                 （敵残存／相打ち）は `failPhase: 'shown'` で Fail
+ *                                 フェーズに遷移する
  *   - `applyEnemyDamage(amount)`
  *                               : 敵 HP を amount だけ減らし（0 クランプ）、
  *                                 敵向けダメージ演出イベントを
@@ -83,10 +97,12 @@ import playerData from '../data/player.json';
  *                               : プレイヤー HP を amount だけ減らし（0 クランプ）、
  *                                 プレイヤー向けダメージ演出イベントを
  *                                 `playerDamageEvents` に push する。モンスター
- *                                 カードのスロット通過時に `startExecution` から
- *                                 呼び出される。実行中に HP=0 に達したときは
- *                                 同じ set 内で `failPhase: 'shown'` などを
- *                                 立てて即座に Fail フェーズへ遷移する
+ *                                 カードのスロット通過時には `consumeShieldOnDamage`
+ *                                 を経由して、シールド吸収後の残ダメージのみが
+ *                                 引数として渡される。実行中に HP=0 に達したときは
+ *                                 同じ set 内で `failPhase: 'shown'` などを立てて
+ *                                 即座に Fail フェーズへ遷移し、同時に `guardShield`
+ *                                 も 0 にクリアする
  *   - `dismissPlayerDamageEvent(id)`
  *                               : 指定 id のプレイヤー向けダメージイベントを
  *                                 `playerDamageEvents` から取り除く
@@ -104,6 +120,21 @@ import playerData from '../data/player.json';
  *                               : 指定 id のプレイヤー向けヒールイベントを
  *                                 `playerHealEvents` から取り除く
  *                                 （`PlayerHealFloater` 等の演出側からの自走削除）
+ *   - `applyGuard(amount)`      : `guardShield` に `amount` をセットする（累積でなく
+ *                                 上書き）。`startExecution` の防御カードフェーズで
+ *                                 呼ばれる。上書き式にすることで連続防御カードに
+ *                                 対応する（`guard-card-effect` 要件 5）
+ *   - `consumeShieldOnDamage(amount)`
+ *                               : シールドがある場合は `Math.min(shield, amount)` を
+ *                                 吸収量として `guardShield` から減算し、残ダメージ
+ *                                 （`amount - absorbed`）を `applyPlayerDamage` に
+ *                                 渡す。シールドが 0 のときは `applyPlayerDamage(amount)`
+ *                                 を直接呼ぶ。`startExecution` のモンスターカード
+ *                                 フェーズで呼ばれる（`guard-card-effect` 要件 2）
+ *   - `clearGuard()`            : `guardShield` を 0 に戻す。`startExecution` の
+ *                                 エッジフェーズで「直前ノードが guard でない」
+ *                                 場合に呼ばれ、防御効果が次の 1 ノードのみに
+ *                                 限定されることを保証する（`guard-card-effect` 要件 3）
  *   - `startVictorySequence(enemyId)`
  *                               : 勝利演出シーケンスを開始する。`enemies.json` で
  *                                 dead アニメが定義されていれば `'dead' →
@@ -112,10 +143,10 @@ import playerData from '../data/player.json';
  *                                 を遷移させる
  *   - `retryFromFail()`         : Fail オーバーレイの「やり直す」から呼ばれる。
  *                                 `failPhase` を `null` に戻し、HP・演出キュー・
- *                                 通過軌跡をすべてクリアして A 状態に戻す。
- *                                 `slotAssignments` / `handCards` は意図的に
- *                                 触らないため、プレイヤーは前回のカード配置を
- *                                 残したままピンポイントで直して再挑戦できる
+ *                                 通過軌跡・`guardShield` をすべてクリアして
+ *                                 A 状態に戻す。`slotAssignments` / `handCards` は
+ *                                 意図的に触らないため、プレイヤーは前回のカード
+ *                                 配置を残したままピンポイントで直して再挑戦できる
  *
  * `endDrag` は `source`（`'hand'` またはスロット ID）と `destination`
  * （スロット ID または `null`）の組み合わせで状態遷移する純粋関数的実装。
@@ -358,6 +389,7 @@ const useBattleStore = create((set, get) => ({
   _playerDamageCounter: 0,
   playerHealEvents: [],
   _playerHealCounter: 0,
+  guardShield: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -366,7 +398,8 @@ const useBattleStore = create((set, get) => ({
    * プレイヤー HP・プレイヤー向けダメージ演出キュー・プレイヤー向けヒール
    * 演出キュー・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
    * （`failPhase`）・通過済みエッジ／ノード配列（`traversedEdgeIds` /
-   * `traversedNodeIds`）を初期化する。`isExpanded` には触れない
+   * `traversedNodeIds`）・防御シールド残量（`guardShield`）を初期化する。
+   * `isExpanded` には触れない
    * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
    * `flowchart-zoom` 要件 6-1）。`victoryPhase` / `failPhase` を `null` に戻し、
    * `traversedEdgeIds` / `traversedNodeIds` を空配列に戻すことで、CLEAR!
@@ -411,6 +444,7 @@ const useBattleStore = create((set, get) => ({
       failPhase: null,
       traversedEdgeIds: [],
       traversedNodeIds: [],
+      guardShield: 0,
     }));
   },
 
@@ -487,23 +521,35 @@ const useBattleStore = create((set, get) => ({
    * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
    * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
    * （`enemyDamageEvents` / `playerDamageEvents`）およびヒール演出キュー
-   * （`playerHealEvents`）も空配列にクリアする。これにより各実行は
-   * 「フレッシュな状態からの再生」として独立する
-   * （attack-processing 要件 3-1、monster-attack 要件 5-1、heal-card 要件 6-6）。
+   * （`playerHealEvents`）も空配列にクリアし、`guardShield` も 0 に戻す。
+   * これにより各実行は「フレッシュな状態からの再生」として独立する
+   * （attack-processing 要件 3-1、monster-attack 要件 5-1、heal-card 要件 6-6、
+   * guard-card-effect 要件 4-2）。
    *
    * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
    * 効果を発火する：
    *   - `attack` カード → `applyEnemyDamage(card.power)`（敵 HP を減らす）
-   *   - `monster` カード → `applyPlayerDamage(card.power)`（プレイヤー HP
-   *     を減らす。モンスターカードは `lockedCard` でステージ定義から固定
-   *     配置されているため、ユーザー操作では現れない）
+   *   - `monster` カード → `consumeShieldOnDamage(card.power)`（シールド残量が
+   *     あれば吸収量を差し引いた残ダメージを `applyPlayerDamage` に渡し、
+   *     シールドが 0 なら `applyPlayerDamage(card.power)` を直接呼ぶ）。
+   *     モンスターカードは `lockedCard` でステージ定義から固定配置されている
+   *     ためユーザー操作では現れない
    *   - `heal` カード → `applyPlayerHeal(card.power)`（プレイヤー HP を回復し、
    *     `maxPlayerHp` でクランプする。HP が満タンでも演出キューには push
    *     されるため、緑フラッシュと「+N」フロートは通常通り再生される
    *     ／heal-card 要件 2-3, 4-4）
+   *   - `guard` カード → `applyGuard(card.power)`（`guardShield` に `power` を
+   *     上書きセット。直後 1 ノード分のみ有効な一時シールドとして機能する
+   *     ／guard-card-effect 要件 1, 5）
    * いずれも `card.power > 0` でガードしており、power 欠損や 0 の場合は
    * 適用しない（要件 4-4）。`else if` ではなく独立 `if` の並列構造にする
    * ことで、将来カード種別が追加されたときに順序依存無く拡張できる。
+   *
+   * 各エッジフェーズでは「直前ノードが guard でなく、かつ `guardShield > 0`」
+   * のとき `clearGuard()` を呼んでシールドを 0 に戻す。これにより、防御カード
+   * 直後のエッジではシールドが維持され、次のノード（モンスター／空き／別カード）
+   * を通過した後のエッジで初めてシールドが消える、という「防御効果は次の 1
+   * ノードのみに適用」の挙動が成立する（guard-card-effect 要件 3）。
    *
    * 各フェーズの `setTimeout` 内では、`executionStep` の更新と同時に通過軌跡
    * （`traversedEdgeIds` / `traversedNodeIds`）にもエッジ／ノードの id を
@@ -554,6 +600,7 @@ const useBattleStore = create((set, get) => ({
         traversedEdgeIds: [],
         traversedNodeIds: [],
         failPhase: null,
+        guardShield: 0,
       }));
       phases.forEach((phase, i) => {
         setTimeout(() => {
@@ -571,10 +618,23 @@ const useBattleStore = create((set, get) => ({
               get().applyEnemyDamage(card.power);
             }
             if (card && card.id === 'monster' && card.power > 0) {
-              get().applyPlayerDamage(card.power);
+              get().consumeShieldOnDamage(card.power);
             }
             if (card && card.id === 'heal' && card.power > 0) {
               get().applyPlayerHeal(card.power);
+            }
+            if (card && card.id === 'guard' && card.power > 0) {
+              get().applyGuard(card.power);
+            }
+          }
+          if (phase.type === 'edge') {
+            const prevPhase = phases[i - 1];
+            if (prevPhase && prevPhase.type === 'node') {
+              const prevCard = get().slotAssignments[prevPhase.id];
+              const isPrevGuard = prevCard && prevCard.id === 'guard';
+              if (!isPrevGuard && get().guardShield > 0) {
+                get().clearGuard();
+              }
             }
           }
         }, i * phaseMs);
@@ -636,13 +696,14 @@ const useBattleStore = create((set, get) => ({
     *
     * 実行中（`state.isExecuting === true`）にプレイヤー HP が 0 に達した場合は、
     * 同じ `set` トランザクション内で `failPhase: 'shown'` ／ `isExecuting: false`
-    * ／ `executionStep: null` ／ `currentPhaseMs: null` を一括で更新し、
-    * 残りのフェーズ実行を即座に中断する（`battle-fail-retry` 要件 2-4）。
-    * 1 つの `set` 呼び出しで全フィールドを変更することで「`currentPlayerHp === 0`
-    * だけど `failPhase === null`」のような途中状態を観測されないようにする。
-    * これにより「HP=0 でモンスター被弾を受けたあと heal カードで復活すれば
-    * 勝利できる」という抜け道を防ぐ。実行中以外（`isExecuting === false`）の
-    * 経路で HP=0 に到達しても中断状態にはしない（防御的なガード）。
+    * ／ `executionStep: null` ／ `currentPhaseMs: null` ／ `guardShield: 0` を
+    * 一括で更新し、残りのフェーズ実行を即座に中断する（`battle-fail-retry` 要件 2-4、
+    * guard-card-effect 要件 4-4）。1 つの `set` 呼び出しで全フィールドを変更する
+    * ことで「`currentPlayerHp === 0` だけど `failPhase === null`」のような途中
+    * 状態を観測されないようにする。これにより「HP=0 でモンスター被弾を受けた
+    * あと heal カードで復活すれば勝利できる」という抜け道を防ぐ。実行中以外
+    * （`isExecuting === false`）の経路で HP=0 に到達しても中断状態にはしない
+    * （防御的なガード）。
     *
     * 中断後にスケジュール済みの `setTimeout` が発火しても、`startExecution`
     * 内の各 `setTimeout` コールバック先頭で `failPhase !== null` をガードして
@@ -665,6 +726,7 @@ const useBattleStore = create((set, get) => ({
       result.isExecuting = false;
       result.executionStep = null;
       result.currentPhaseMs = null;
+      result.guardShield = 0;
     }
     return result;
    }),
@@ -749,6 +811,72 @@ const useBattleStore = create((set, get) => ({
    })),
 
    /**
+    * 防御シールドを付与する。
+    *
+    * `guardShield` フィールドに `amount` をそのままセットする（既存値との累積は
+    * せず上書き式）。`startExecution` の防御カード（`id === 'guard'`）ノード
+    * フェーズから呼ばれる。上書き式にすることで、同一実行内に複数の防御カードが
+    * 配置されている場合でも「最後に通った防御カードの power」が有効になる
+    * （`guard-card-effect` 要件 5-1）。直後 1 ノード分のみ有効で、次のエッジ
+    * フェーズで `clearGuard` が呼ばれて 0 に戻る運用を `startExecution` 側で
+    * 担保する。
+    *
+    * Args:
+    *     amount (number): シールドとしてセットする値。`card.power` がそのまま
+    *         渡される前提で、呼び出し側で `card.power > 0` をガードしている。
+    */
+   applyGuard: (amount) => set({ guardShield: amount }),
+
+   /**
+    * シールド吸収を考慮してプレイヤーにダメージを適用する。
+    *
+    * `guardShield` が正の値の場合は `Math.min(guardShield, amount)` を吸収量
+    * として算出し、`guardShield` から減算する。残ダメージ（`amount - absorbed`）
+    * が正なら `applyPlayerDamage(remaining)` を呼んで通常の被弾処理（HP 減算・
+    * 被弾フロート・HP バー shake・実行中の HP=0 中断ガード）に流す。完全吸収
+    * された場合（`remaining === 0`）は `applyPlayerDamage` を呼ばないため、
+    * 被弾演出は発火しない（`guard-card-effect` 要件 2-3）。
+    *
+    * `guardShield` が 0 の場合は `applyPlayerDamage(amount)` を直接呼ぶだけで、
+    * 従来挙動と完全互換。これにより `startExecution` のモンスターカード分岐は
+    * シールド有無を意識せず `consumeShieldOnDamage` を呼ぶだけでよい。
+    *
+    * `set` を 2 回（シールド減算と HP 減算が別アクション）に分けることで、
+    * `applyPlayerDamage` 内の死亡検知・中断ロジックを変更せずに再利用できる。
+    * 視覚的にもシールド減算 → HP 減算の 2 段階アニメーションになり、「シールドが
+    * まず削れて、その後 HP が削れる」流れがプレイヤーに伝わる。
+    *
+    * Args:
+    *     amount (number): モンスターカードの `power` 値。シールド吸収前の生
+    *         ダメージ。
+    */
+   consumeShieldOnDamage: (amount) => {
+    const shield = get().guardShield;
+    if (shield > 0) {
+      const absorbed = Math.min(shield, amount);
+      const remaining = amount - absorbed;
+      set({ guardShield: shield - absorbed });
+      if (remaining > 0) {
+        get().applyPlayerDamage(remaining);
+      }
+    } else {
+      get().applyPlayerDamage(amount);
+    }
+   },
+
+   /**
+    * 防御シールドを 0 にクリアする。
+    *
+    * `startExecution` のエッジフェーズで「直前のノードが防御カードでなく、
+    * かつ `guardShield > 0`」のときに呼ばれる。これにより防御カードの効果が
+    * 「直後の 1 ノードのみに適用」される挙動が成立し、その次のノードを通過
+    * した時点で残量があれば（モンスター以外で消費されなかった場合）まとめて
+    * 消滅する（`guard-card-effect` 要件 3-1, 3-2）。余剰防御値の持ち越しは
+    * しない設計のため、本アクションは値をチェックせず常に 0 にセットする。
+    */
+   clearGuard: () => set({ guardShield: 0 }),
+
+   /**
     * 勝利演出シーケンスを開始する。
     *
     * `enemies.json` から `enemyId` の `animations.dead` を引き、定義が
@@ -782,9 +910,9 @@ const useBattleStore = create((set, get) => ({
     * Fail オーバーレイの「やり直す」ボタンから呼び出される。`failPhase` を
     * `null` に戻し、敵 HP・プレイヤー HP を各 `maxHp` に復元、敵向け／プレイヤー
     * 向けのダメージ演出キューおよびヒール演出キューをすべて空にし、通過軌跡
-    * （`traversedEdgeIds` / `traversedNodeIds`）もクリアする。これにより画面は
-    * 「実行前の操作可能状態（A 状態）」に戻る（`battle-fail-retry` 要件 5-1, 5-3,
-    * 5-4, 5-5）。
+    * （`traversedEdgeIds` / `traversedNodeIds`）と防御シールド（`guardShield`）も
+    * クリアする。これにより画面は「実行前の操作可能状態（A 状態）」に戻る
+    * （`battle-fail-retry` 要件 5-1, 5-3, 5-4, 5-5、`guard-card-effect` 要件 4-3）。
     *
     * `initializeBattle` との最大の違いは、**`slotAssignments` と `handCards`
     * を意図的に触らないこと**（`battle-fail-retry` 要件 5-2）。これにより
@@ -817,6 +945,7 @@ const useBattleStore = create((set, get) => ({
       playerHealEvents: [],
       traversedEdgeIds: [],
       traversedNodeIds: [],
+      guardShield: 0,
    })),
 }));
 
