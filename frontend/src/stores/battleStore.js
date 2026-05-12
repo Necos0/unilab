@@ -156,6 +156,12 @@ const HAND = 'hand';
 const TRANSITION_DURATION_MS = 250;
 const EXECUTION_PER_CARD_MS = 2000;
 const VICTORY_FADE_DURATION_MS = 500;
+let executionTimers = [];
+
+function cancelExecutionTimers() {
+  executionTimers.forEach((id) => clearTimeout(id));
+  executionTimers = [];
+}
 
 /**
  * ステージ定義の `cards` 配列を `CardInstance` 配列に展開する。
@@ -422,10 +428,17 @@ const useBattleStore = create((set, get) => ({
    * リセットボタン経由で再実行されても同様にロックカードは復元される
    * ため、ユーザー配置のカードのみが手札に戻る挙動になる。
    *
+   * 関数冒頭で `cancelExecutionTimers()` を呼び、`startExecution` で
+   * スケジュールされていた全 `setTimeout` を破棄する。ステージ切替時や
+   * リセットボタン押下時に過去の実行のタイマーが残ったまま新しい状態を
+   * セットすると、後から発火したタイマーが新しい実行を妨害する可能性が
+   * あるため、防御的に破棄しておく。
+   *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
    */
   initializeBattle: (stage) => {
+    cancelExecutionTimers();
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
     const maxEnemyHp = enemy?.maxHp ?? 0;
     const maxPlayerHp = playerData.maxHp ?? 0;
@@ -568,8 +581,16 @@ const useBattleStore = create((set, get) => ({
    * !== null) return;` の中断ガードを設ける。実行中にプレイヤー HP=0 で
    * `applyPlayerDamage` が `failPhase: 'shown'` を立てた場合、後続フェーズの
    * 副作用（軌跡 push・カード効果発火）と完了タイマーの勝敗判定をすべて
-   * 打ち切る（`battle-fail-retry` 要件 2-4, 2-5）。`clearTimeout` で明示破棄
-   * しなくても early-return ガードで十分機能する。
+   * 打ち切る（`battle-fail-retry` 要件 2-4, 2-5）。
+   *
+   * さらに、`setTimeout` の戻り値（タイマー ID）をモジュールスコープの
+   * `executionTimers` 配列に push しておき、`startExecution` 開始時・
+   * `retryFromFail` 開始時・`initializeBattle` 開始時に `cancelExecutionTimers()`
+   * で全タイマーを `clearTimeout` する。これは「Fail 中断後にユーザーが『やり
+   * 直す』を押した瞬間 `failPhase` が `null` に戻ると、まだ scheduled だった
+   * setTimeout の中断ガードが解除されて勝手に実行が再開する」というバグ
+   * （`battle-fail-retry` の追加保護）を防ぐための明示破棄。early-return ガード
+   * とタイマー破棄の二重防御により、どちらか一方が漏れても安全側に倒れる。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`
@@ -585,6 +606,7 @@ const useBattleStore = create((set, get) => ({
     }
 
     const beginSequence = () => {
+      cancelExecutionTimers();
       const phases = buildExecutionPath(stage);
       const totalMs = stage.slots.length * EXECUTION_PER_CARD_MS;
       const phaseMs = totalMs / phases.length;
@@ -603,7 +625,7 @@ const useBattleStore = create((set, get) => ({
         guardShield: 0,
       }));
       phases.forEach((phase, i) => {
-        setTimeout(() => {
+        const timerId = setTimeout(() => {
           if (get().failPhase !== null) return;
           set((s) => ({
             executionStep: phase,
@@ -638,8 +660,9 @@ const useBattleStore = create((set, get) => ({
             }
           }
         }, i * phaseMs);
+        executionTimers.push(timerId);
       });
-      setTimeout(() => {
+      const completeTimerId = setTimeout(() => {
         if (get().failPhase !== null)return;
         set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
         const { currentEnemyHp, currentPlayerHp } = get();
@@ -649,6 +672,7 @@ const useBattleStore = create((set, get) => ({
           set({ failPhase: 'shown' });
         }
       }, phases.length * phaseMs);
+      executionTimers.push(completeTimerId);
     };
 
     if (state.isExpanded) {
@@ -928,6 +952,13 @@ const useBattleStore = create((set, get) => ({
     * が、本アクションでクリアすることで「やり直すボタンを押した瞬間に画面が
     * 綺麗な状態に戻る」体験を担保する。
     *
+    * `set` を呼ぶ前に `cancelExecutionTimers()` で `startExecution` 中に
+    * スケジュールされていた全 `setTimeout` を破棄するのが重要。これを呼ばずに
+    * `failPhase` を `null` に戻すと、Fail 中断時点で残っていた scheduled な
+    * タイマーが発火して `failPhase !== null` の早期 return ガードを通過して
+    * しまい、勝手に実行が再開してしまうバグが起きる。タイマー破棄を最初に
+    * 行うことで、後続の `set` で `failPhase` を解除しても安全な状態が保たれる。
+    *
     * 敵スプライトの半透過（`.dimmed`）と敵 HP バーの半透過は `failPhase ===
     * 'shown'` に連動するクラス制御で実装されているため、`failPhase` を
     * `null` に戻すだけで自動的に解除される（明示的な状態フィールドは持たない）。
@@ -936,7 +967,9 @@ const useBattleStore = create((set, get) => ({
     * `state.maxPlayerHp` を読みたいため。オブジェクト形式 `set({...})` だと
     * 現在の状態を参照できない。
     */
-   retryFromFail: () => set((state) => ({
+   retryFromFail: () => {
+    cancelExecutionTimers();
+    set((state) => ({
       failPhase: null,
       currentEnemyHp: state.maxEnemyHp,
       currentPlayerHp: state.maxPlayerHp,
@@ -946,7 +979,8 @@ const useBattleStore = create((set, get) => ({
       traversedEdgeIds: [],
       traversedNodeIds: [],
       guardShield: 0,
-   })),
+   }));
+  },
 }));
 
 export default useBattleStore;
