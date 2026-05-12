@@ -28,8 +28,15 @@
 
 .text {
   fill: #3a2410;
-  font-size: 16px;
-  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  /*
+   * 巻物上に表示するのはステージ番号（`1-1` 等の ASCII）が主。
+   * VT323 で CRT モニタ風のレトロデジタル数字を出しつつ、経由地名
+   * （`村の門` 等）の日本語はブラウザのフォント別グリフフォールバックで
+   * DotGothic16 が拾う。`geometricPrecision` で字形のヒンティングを抑制する。
+   */
+  font-size: 48px;
+  font-family: 'VT323', 'DotGothic16', 'Press Start 2P', monospace;
+  text-rendering: geometricPrecision;
   user-select: none;
   pointer-events: none;
 }

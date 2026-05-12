@@ -101,6 +101,32 @@ const useProgressStore = create((set, get) => ({
    */
   finishUnlockAnimation: () =>
     set({ pendingUnlockStageId: null, isUnlockAnimating: false }),
+
+  /**
+   * テスト用：全ステージを即座に解放する。
+   *
+   * `stages.json` の全ステージを走査し、各ステージの解放条件を満たす
+   * ために必要な「直前ステージ」を `clearedStageIds` に追加する。
+   * `*-1` は常に解放扱いのため、各ワールドの最終ステージ自体は
+   * `cleared` 扱いにならず「未クリアだが解放済み」状態になる。
+   * 解放アニメは抑止したいので `pendingUnlockStageId` はリセットし、
+   * `isUnlockAnimating` も `false` に戻す。
+   */
+  unlockAllStages: () => {
+    const predecessors = new Set();
+    for (const stageId of Object.keys(stagesData.stages)) {
+      const parsed = parseStageId(stageId);
+      if (!parsed || parsed.number <= 1) {
+        continue;
+      }
+      predecessors.add(`${parsed.world}-${parsed.number - 1}`);
+    }
+    set({
+      clearedStageIds: Array.from(predecessors),
+      pendingUnlockStageId: null,
+      isUnlockAnimating: false,
+    });
+  },
 }));
 
 /**

@@ -6,8 +6,9 @@
  * では見た目（色・フォント等）だけを担う。
  *
  * フォントは Google Fonts の `DotGothic16`（16px ネイティブの 2D ドット
- * 風日本語ゴシック）を採用。単一ウェイトなので `font-weight: bold` は
- * 擬似太字でにじむため指定しない。
+ * 風日本語ゴシック）を採用。単一ウェイトのため `font-weight: bold` だと
+ * 擬似太字でにじむので、太字化は SVG `stroke` を `fill` と同色で重ねる
+ * 手法で行う（パス輪郭が外側に拡張され、結果として字画が太く見える）。
  */
 
 .panel {
@@ -17,9 +18,12 @@
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
 }
 
-.label {
+.name {
   fill: #3a2410;
-  font-size: 16px;
+  stroke: #3a2410;
+  stroke-width: 0.8;
+  paint-order: stroke fill;
+  font-size: 18px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
@@ -27,6 +31,9 @@
 
 .clearedLabel {
   fill: #2f8a3e;
+  stroke: #2f8a3e;
+  stroke-width: 0.6;
+  paint-order: stroke fill;
   font-size: 14px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
@@ -35,6 +42,9 @@
 
 .stars {
   fill: #c47a1a;
+  stroke: #c47a1a;
+  stroke-width: 0.8;
+  paint-order: stroke fill;
   font-size: 24px;
   letter-spacing: 2px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
@@ -63,6 +73,9 @@
 
 .fightText {
   fill: #fff8e8;
+  stroke: #fff8e8;
+  stroke-width: 0.7;
+  paint-order: stroke fill;
   font-size: 16px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;

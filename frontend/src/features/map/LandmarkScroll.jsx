@@ -7,9 +7,11 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  * ランドマークの上に常時表示される、巻物形のラベルバナー。
  *
  * 背景は `/icons/landmark_scroll.png`（パーチメント／巻物のピクセルアート
- * 画像）を SVG `<image>` で読み込み、ステージ名（`label`）をその上に
- * `<text>` で中央配置する。横幅は最長 8 文字の `ストーンサークル` まで
- * 収まる固定値（160×32 SVG 単位）。SVG `<g>` 要素を返すため、親側で
+ * 画像）を SVG `<image>` で読み込み、表示テキスト（`text`、通常はステージ
+ * 番号 `"1-1"` 等。ステージを持たない経由地ランドマークではランドマーク名）
+ * をその上に `<text>` で中央配置する。サイズは固定値（横 230.4 × 縦 70 SVG
+ * 単位、横は従来 160 の 1.44 倍、縦はピクセル数字フォントを収めるために
+ * 縦長化）。SVG `<g>` 要素を返すため、親側で
  * `transform="translate(...)"` を当てて配置する想定。クリック判定と
  * ホバー演出は CSS 側で `.scroll` クラスにかけている。
  *
@@ -27,7 +29,7 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  *
  * Args:
  *     props (object): React プロパティ。
- *         label (string): ラベル上に表示するステージ名。
+ *         text (string): 巻物上に表示するテキスト（ステージ番号 or 経由地名）。
  *         isLocked (boolean, optional): ロックオーバーレイを表示するなら
  *             `true`。デフォルト `false`。
  *         isFading (boolean, optional): ロックオーバーレイの解放アニメを
@@ -39,9 +41,9 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  * Returns:
  *     JSX.Element: ラベルバナー全体を表す `<g>` 要素。
  */
-function LandmarkScroll({ label, isLocked = false, isFading = false }) {
-  const halfWidth = 80;
-  const halfHeight = 16;
+function LandmarkScroll({ text, isLocked = false, isFading = false }) {
+  const halfWidth = 115.2;
+  const halfHeight = 35;
 
   return (
     <g
@@ -57,8 +59,14 @@ function LandmarkScroll({ label, isLocked = false, isFading = false }) {
         className={styles.parchment}
         preserveAspectRatio="none"
       />
-      <text x={0} y={5} textAnchor="middle" className={styles.text}>
-        {label}
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        dominantBaseline="central"
+        className={styles.text}
+      >
+        {text}
       </text>
       {isLocked && <LandmarkLockOverlay isFading={isFading} />}
     </g>

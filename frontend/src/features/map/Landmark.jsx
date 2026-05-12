@@ -109,13 +109,13 @@ function Landmark({
     >
       {/*
         ラベルと詳細パネルは隙間なく接するように配置する。
-          - ラベル：translate(0, -55)、半高 16 → 上端 y = -71
+          - ラベル：translate(0, -36)、半高 35 → 上端 y = -71
           - 詳細：translate(0, -141)、半高 70 → 下端 y = -71
         詳細パネルの opacity は data-arrived 属性で CSS が切り替える。
       */}
-      <g transform="translate(0, -55)">
+      <g transform="translate(0, -36)">
         <LandmarkScroll
-          label={label}
+          text={stageId ?? label}
           isLocked={shouldShowLock}
           isFading={isFading}
         />
@@ -123,6 +123,7 @@ function Landmark({
       {hasStage && (
         <g transform="translate(0, -141)">
           <LandmarkDetail
+            name={label}
             difficulty={difficulty}
             onFight={handleFight}
             isCleared={isCleared}

@@ -62,6 +62,34 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
     }
   }, []);
 
+  /*
+   * テスト用ショートカット：Space キーを押すと全ステージを即座に解放する。
+   * input/textarea にフォーカスがある場合と、修飾キー同時押しは無視する。
+   */
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.code !== 'Space') {
+        return;
+      }
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      useProgressStore.getState().unlockAllStages();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const { viewBox } = mapDef;
 
   return (
