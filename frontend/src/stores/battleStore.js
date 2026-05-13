@@ -205,7 +205,8 @@ import playerData from '../data/player.json';
 
 const HAND = 'hand';
 const TRANSITION_DURATION_MS = 250;
-const EXECUTION_PER_CARD_MS = 2000;
+const NODE_PHASE_MS = 800;
+const EDGE_PHASE_MS = 400;
 const VICTORY_FADE_DURATION_MS = 500;
 let executionTimers = [];
 
@@ -584,12 +585,21 @@ const useBattleStore = create((set, get) => ({
    * 縮小状態なら即実行する。
    *
    * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、
-   * `phases.length × phaseMs` の合計時間に等分配して `setTimeout` で順次
-   * `executionStep` にセットしていく。最後に `isExecuting` を `false`、
-   * `executionStep` と `currentPhaseMs` を `null` に戻す。シーケンス完了
-   * 時点で `currentEnemyHp === 0` なら、続けて `startVictorySequence(
-   * stage.enemyId)` を呼び出して CLEAR! 演出を起動する（`victory-clear`
-   * 要件 1-1, 1-3：実行終了の合図に同期して勝利演出を始める）。
+   * フェーズ種別ごとに異なる時間（ノードフェーズ = `NODE_PHASE_MS` = 800ms、
+   * エッジフェーズ = `EDGE_PHASE_MS` = 400ms）で順次 `setTimeout` 発火する。
+   * 実数は実機調整で決定した値で、定数を変えるだけで全ステージのテンポが
+   * 一括変更できる設計。
+   * 各フェーズの開始時刻は事前に累積で計算（`phaseStartMs` 配列）し、各フェーズ
+   * の持続時間は `phaseDurations` 配列に格納する。これによりステージのスロット
+   * 数によらず「エッジ移動は常に 500ms、ノードでの効果発火は常に 1000ms」と
+   * いう一定のテンポが保たれる（以前は `EXECUTION_PER_CARD_MS / phases.length`
+   * の等分配で、スロット数によってフェーズ単価が変動していた）。`currentPhaseMs`
+   * は各フェーズ進入時にそのフェーズの持続時間で更新され、`AnimatedProgressEdge`
+   * の進行アニメーション速度（エッジ通過時 0.5 秒）と連動する。最後に
+   * `isExecuting` を `false`、`executionStep` と `currentPhaseMs` を `null` に
+   * 戻す。シーケンス完了時点で `currentEnemyHp === 0` なら、続けて
+   * `startVictorySequence(stage.enemyId)` を呼び出して CLEAR! 演出を起動する
+   * （`victory-clear` 要件 1-1, 1-3：実行終了の合図に同期して勝利演出を始める）。
    *
    * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
    * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
@@ -679,12 +689,20 @@ const useBattleStore = create((set, get) => ({
     const beginSequence = () => {
       cancelExecutionTimers();
       const phases = buildExecutionPath(stage);
-      const totalMs = stage.slots.length * EXECUTION_PER_CARD_MS;
-      const phaseMs = totalMs / phases.length;
+      const phaseStartMs = [];
+      const phaseDurations = [];
+      let acc = 0;
+      for (const phase of phases) {
+        phaseStartMs.push(acc);
+        const duration = phase.type === 'node' ? NODE_PHASE_MS : EDGE_PHASE_MS;
+        phaseDurations.push(duration);
+        acc += duration;
+      }
+      const totalMs = acc;
 
       set((s) => ({
         isExecuting: true,
-        currentPhaseMs: phaseMs,
+        currentPhaseMs: phaseDurations[0],
         currentEnemyHp: s.maxEnemyHp,
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
@@ -703,6 +721,7 @@ const useBattleStore = create((set, get) => ({
           if (get().failPhase !== null) return;
           set((s) => ({
             executionStep: phase,
+            currentPhaseMs: phaseDurations[i],
             ...(phase.type === 'edge'
               ? { traversedEdgeIds: [...s.traversedEdgeIds, phase.id] }
               : { traversedNodeIds: [...s.traversedNodeIds, phase.id] }
@@ -744,7 +763,7 @@ const useBattleStore = create((set, get) => ({
               }
             }
           }
-        }, i * phaseMs);
+        }, phaseStartMs[i]);
         executionTimers.push(timerId);
       });
       const completeTimerId = setTimeout(() => {
@@ -756,7 +775,7 @@ const useBattleStore = create((set, get) => ({
         } else {
           set({ failPhase: 'shown' });
         }
-      }, phases.length * phaseMs);
+      }, totalMs);
       executionTimers.push(completeTimerId);
     };
 
