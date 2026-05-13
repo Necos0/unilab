@@ -18,6 +18,7 @@ import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
 import DamageFloater from './enemy/DamageFloater';
+import ReflectDamageFloater from './enemy/ReflectDamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
 import PlayerHealFloater from './player/PlayerHealFloater';
 import useBattleStore from '../../stores/battleStore';
@@ -63,8 +64,10 @@ function selectActiveCard(state) {
  * Undertale 風の3段レイアウトで画面を構成し、`DndContext` で全体を
  * ラップすることで手札⇄スロット間のドラッグ＆ドロップを可能にする。
  *   - 上段: 敵スプライト + 敵 HP バー（数値併記） + ダメージ数字フロート層
- *      （`EnemySprite` + 汎用 `HpBar` + `DamageFloater`）。HP バーラッパー
- *      は `enemyHpBox` クラス
+ *      （`EnemySprite` + 汎用 `HpBar` + `DamageFloater` + `ReflectDamageFloater`）。
+ *      `DamageFloater` は赤系で通常攻撃ダメージを、`ReflectDamageFloater` は
+ *      オレンジ系で反射ダメージを描画する独立 2 系統のフロート層。HP バー
+ *      ラッパーは `enemyHpBox` クラス
  *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
  *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）
  *   - 下段: プレイヤー HP バー（数値併記） + プレイヤー被弾ダメージ数字
@@ -88,6 +91,21 @@ function selectActiveCard(state) {
  * `false` に戻り、次回の被弾で末尾 id が更新されると再び `true` になる。
  * `useEffect` を使わない派生計算パターンにより、React 19 の
  * `react-hooks/set-state-in-effect` ルールにも適合する。
+ *
+ * 反射成立時は通常被弾と区別された専用演出が発火する。`isEnemyReflected`
+ * （`enemyReflectEvents` の末尾 id を購読する派生計算）が `true` のとき、
+ * `enemyHpBox` には `.hit`（横シェイク + 赤フラッシュ）ではなく
+ * `.shakenVert`（縦シェイクのみ）が付与される。同時に `isPlayerShaken`
+ * （`playerShakeEvents` 購読）も `true` になり、`playerHpBox` にも同じ
+ * `.shakenVert` が付与されて両者の HP バーが連動して縦揺れする。これにより
+ * 「攻撃が来たが跳ね返した」という反射の手応えを、(1) オレンジ色のダメージ
+ * フロート、(2) 両 HP バーの縦揺れ、(3) プレイヤー HP は不変、の 3 点で
+ * 視覚化する。`.shakenVert` の CSS は `@keyframes hpBoxShakeVert`（`translateY`
+ * の振動のみ、filter 変化なし）で、赤フラッシュを発生させない点が `.hit`
+ * との明確な違い。`onAnimationEnd` では `event.animationName === hpBoxShakeVert`
+ * のとき `consumedPlayerShakeId` / `consumedEnemyReflectId` を進める。
+ * 敵側の `consumedEnemyReflectId` は `onAnimationEnd` の直接ハンドラで
+ * `consumedEnemyDamageId` と一緒に進める実装。
  *
  * `playerHpBox` には被弾と対称に、ヒール時の緑フラッシュ演出も乗る。
  * `playerHealEvents` 末尾の `id` を購読する `isPlayerHealed` の派生計算で
@@ -114,6 +132,26 @@ function selectActiveCard(state) {
  * に `.hpNumeratorShielded` クラスを条件付与して分子のみを青色化する
  * （要件 1-4, 1-5, 1-6）。プレイヤー側 `HpBar` には `shield={guardShield}`
  * を渡すことで box 幅と右側の青い領域が連動して可変表示される（要件 6-1〜6-4）。
+ *
+ * `playerHpBox` にはさらにカウンターカード通過時のリフレクト演出も乗る
+ * （`reflect-card-effect` 要件 1）。`battleStore.reflectActive` を購読し、
+ * `true` の間は guard 状態と同じく「HP バーの中身（`.fill`）の色変化」と
+ * 「HP 数値の分子の色変化」の 2 要素だけでシンプルに状態表示する設計。
+ * `HpBar` には `reflectActive={reflectActive}` を渡して `.fill` の色を
+ * 緑→オレンジに切替、HP 数値の分子クラスは
+ * `guardShield > 0 ? 青 : reflectActive ? オレンジ : 通常色` の三項演算子
+ * チェーンで判定する。`guardShield` と `reflectActive` は `battleStore`
+ * 側の `applyGuard` / `applyReflect` で互いをクリアする排他制御がかかって
+ * いるため、青とオレンジが同時に表示されることはない。継続的なグロー演出
+ * （box-shadow など）は意図的に持たせず、戦闘画面全体の演出ノイズを下げて
+ * 反射成立時の縦シェイク + オレンジフロートのインパクトを際立たせる設計。
+ *
+ * 敵側のダメージフロートは赤系の `DamageFloater`（`enemyDamageEvents` 購読）と
+ * オレンジ系の `ReflectDamageFloater`（`enemyReflectEvents` 購読）を独立 2 系統で
+ * マウントしている。反射成立時は `applyEnemyDamage` を経由せず
+ * `applyReflectDamage` 経由で敵 HP を減らすため、両系統が同時に発火することは
+ * ない。色で「通常攻撃ダメージ」と「反射ダメージ」を視覚的に区別する設計
+ * （`reflect-card-effect` 要件 2-3, 7-4）。
  *
  * マウント時に `initializeBattle(stage)` でストアを初期化し、以降の
  * 手札・スロット割当・敵 HP（`currentEnemyHp` / `maxEnemyHp`）・敵向け
@@ -213,6 +251,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const currentPlayerHp = useBattleStore((s) => s.currentPlayerHp);
   const maxPlayerHp = useBattleStore((s) => s.maxPlayerHp);
   const guardShield = useBattleStore((s) => s.guardShield);
+  const reflectActive = useBattleStore((s) => s.reflectActive);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const failPhase = useBattleStore((s) => s.failPhase);
   const retryFromFail = useBattleStore((s) => s.retryFromFail);
@@ -228,11 +267,22 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   );
   const [consumedPlayerHealId, setConsumedPlayerHealId] = useState(null);
   const isPlayerHealed = lastPlayerHealId !== null && lastPlayerHealId !== consumedPlayerHealId;
+  const lastPlayerShakeId = useBattleStore(
+    (s) => s.playerShakeEvents.at(-1)?.id ?? null,
+  );
+  const [consumedPlayerShakeId, setConsumedPlayerShakeId] = useState(null);
+  const isPlayerShaken = lastPlayerShakeId !== null && lastPlayerShakeId !== consumedPlayerShakeId;
   const lastEnemyDamageId = useBattleStore(
     (s) => s.enemyDamageEvents.at(-1)?.id ?? null,
   );
   const [consumedEnemyDamageId, setConsumedEnemyDamageId] = useState(null);
   const isEnemyHit = lastEnemyDamageId !== null && lastEnemyDamageId !== consumedEnemyDamageId;
+
+  const lastEnemyReflectId = useBattleStore(
+    (s) => s.enemyReflectEvents.at(-1)?.id ?? null,
+  );
+  const [consumedEnemyReflectId, setConsumedEnemyReflectId] = useState(null);
+  const isEnemyReflected = lastEnemyReflectId !== null && lastEnemyReflectId !== consumedEnemyReflectId;
 
   const [isShielded, setIsShielded] = useState(false);
   const prevGuardShieldRef = useRef(0);
@@ -302,8 +352,11 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
           <div 
-            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''}`}
-            onAnimationEnd={() => setConsumedEnemyDamageId(lastEnemyDamageId)}
+            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''} ${isEnemyReflected ? styles.shakenVert : ''}`}
+            onAnimationEnd={() => {
+              setConsumedEnemyDamageId(lastEnemyDamageId);
+              setConsumedEnemyReflectId(lastEnemyReflectId);
+            }}
           >
             <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
             <span className={styles.hpText}>
@@ -311,6 +364,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             </span>
           </div>
           <DamageFloater />
+          <ReflectDamageFloater />
           {victoryPhase === 'cleared' && (
             <VictoryClearOverlay onExitToMap={handleClearedExitToMap} />
           )}
@@ -335,18 +389,26 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               isPlayerHit && styles.hit,
               isPlayerHealed && styles.healed,
               isShielded && styles.shielded,
+              isPlayerShaken && styles.shakenVert,
             ].filter(Boolean).join(' ')}
             onAnimationEnd={(event) => {
               if (event.animationName === styles.hpBoxHit || event.animationName === 'hpBoxHit') {
                 setConsumedPlayerDamageId(lastPlayerDamageId);
               } else if (event.animationName === styles.hpBoxHealed || event.animationName === 'hpBoxHealed') {
                 setConsumedPlayerHealId(lastPlayerHealId);
+              } else if (event.animationName === styles.hpBoxShakeVert || event.animationName === 'hpBoxShakeVert') {
+                setConsumedPlayerShakeId(lastPlayerShakeId);
               }
             }}
           >
-            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} shield={guardShield} />
+            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} shield={guardShield} reflectActive={reflectActive} />
             <span className={styles.hpText}>
-              <span className={guardShield > 0 ? styles.hpNumeratorShielded : undefined}>
+              <span 
+                className={guardShield > 0 
+                  ? styles.hpNumeratorShielded 
+                  : reflectActive
+                    ? styles.hpNumeratorReflect
+                    : undefined}>
                 {currentPlayerHp + guardShield}
               </span>
               /{maxPlayerHp}

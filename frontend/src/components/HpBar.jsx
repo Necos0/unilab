@@ -29,6 +29,16 @@ import styles from './HpBar.module.css';
  * 180px に戻る。これにより、敵側 HP バー（`shield` を渡していない呼び出し）
  * を含む既存呼び出しはすべて完全後方互換で動作する。
  *
+ * `reflectActive` プロパティ（optional、デフォルト false）が `true` のときは、
+ * `.fill` に `.reflect` クラスを付与して背景色を緑（`#3ad430`）からオレンジ
+ * （`#ff8c42`）に切り替える。`transition: background 0.25s` により、付与時・
+ * 解除時の色変化が滑らかにアニメートする。`.reflect` クラスは `.fill` を基底と
+ * する複合セレクタ（`.fill.reflect`）として書かれているため、CSS Specificity
+ * が高く、緑↔オレンジの切替が確実に効く（`reflect-card-effect` 要件 1-2, 4-2）。
+ * `reflectActive` は `guardShield > 0` と排他関係にあり（`battleStore` の
+ * `applyGuard` / `applyReflect` で互いをクリア）、同時にオレンジ fill と
+ * シールド領域の両方が表示されることはない。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         currentHp (number): 現在 HP。
@@ -36,11 +46,13 @@ import styles from './HpBar.module.css';
  *         shield (number, optional): 防御シールド残量。0 以上の数値で、
  *             デフォルト 0。負の値は内部で `Math.max(0, ...)` で 0 に
  *             クランプする。
+ *         reflectActive (boolean, optional): リフレクト状態のフラグ。
+ *             デフォルト false。true のとき `.fill` がオレンジ色に変化する。
  *
  * Returns:
  *     JSX.Element | null: HP バー要素、または無効な入力時 null。
  */
-function HpBar({ currentHp, maxHp, shield = 0 }) {
+function HpBar({ currentHp, maxHp, shield = 0, reflectActive = false }) {
   if (maxHp == null || maxHp <= 0) {
     return null;
   }
@@ -51,6 +63,7 @@ function HpBar({ currentHp, maxHp, shield = 0 }) {
   const hpRatio = clampedHp / total;
   const shieldRatio = normalizedShield / total;
   const scale = total / maxHp;
+  const fillClassName = reflectActive ? `${styles.fill} ${styles.reflect}` : styles.fill;
 
   return (
     <div 
@@ -58,7 +71,7 @@ function HpBar({ currentHp, maxHp, shield = 0 }) {
       style={{ '--shield-scale': scale }}
     >
       <div
-        className={styles.fill}
+        className={fillClassName}
         style={{ width: `${hpRatio * 100}%` }}
       />
       {normalizedShield > 0 && (

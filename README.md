@@ -176,9 +176,11 @@ unilab/
             │   ├── BattleFailOverlay.jsx      ← 失敗時の Fail テキスト＋やり直す／マップへ戻るボタン
             │   ├── BattleFailOverlay.module.css
             │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
-            │   ├── enemy/        ← 敵側の演出(スプライト・被弾ダメージ表示)
+            │   ├── enemy/        ← 敵側の演出(スプライト・被弾ダメージ表示・反射ダメージ表示)
             │   │   ├── DamageFloater.jsx
             │   │   ├── DamageFloater.module.css
+            │   │   ├── ReflectDamageFloater.jsx       ← reflect カードによる反射ダメージ(オレンジ系)
+            │   │   ├── ReflectDamageFloater.module.css
             │   │   ├── EnemySprite.jsx
             │   │   ├── EnemySprite.module.css
             │   │   ├── enemySpritePath.js

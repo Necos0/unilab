@@ -13,10 +13,11 @@ import playerData from '../data/player.json';
  * （`playerDamageEvents`）・プレイヤー向けヒール演出キュー
  * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
  * （`failPhase`）・通過済みエッジ ID 配列（`traversedEdgeIds`）・通過済みノード
- * ID 配列（`traversedNodeIds`）・防御シールド残量（`guardShield`）をグローバルに
- * 保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・スプライト演出・
- * CLEAR! オーバーレイ・Fail オーバーレイ・プレイヤー HP バーなど複数の
- * コンポーネントから購読・更新できるようにする。
+ * ID 配列（`traversedNodeIds`）・防御シールド残量（`guardShield`）・リフレクト状態
+ * フラグ（`reflectActive`）・反射ダメージ演出キュー（`enemyReflectEvents`）を
+ * グローバルに保持し、手札 UI・フローチャート・拡大トグルボタン・敵 HP バー・
+ * スプライト演出・CLEAR! オーバーレイ・Fail オーバーレイ・プレイヤー HP バー・
+ * ReflectDamageFloater など複数のコンポーネントから購読・更新できるようにする。
  * カードは `stages.json` で定義された `id` / `power` に加えて、本バトル内で
  * 一意な `instanceId` を付与した `CardInstance` として扱う。同一 `id` の
  * カードが複数あっても `instanceId` で区別することで dnd-kit のドラッグ
@@ -52,6 +53,29 @@ import playerData from '../data/player.json';
  * `currentPlayerHp + guardShield` の合算形式で「分子のみ青色」で描画される
  * （要件 6）。
  *
+ * `reflectActive` はカウンターカード通過時に有効化される反射状態のフラグ
+ * （boolean）。`true` の間、次のモンスターカードの攻撃を完全に無効化し、
+ * `applyReflectDamage` で攻撃値分のダメージを敵 HP から減算し、敵エリアに
+ * オレンジ色のフロート（`enemyReflectEvents` 経由で `ReflectDamageFloater` が
+ * 描画）を発火する（`reflect-card-effect` 要件 1, 2）。次のエッジフェーズで
+ * 「直前ノードが reflect でなければ」`clearReflect` が呼ばれて `false` に戻る
+ * （要件 4）。`reflectActive` の間はプレイヤー HP バーの `.fill` がオレンジ色
+ * （緑から変化）、ラッパーにオレンジグロー、数値の分子もオレンジ色で表示される
+ * （要件 1-2〜1-4）。`guardShield` と `reflectActive` は `applyGuard` /
+ * `applyReflect` のアクション内で互いを排他クリアするため、同時に有効になる
+ * ことはない（要件 6-1, 6-2）。
+ *
+ * `playerShakeEvents` は反射成立時にプレイヤー HP バーを縦に揺らすトリガーの
+ * キュー。`applyReflectDamage` が呼ばれたタイミングで `enemyReflectEvents` と
+ * 同時にイベントが push される。プレイヤー HP は減らないが「攻撃が来たが
+ * 跳ね返した」という反射感を視覚的に表現するための専用キューで、`PlayerDamage
+ * Floater` を発火させないよう `playerDamageEvents` とは別系統で管理する。
+ * `BattleScreen` 側で末尾 id を購読する `isPlayerShaken` 派生計算により、
+ * `playerHpBox` に `.shakenVert` クラスが付与されて 1 ショットの縦揺れ
+ * （`@keyframes hpBoxShakeVert`）が再生される。敵側の HP バーも同じ
+ * `.shakenVert` クラスで連動して縦揺れし、「両者のバーが反射の衝撃で揺れる」
+ * 演出になる。
+ *
  * 公開アクション：
  *   - `initializeBattle(stage)` : ステージ定義から配置状態を初期化する
  *                                 （`isExpanded` は触らない：拡大／縮小の
@@ -72,13 +96,16 @@ import playerData from '../data/player.json';
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
  *                                 未埋まりは no-op。実行開始時に敵／プレイヤー HP を
- *                                 各 `maxHp` に戻し、`guardShield` も 0 にクリアする。
- *                                 各カードのフェーズで種別ごとに `applyEnemyDamage`
- *                                 / `consumeShieldOnDamage` / `applyPlayerHeal` /
- *                                 `applyGuard` を発火する（独立 `if` 並列）。
+ *                                 各 `maxHp` に戻し、`guardShield` / `reflectActive` /
+ *                                 `enemyReflectEvents` もクリアする。各カードのフェーズで
+ *                                 種別ごとに `applyEnemyDamage` / `consumeShieldOnDamage`
+ *                                 または `applyReflectDamage`（monster は `reflectActive`
+ *                                 で分岐） / `applyPlayerHeal` / `applyGuard` /
+ *                                 `applyReflect` を発火する（独立 `if` 並列）。
  *                                 各エッジフェーズでは「直前ノードが guard でなく
- *                                 シールドが残っている」場合のみ `clearGuard` を
- *                                 呼んでシールドを 0 に戻す。各フェーズで通過した
+ *                                 シールドが残っている」場合のみ `clearGuard` を、
+ *                                 「直前ノードが reflect でなくリフレクトが有効」の
+ *                                 場合のみ `clearReflect` を呼ぶ。各フェーズで通過した
  *                                 エッジ／ノード id を `traversedEdgeIds` /
  *                                 `traversedNodeIds` に蓄積する。シーケンス完了
  *                                 時点で「敵 HP === 0 かつ プレイヤー HP > 0」なら
@@ -99,10 +126,12 @@ import playerData from '../data/player.json';
  *                                 `playerDamageEvents` に push する。モンスター
  *                                 カードのスロット通過時には `consumeShieldOnDamage`
  *                                 を経由して、シールド吸収後の残ダメージのみが
- *                                 引数として渡される。実行中に HP=0 に達したときは
+ *                                 引数として渡される（リフレクト状態では
+ *                                 `applyReflectDamage` 経由で敵 HP が減り、本関数は
+ *                                 呼ばれない）。実行中に HP=0 に達したときは
  *                                 同じ set 内で `failPhase: 'shown'` などを立てて
  *                                 即座に Fail フェーズへ遷移し、同時に `guardShield`
- *                                 も 0 にクリアする
+ *                                 と `reflectActive` も 0 / false にクリアする
  *   - `dismissPlayerDamageEvent(id)`
  *                               : 指定 id のプレイヤー向けダメージイベントを
  *                                 `playerDamageEvents` から取り除く
@@ -135,6 +164,28 @@ import playerData from '../data/player.json';
  *                                 エッジフェーズで「直前ノードが guard でない」
  *                                 場合に呼ばれ、防御効果が次の 1 ノードのみに
  *                                 限定されることを保証する（`guard-card-effect` 要件 3）
+ *   - `applyReflect()`          : `reflectActive` を `true` にセットし、同時に
+ *                                 `guardShield` を 0 にクリアする（バフ排他制御）。
+ *                                 `startExecution` のカウンターカードフェーズで
+ *                                 呼ばれる（`reflect-card-effect` 要件 1, 6-1）
+ *   - `applyReflectDamage(amount)`
+ *                               : 反射成立時に敵 HP を amount 減らし（0 クランプ）、
+ *                                 `enemyReflectEvents` に新規イベントを push する。
+ *                                 `applyEnemyDamage` とは別キューを使うことで、
+ *                                 通常攻撃ダメージ（赤系 `DamageFloater`）と
+ *                                 反射ダメージ（オレンジ系 `ReflectDamageFloater`）
+ *                                 を視覚的に区別する。`applyPlayerDamage` は呼ばない
+ *                                 ため、プレイヤー HP は変動せず被弾演出も発火しない
+ *                                 （`reflect-card-effect` 要件 2, 7）
+ *   - `clearReflect()`          : `reflectActive` を `false` に戻す。`startExecution`
+ *                                 のエッジフェーズで「直前ノードが reflect でない」
+ *                                 場合に呼ばれ、反射効果が次の 1 ノードのみに
+ *                                 限定されることを保証する（要件 4）
+ *   - `dismissEnemyReflectEvent(id)`
+ *                               : 指定 id を `enemyReflectEvents` から取り除く。
+ *                                 `ReflectDamageFloater` の各浮き数字要素が
+ *                                 `onAnimationEnd` で呼び出して自走 unmount する
+ *                                 （既存 `dismissEnemyDamageEvent` と対称の責務）
  *   - `startVictorySequence(enemyId)`
  *                               : 勝利演出シーケンスを開始する。`enemies.json` で
  *                                 dead アニメが定義されていれば `'dead' →
@@ -395,7 +446,12 @@ const useBattleStore = create((set, get) => ({
   _playerDamageCounter: 0,
   playerHealEvents: [],
   _playerHealCounter: 0,
+  playerShakeEvents: [],
+  _playerShakeCounter: 0,
   guardShield: 0,
+  reflectActive: false,
+  enemyReflectEvents: [],
+  _enemyReflectCounter: 0,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -404,8 +460,9 @@ const useBattleStore = create((set, get) => ({
    * プレイヤー HP・プレイヤー向けダメージ演出キュー・プレイヤー向けヒール
    * 演出キュー・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
    * （`failPhase`）・通過済みエッジ／ノード配列（`traversedEdgeIds` /
-   * `traversedNodeIds`）・防御シールド残量（`guardShield`）を初期化する。
-   * `isExpanded` には触れない
+   * `traversedNodeIds`）・防御シールド残量（`guardShield`）・リフレクト
+   * 状態（`reflectActive`）・反射ダメージ演出キュー（`enemyReflectEvents`）を
+   * 初期化する。`isExpanded` には触れない
    * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
    * `flowchart-zoom` 要件 6-1）。`victoryPhase` / `failPhase` を `null` に戻し、
    * `traversedEdgeIds` / `traversedNodeIds` を空配列に戻すことで、CLEAR!
@@ -453,11 +510,14 @@ const useBattleStore = create((set, get) => ({
       currentPlayerHp: maxPlayerHp,
       playerDamageEvents: [],
       playerHealEvents: [],
+      playerShakeEvents: [],
       victoryPhase: null,
       failPhase: null,
       traversedEdgeIds: [],
       traversedNodeIds: [],
       guardShield: 0,
+      reflectActive: false,
+      enemyReflectEvents: [],
     }));
   },
 
@@ -534,17 +594,20 @@ const useBattleStore = create((set, get) => ({
    * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
    * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
    * （`enemyDamageEvents` / `playerDamageEvents`）およびヒール演出キュー
-   * （`playerHealEvents`）も空配列にクリアし、`guardShield` も 0 に戻す。
-   * これにより各実行は「フレッシュな状態からの再生」として独立する
-   * （attack-processing 要件 3-1、monster-attack 要件 5-1、heal-card 要件 6-6、
-   * guard-card-effect 要件 4-2）。
+   * （`playerHealEvents`）も空配列にクリアし、`guardShield` も 0、`reflectActive`
+   * も `false`、`enemyReflectEvents` も空配列に戻す。これにより各実行は
+   * 「フレッシュな状態からの再生」として独立する（attack-processing 要件 3-1、
+   * monster-attack 要件 5-1、heal-card 要件 6-6、guard-card-effect 要件 4-2、
+   * reflect-card-effect 要件 5-2）。
    *
    * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
    * 効果を発火する：
    *   - `attack` カード → `applyEnemyDamage(card.power)`（敵 HP を減らす）
-   *   - `monster` カード → `consumeShieldOnDamage(card.power)`（シールド残量が
-   *     あれば吸収量を差し引いた残ダメージを `applyPlayerDamage` に渡し、
-   *     シールドが 0 なら `applyPlayerDamage(card.power)` を直接呼ぶ）。
+   *   - `monster` カード → `reflectActive` で分岐：true なら
+   *     `applyReflectDamage(card.power)`（敵 HP を power 減らし、オレンジフロート
+   *     を発火、プレイヤー HP は不変）、false なら `consumeShieldOnDamage(card.power)`
+   *     （シールド残量があれば吸収量を差し引いた残ダメージを `applyPlayerDamage`
+   *     に渡し、シールドが 0 なら `applyPlayerDamage(card.power)` を直接呼ぶ）。
    *     モンスターカードは `lockedCard` でステージ定義から固定配置されている
    *     ためユーザー操作では現れない
    *   - `heal` カード → `applyPlayerHeal(card.power)`（プレイヤー HP を回復し、
@@ -552,17 +615,25 @@ const useBattleStore = create((set, get) => ({
    *     されるため、緑フラッシュと「+N」フロートは通常通り再生される
    *     ／heal-card 要件 2-3, 4-4）
    *   - `guard` カード → `applyGuard(card.power)`（`guardShield` に `power` を
-   *     上書きセット。直後 1 ノード分のみ有効な一時シールドとして機能する
-   *     ／guard-card-effect 要件 1, 5）
-   * いずれも `card.power > 0` でガードしており、power 欠損や 0 の場合は
-   * 適用しない（要件 4-4）。`else if` ではなく独立 `if` の並列構造にする
-   * ことで、将来カード種別が追加されたときに順序依存無く拡張できる。
+   *     上書きセットし、同時に `reflectActive` を `false` にクリアする）。
+   *     直後 1 ノード分のみ有効な一時シールドとして機能する
+   *     （guard-card-effect 要件 1, 5、reflect-card-effect 要件 6-2）
+   *   - `reflect` カード → `applyReflect()`（`reflectActive` を `true` にセットし、
+   *     同時に `guardShield` を 0 にクリアする）。直後 1 ノード分のみ有効な
+   *     反射状態として機能する。`reflect` カードは設計上 `power` を持たないため、
+   *     `card.power > 0` のガードを使わず `card.id === 'reflect'` の存在チェック
+   *     だけで分岐する（reflect-card-effect 要件 1, 6-1）
+   * いずれも `card.power > 0` でガードしている（reflect は例外）。`else if` では
+   * なく独立 `if` の並列構造にすることで、将来カード種別が追加されたときに
+   * 順序依存無く拡張できる。
    *
    * 各エッジフェーズでは「直前ノードが guard でなく、かつ `guardShield > 0`」
-   * のとき `clearGuard()` を呼んでシールドを 0 に戻す。これにより、防御カード
-   * 直後のエッジではシールドが維持され、次のノード（モンスター／空き／別カード）
-   * を通過した後のエッジで初めてシールドが消える、という「防御効果は次の 1
-   * ノードのみに適用」の挙動が成立する（guard-card-effect 要件 3）。
+   * のとき `clearGuard()` を呼んでシールドを 0 に戻し、「直前ノードが reflect で
+   * なく、かつ `reflectActive === true`」のとき `clearReflect()` を呼んで反射状態
+   * を解除する。これにより、バフカード直後のエッジでは状態が維持され、次のノード
+   * （モンスター／空き／別カード）を通過した後のエッジで初めて消える、という
+   * 「効果は次の 1 ノードのみに適用」の挙動が両方のバフで成立する
+   * （guard-card-effect 要件 3、reflect-card-effect 要件 4-1）。
    *
    * 各フェーズの `setTimeout` 内では、`executionStep` の更新と同時に通過軌跡
    * （`traversedEdgeIds` / `traversedNodeIds`）にもエッジ／ノードの id を
@@ -619,10 +690,13 @@ const useBattleStore = create((set, get) => ({
         currentPlayerHp: s.maxPlayerHp,
         playerDamageEvents: [],
         playerHealEvents: [],
+        playerShakeEvents: [],
         traversedEdgeIds: [],
         traversedNodeIds: [],
         failPhase: null,
         guardShield: 0,
+        reflectActive: false,
+        enemyReflectEvents: [],
       }));
       phases.forEach((phase, i) => {
         const timerId = setTimeout(() => {
@@ -640,7 +714,11 @@ const useBattleStore = create((set, get) => ({
               get().applyEnemyDamage(card.power);
             }
             if (card && card.id === 'monster' && card.power > 0) {
-              get().consumeShieldOnDamage(card.power);
+              if (get().reflectActive) {
+                get().applyReflectDamage(card.power);
+              } else {
+                get().consumeShieldOnDamage(card.power);
+              }
             }
             if (card && card.id === 'heal' && card.power > 0) {
               get().applyPlayerHeal(card.power);
@@ -648,14 +726,21 @@ const useBattleStore = create((set, get) => ({
             if (card && card.id === 'guard' && card.power > 0) {
               get().applyGuard(card.power);
             }
+            if (card && card.id === 'reflect') {
+              get().applyReflect();
+            }
           }
           if (phase.type === 'edge') {
             const prevPhase = phases[i - 1];
             if (prevPhase && prevPhase.type === 'node') {
               const prevCard = get().slotAssignments[prevPhase.id];
               const isPrevGuard = prevCard && prevCard.id === 'guard';
+              const isPrevReflect = prevCard && prevCard.id === 'reflect';
               if (!isPrevGuard && get().guardShield > 0) {
                 get().clearGuard();
+              }
+              if (!isPrevReflect && get().reflectActive) {
+                get().clearReflect();
               }
             }
           }
@@ -720,12 +805,13 @@ const useBattleStore = create((set, get) => ({
     *
     * 実行中（`state.isExecuting === true`）にプレイヤー HP が 0 に達した場合は、
     * 同じ `set` トランザクション内で `failPhase: 'shown'` ／ `isExecuting: false`
-    * ／ `executionStep: null` ／ `currentPhaseMs: null` ／ `guardShield: 0` を
-    * 一括で更新し、残りのフェーズ実行を即座に中断する（`battle-fail-retry` 要件 2-4、
-    * guard-card-effect 要件 4-4）。1 つの `set` 呼び出しで全フィールドを変更する
-    * ことで「`currentPlayerHp === 0` だけど `failPhase === null`」のような途中
-    * 状態を観測されないようにする。これにより「HP=0 でモンスター被弾を受けた
-    * あと heal カードで復活すれば勝利できる」という抜け道を防ぐ。実行中以外
+    * ／ `executionStep: null` ／ `currentPhaseMs: null` ／ `guardShield: 0` ／
+    * `reflectActive: false` を一括で更新し、残りのフェーズ実行を即座に中断する
+    * （`battle-fail-retry` 要件 2-4、guard-card-effect 要件 4-4、reflect-card-effect
+    * 要件 5-4）。1 つの `set` 呼び出しで全フィールドを変更することで
+    * 「`currentPlayerHp === 0` だけど `failPhase === null`」のような途中状態を
+    * 観測されないようにする。これにより「HP=0 でモンスター被弾を受けたあと
+    * heal カードで復活すれば勝利できる」という抜け道を防ぐ。実行中以外
     * （`isExecuting === false`）の経路で HP=0 に到達しても中断状態にはしない
     * （防御的なガード）。
     *
@@ -751,6 +837,8 @@ const useBattleStore = create((set, get) => ({
       result.executionStep = null;
       result.currentPhaseMs = null;
       result.guardShield = 0;
+      result.reflectActive = false;
+      result.playerShakeEvents = [];
     }
     return result;
    }),
@@ -835,21 +923,40 @@ const useBattleStore = create((set, get) => ({
    })),
 
    /**
+    * 指定 id のプレイヤー縦シェイクイベントを `playerShakeEvents` から削除する。
+    *
+    * `BattleScreen` のプレイヤー HP ボックスが `onAnimationEnd` 時に
+    * 「最新の id」を `consumedPlayerShakeId` に進めることで `isPlayerShaken`
+    * 派生計算が `false` に戻り、`.shakenVert` クラスが除去されてアニメが
+    * 完了する流れになる。本アクションはキュー自体の累積を防ぐためのもので、
+    * 既存の `dismissPlayer*Event` シリーズと完全対称の責務を持つ。
+    *
+    * Args:
+    *     id (string): 削除対象のシェイクイベント id。`playerShakeEvents`
+    *         内に該当が無ければ no-op。
+    */
+   dismissPlayerShakeEvent: (id) => set((state) => ({
+    playerShakeEvents: state.playerShakeEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
     * 防御シールドを付与する。
     *
     * `guardShield` フィールドに `amount` をそのままセットする（既存値との累積は
-    * せず上書き式）。`startExecution` の防御カード（`id === 'guard'`）ノード
-    * フェーズから呼ばれる。上書き式にすることで、同一実行内に複数の防御カードが
-    * 配置されている場合でも「最後に通った防御カードの power」が有効になる
-    * （`guard-card-effect` 要件 5-1）。直後 1 ノード分のみ有効で、次のエッジ
-    * フェーズで `clearGuard` が呼ばれて 0 に戻る運用を `startExecution` 側で
-    * 担保する。
+    * せず上書き式）。同時に `reflectActive` を `false` にクリアする：guard と
+    * reflect は互いに排他のバフ系として扱い、後発のバフが先発を上書きする
+    * （`reflect-card-effect` 要件 6-2）。`startExecution` の防御カード
+    * （`id === 'guard'`）ノードフェーズから呼ばれる。上書き式にすることで、
+    * 同一実行内に複数の防御カードが配置されている場合でも「最後に通った防御
+    * カードの power」が有効になる（`guard-card-effect` 要件 5-1）。直後 1
+    * ノード分のみ有効で、次のエッジフェーズで `clearGuard` が呼ばれて 0 に
+    * 戻る運用を `startExecution` 側で担保する。
     *
     * Args:
     *     amount (number): シールドとしてセットする値。`card.power` がそのまま
     *         渡される前提で、呼び出し側で `card.power > 0` をガードしている。
     */
-   applyGuard: (amount) => set({ guardShield: amount }),
+   applyGuard: (amount) => set({ guardShield: amount, reflectActive: false }),
 
    /**
     * シールド吸収を考慮してプレイヤーにダメージを適用する。
@@ -901,6 +1008,99 @@ const useBattleStore = create((set, get) => ({
    clearGuard: () => set({ guardShield: 0 }),
 
    /**
+    * リフレクト状態を有効化する。
+    *
+    * `reflectActive` フィールドを `true` にセットし、同時に `guardShield` を 0 に
+    * クリアする。guard と reflect は互いに排他のバフ系として扱い、後発のバフが
+    * 先発を上書きする（`reflect-card-effect` 要件 6-1）。`startExecution` の
+    * カウンターカード（`id === 'reflect'`）ノードフェーズから呼ばれる。直後 1
+    * ノード分のみ有効で、次のエッジフェーズで `clearReflect` が呼ばれて `false`
+    * に戻る運用を `startExecution` 側で担保する。
+    *
+    * `reflect` カードは設計上 `power` を持たない（`stages.json` で
+    * `{ "id": "reflect" }` のみ）ため、`applyReflect` は引数を取らない。
+    * 反射時のダメージは「敵モンスターの攻撃値そのもの」を `applyReflectDamage`
+    * 経由で敵 HP に反映する。
+    */
+   applyReflect: () => set({ reflectActive: true, guardShield: 0 }),
+
+   /**
+    * 反射成立時に敵にダメージを与える。
+    *
+    * `currentEnemyHp` を `amount` 減算（0 クランプ）し、`enemyReflectEvents`
+    * に新規イベント `{ id: 'er-${counter}', amount }` を push する。
+    * `_enemyReflectCounter` を `+1` してユニーク ID の単調増加を保つ。`id` の
+    * `er-` プレフィックスは敵被弾（`d-`）／プレイヤー被弾（`pd-`）／ヒール
+    * （`ph-`）と区別する識別子で、React の key として使う。
+    *
+    * `applyEnemyDamage` とは **別キュー**（`enemyReflectEvents`）に push する
+    * ことで、通常攻撃ダメージ（赤系 `DamageFloater`）と反射ダメージ
+    * （オレンジ系 `ReflectDamageFloater`）を視覚的に区別する設計
+    * （`reflect-card-effect` 要件 2-3, 2-4, 7-4）。`applyPlayerDamage` は呼ばない
+    * ため、反射成立時はプレイヤー HP が変動せず被弾フロート・HP バー赤フラッシュ
+    * は発火しない（要件 2-2）。
+    *
+    * 同じ `set` トランザクション内で `playerShakeEvents` にも `{ id: 'ps-${
+    * counter}' }` を push する。これにより `BattleScreen` 側で `isPlayerShaken`
+    * 派生計算が `true` になり、プレイヤー HP バーラッパー（`playerHpBox`）に
+    * `.shakenVert` クラスが付与され、縦揺れアニメ（`@keyframes hpBoxShakeVert`）
+    * が 1 ショット再生される。敵側にも `isEnemyReflected` の派生計算経由で
+    * 同じ `.shakenVert` クラスが付与され、両者の HP バーが同時に縦に揺れる
+    * 演出となる。プレイヤー HP を変動させずに「攻撃が来たが跳ね返した」反射感
+    * を視覚化するための専用キュー設計で、`playerDamageEvents` を共有すると
+    * `PlayerDamageFloater` が `-0` のフロートを発火してしまうため別系統にする。
+    *
+    * 反射ダメージで敵 HP=0 に達した場合、`startExecution` の完了タイマーが
+    * 「敵 HP === 0 かつ プレイヤー HP > 0」を判定して通常通り勝利演出を起動
+    * する（要件 2-5）。
+    *
+    * Args:
+    *     amount (number): モンスターカードの `power` 値。反射ダメージ量として
+    *         そのまま敵 HP に適用する。
+    */
+   applyReflectDamage: (amount) => set((state) => {
+    const nextHp = Math.max(0, state.currentEnemyHp - amount);
+    const id = `er-${state._enemyReflectCounter}`;
+    const shakeId = `ps-${state._playerShakeCounter}`;
+    return {
+      currentEnemyHp: nextHp,
+      enemyReflectEvents: [...state.enemyReflectEvents, { id, amount }],
+      _enemyReflectCounter: state._enemyReflectCounter + 1,
+      playerShakeEvents: [...state.playerShakeEvents, { id: shakeId }],
+      _playerShakeCounter: state._playerShakeCounter + 1,
+    };
+   }),
+
+   /**
+    * リフレクト状態を解除する。
+    *
+    * `reflectActive` を `false` に戻す。`startExecution` のエッジフェーズで
+    * 「直前のノードがカウンターカードでなく、かつ `reflectActive === true`」の
+    * とき呼ばれる。これにより反射効果が「直後の 1 ノードのみに適用」される
+    * 挙動が成立し、その次のノードを通過した時点で（モンスターで使用されても、
+    * モンスター以外で素通りしても）まとめて解除される（`reflect-card-effect`
+    * 要件 4）。本アクションは値をチェックせず常に `false` にセットする。
+    */
+   clearReflect: () => set({ reflectActive: false }),
+
+   /**
+    * 指定 id の反射ダメージイベントを `enemyReflectEvents` から削除する。
+    *
+    * `ReflectDamageFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、
+    * 自身を配列から取り除いて自走 unmount する。これにより
+    * `enemyReflectEvents` が累積し続けるのを防ぐ。既存の
+    * `dismissEnemyDamageEvent` と完全対称の責務を持つ（`reflect-card-effect`
+    * 要件 7-3）。
+    *
+    * Args:
+    *     id (string): 削除対象のリフレクトダメージイベント id。
+    *         `enemyReflectEvents` 内に該当が無ければ no-op。
+    */
+   dismissEnemyReflectEvent: (id) => set((state) => ({
+    enemyReflectEvents: state.enemyReflectEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
     * 勝利演出シーケンスを開始する。
     *
     * `enemies.json` から `enemyId` の `animations.dead` を引き、定義が
@@ -934,9 +1134,11 @@ const useBattleStore = create((set, get) => ({
     * Fail オーバーレイの「やり直す」ボタンから呼び出される。`failPhase` を
     * `null` に戻し、敵 HP・プレイヤー HP を各 `maxHp` に復元、敵向け／プレイヤー
     * 向けのダメージ演出キューおよびヒール演出キューをすべて空にし、通過軌跡
-    * （`traversedEdgeIds` / `traversedNodeIds`）と防御シールド（`guardShield`）も
-    * クリアする。これにより画面は「実行前の操作可能状態（A 状態）」に戻る
-    * （`battle-fail-retry` 要件 5-1, 5-3, 5-4, 5-5、`guard-card-effect` 要件 4-3）。
+    * （`traversedEdgeIds` / `traversedNodeIds`）と防御シールド（`guardShield`）、
+    * リフレクト状態（`reflectActive`）、反射ダメージ演出キュー
+    * （`enemyReflectEvents`）もクリアする。これにより画面は「実行前の操作可能
+    * 状態（A 状態）」に戻る（`battle-fail-retry` 要件 5-1, 5-3, 5-4, 5-5、
+    * `guard-card-effect` 要件 4-3、`reflect-card-effect` 要件 5-3）。
     *
     * `initializeBattle` との最大の違いは、**`slotAssignments` と `handCards`
     * を意図的に触らないこと**（`battle-fail-retry` 要件 5-2）。これにより
@@ -976,9 +1178,12 @@ const useBattleStore = create((set, get) => ({
       enemyDamageEvents: [],
       playerDamageEvents: [],
       playerHealEvents: [],
+      playerShakeEvents: [],
       traversedEdgeIds: [],
       traversedNodeIds: [],
       guardShield: 0,
+      reflectActive: false,
+      enemyReflectEvents: [],
    }));
   },
 }));

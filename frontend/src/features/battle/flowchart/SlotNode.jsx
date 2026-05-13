@@ -32,6 +32,12 @@ import styles from './SlotNode.module.css';
  *     フェーズ突入時の点滅 → 終了 → 固定光 の遷移が明度差なくシームレスに
  *     繋がる。`initializeBattle` または `retryFromFail` が呼ばれるまで残るため、
  *     失敗時にプレイヤーが「どのスロットを通ったか」を後から振り返れる
+ *   - 配置済みカードがロックカード（monster 等、`assignedCard.locked === true`）の
+ *     とき：`.lockedCard` クラスを付与し、CSS 側で `.dropTarget` / `.isOver`
+ *     による outline ハイライトと背景色変化を抑制する。`computeDropTransition`
+ *     で `destCard?.locked` のドロップが既に拒否されているため、視覚的に
+ *     「ここに置けそう」と誤解させる演出を消して、実装ロジックと表示の食い違い
+ *     をなくす（monster-attack 要件 2-2 の視覚補強）
  *
  * `Handle` はエッジの接続点として必要なため配置するが、ユーザーが手動で
  * エッジを引く用途ではないため CSS で視覚的に非表示にしている。
@@ -53,6 +59,7 @@ function SlotNode({ id }) {
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === id,
   );
   const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes(id));
+  const isLockedCard = !!assignedCard?.locked;
 
   const isDragActive = activeInstanceId !== null;
   const isDraggingThisCard =
@@ -66,7 +73,8 @@ function SlotNode({ id }) {
     isOver && styles.isOver,
     (isExecuting || isTransitioning) && styles.locked,
     isActive && styles.active,
-    isTraversed && styles.traversed
+    isTraversed && styles.traversed,
+    isLockedCard && styles.lockedCard,
   ]
     .filter(Boolean)
     .join(' ');
