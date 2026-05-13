@@ -585,8 +585,10 @@ const useBattleStore = create((set, get) => ({
    * 縮小状態なら即実行する。
    *
    * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、
-   * フェーズ種別ごとに異なる時間（ノードフェーズ = `NODE_PHASE_MS` = 1000ms、
-   * エッジフェーズ = `EDGE_PHASE_MS` = 500ms）で順次 `setTimeout` 発火する。
+   * フェーズ種別ごとに異なる時間（ノードフェーズ = `NODE_PHASE_MS` = 800ms、
+   * エッジフェーズ = `EDGE_PHASE_MS` = 400ms）で順次 `setTimeout` 発火する。
+   * 実数は実機調整で決定した値で、定数を変えるだけで全ステージのテンポが
+   * 一括変更できる設計。
    * 各フェーズの開始時刻は事前に累積で計算（`phaseStartMs` 配列）し、各フェーズ
    * の持続時間は `phaseDurations` 配列に格納する。これによりステージのスロット
    * 数によらず「エッジ移動は常に 500ms、ノードでの効果発火は常に 1000ms」と
