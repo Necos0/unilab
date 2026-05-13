@@ -51,6 +51,16 @@
   background: rgba(229, 229, 255, 0.08);
 }
 
+/* ロックカード（monster 等）が配置されているスロットでは、ドラッグ中・       
+    ホバー中の outline ハイライト・背景色変化をすべて抑制する。                
+    `destCard?.locked` で実際にはドロップ拒否されるロジックと、視覚上の        
+    「ここに置けそう」表示が食い違わないようにするための演出抑制 */ 
+.slot.filled.lockedCard.dropTarget,
+.slot.filled.lockedCard.isOver {
+  outline: none;
+  background: transparent;
+}
+
 /* 実行中・拡大／縮小アニメ中：通常時の `pointer-events: auto` を打ち消して   
     配置済みカードもドラッグできないようにする（play-button 要件 3-1）。       
     親の `.root.executing` / `.root.transitioning` の `pointer-events: none` を

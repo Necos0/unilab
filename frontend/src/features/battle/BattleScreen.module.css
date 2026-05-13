@@ -200,6 +200,12 @@
   transition: color 0.25s ease-out;
 }
 
+.hpNumeratorReflect {
+  color: #ff8c42;
+  text-shadow: 0 0 4px rgba(255, 140, 66, 0.6);
+  transition: color 0.25s ease-out;
+}
+
 .playerHpBox.shielded {
   animation: hpBoxShielded 500ms ease-out;
 }
@@ -208,4 +214,18 @@
   0%   { box-shadow: 0 0 0 0 rgba(120, 180, 255, 0); }
   30%  { box-shadow: 0 0 12px 4px rgba(120, 180, 255, 0.8); }
   100% { box-shadow: 0 0 0 0 rgba(120, 180, 255, 0); }
+}
+
+.enemyHpBox.shakenVert,
+.playerHpBox.shakenVert {
+  animation: hpBoxShakeVert 300ms ease-in-out;
+}
+
+@keyframes hpBoxShakeVert {
+  0%   { transform: translateY(0);    }
+  20%  { transform: translateY(-6px); }
+  40%  { transform: translateY(6px);  }
+  60%  { transform: translateY(-4px); }
+  80%  { transform: translateY(4px);  }
+  100% { transform: translateY(0);    }
 }
