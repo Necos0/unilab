@@ -13,6 +13,16 @@ const SPRITE_HEIGHT = 130;
 // 道のラインから足元をさらに下にずらして接地感を出すための補正(SVG 単位)。
 const SPRITE_Y_OFFSET = 10;
 
+// 足元に敷く楕円シャドウのサイズ・不透明度。地面接地感を出すための
+// 古典的な JRPG パターン（影が無いと「貼り付け感」が出る）。
+const SHADOW_RX = 32;
+const SHADOW_RY = 6;
+const SHADOW_OPACITY = 0.35;
+// PNG 下端に約 26〜39px（SVG 単位で約 9.7〜11.5）の透明パディングがあり、
+// 画像ボックス最下端 = 視覚的足元 にはならない。その分シャドウを上に
+// 持ち上げて実際の足元に揃える。
+const SHADOW_FEET_LIFT = 11;
+
 /**
  * 現在の歩行方向（`idle` / `up` / `down` / `left` / `right`）を、
  * 進行中セグメントとマップ定義から導出する。
@@ -92,6 +102,36 @@ function PlayerImage({ x, y, src }) {
       height={SPRITE_HEIGHT}
       preserveAspectRatio="xMidYMax meet"
       style={{ imageRendering: 'pixelated' }}
+      pointerEvents="none"
+    />
+  );
+}
+
+/**
+ * プレイヤーの足元に敷く楕円シャドウ。
+ *
+ * スプライト単体だと背景に対して「貼り付けられた」印象になりがちなため、
+ * 地面側に半透明の楕円を 1 枚敷いて接地感を出す（JRPG の古典的手法）。
+ * 描画順は `PlayerImage` より前で、勇者の足元の下に潜らせる。
+ * シャドウの中心は視覚的な足元（`SPRITE_Y_OFFSET` で下にずらした位置）に
+ * 合わせる。
+ *
+ * Args:
+ *     props (object): React プロパティ。
+ *         x (number): 足元 X（スプライトと同じ基準）。
+ *         y (number): 足元 Y（スプライトと同じ基準）。
+ *
+ * Returns:
+ *     JSX.Element: SVG `<ellipse>` 要素。
+ */
+function PlayerShadow({ x, y }) {
+  return (
+    <ellipse
+      cx={x}
+      cy={y + SPRITE_Y_OFFSET - SHADOW_FEET_LIFT}
+      rx={SHADOW_RX}
+      ry={SHADOW_RY}
+      fill={`rgba(0, 0, 0, ${SHADOW_OPACITY})`}
       pointerEvents="none"
     />
   );
@@ -232,11 +272,14 @@ function PlayerSprite() {
     return null;
   }
   return (
-    <PlayerImage
-      x={position.x}
-      y={position.y}
-      src={getHeroFramePath(directionState, frameIndex)}
-    />
+    <g pointerEvents="none">
+      <PlayerShadow x={position.x} y={position.y} />
+      <PlayerImage
+        x={position.x}
+        y={position.y}
+        src={getHeroFramePath(directionState, frameIndex)}
+      />
+    </g>
   );
 }
 
