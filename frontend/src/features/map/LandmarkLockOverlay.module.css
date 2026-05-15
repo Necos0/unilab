@@ -22,22 +22,14 @@
   fill: rgba(0, 0, 0, 0.45);
 }
 
-/* 南京錠本体。やや暗い色で重量感を出す。 */
-.body {
-  fill: #1a1a1a;
-  stroke: #7a7a7a;
-  stroke-width: 1.2;
-}
-
-.shackle {
-  fill: none;
-  stroke: #8a8a8a;
-  stroke-width: 2.5;
-  stroke-linecap: round;
-}
-
-.keyhole {
-  fill: #7a7a7a;
+/*
+ * 南京錠はピクセルアート画像 `/icons/landmark_padlock.png` を `<image>` で
+ * 読み込む。`image-rendering: pixelated` で拡縮時の補間ぼけを抑え、
+ * ドット感を保つ（landmark_scroll.png と同じ運用）。
+ */
+.padlock {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* 解放演出用のバーストリング。通常時は不可視で、isFading 時のみアニメで現れる。 */
