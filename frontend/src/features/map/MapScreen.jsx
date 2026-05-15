@@ -5,6 +5,7 @@ import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import BattleDemoButton from './BattleDemoButton';
+import CoordinateGrid from './CoordinateGrid';
 import FullscreenToggleButton from './FullscreenToggleButton';
 import useMapStore from '../../stores/mapStore';
 import useProgressStore from '../../stores/progressStore';
@@ -113,6 +114,8 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
             />
           ))}
           <PlayerSprite />
+          {/* DEBUG: 座標調整用の格子オーバーレイ。確定後は削除する。*/}
+          <CoordinateGrid viewBox={viewBox} />
         </svg>
         <FullscreenToggleButton />
         <BattleDemoButton onClick={onStartBattleDemo} />

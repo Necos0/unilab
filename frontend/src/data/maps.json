@@ -168,6 +168,143 @@
           ]
         }
       ]
+    },
+    "map_2": {
+      "image": "/maps/map_2.png",
+      "viewBox": {
+        "width": 1920,
+        "height": 1080
+      },
+      "startId": "desert_gate",
+      "junctions": [],
+      "landmarks": [
+        {
+          "id": "desert_gate",
+          "label": "砂漠の門",
+          "position": {
+            "x": 270,
+            "y": 800
+          },
+          "stopPoint": {
+            "x": 360,
+            "y": 700
+          }
+        },
+        {
+          "id": "cactus",
+          "label": "サボテン",
+          "position": {
+            "x": 430,
+            "y": 360
+          },
+          "stopPoint": {
+            "x": 580,
+            "y": 550
+          },
+          "stageId": "2-1",
+          "difficulty": 1
+        },
+        {
+          "id": "stone_arch",
+          "label": "石のアーチ",
+          "position": {
+            "x": 900,
+            "y": 180
+          },
+          "stopPoint": {
+            "x": 950,
+            "y": 370
+          },
+          "stageId": "2-2",
+          "difficulty": 2
+        },
+        {
+          "id": "temple",
+          "label": "神殿",
+          "position": {
+            "x": 1480,
+            "y": 450
+          },
+          "stopPoint": {
+            "x": 1400,
+            "y": 570
+          },
+          "stageId": "2-3",
+          "difficulty": 3
+        },
+        {
+          "id": "sphinx",
+          "label": "スフィンクス",
+          "position": {
+            "x": 1650,
+            "y": 850
+          },
+          "stopPoint": {
+            "x": 1450,
+            "y": 850
+          },
+          "stageId": "2-4",
+          "difficulty": 5
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-gate-cactus",
+          "from": "desert_gate",
+          "to": "cactus",
+          "direction": "up",
+          "waypoints": [
+            {
+              "x": 420,
+              "y": 600
+            }
+          ]
+        },
+        {
+          "id": "e-cactus-arch",
+          "from": "cactus",
+          "to": "stone_arch",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 670,
+              "y": 460
+            },
+            {
+              "x": 720,
+              "y": 360
+            }
+          ]
+        },
+        {
+          "id": "e-arch-temple",
+          "from": "stone_arch",
+          "to": "temple",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 1120,
+              "y": 350
+            },
+            {
+              "x": 1230,
+              "y": 480
+            }
+          ]
+        },
+        {
+          "id": "e-temple-sphinx",
+          "from": "temple",
+          "to": "sphinx",
+          "direction": "down",
+          "waypoints": [
+            {
+              "x": 1520,
+              "y": 660
+            }
+          ]
+        }
+      ]
     }
   }
 }

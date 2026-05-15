@@ -59,6 +59,55 @@
         {},
         { "lockedCard": { "id": "monster", "power": 80 } }
       ]
+    },
+    "2-1": {
+      "enemyId": "slime",
+      "cards": [
+        { "id": "attack", "power": 10 }
+      ],
+      "slots": [
+        {}
+      ]
+    },
+    "2-2": {
+      "enemyId": "wolf",
+      "cards": [
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 10 },
+        { "id": "guard",  "power": 10 }
+      ],
+      "slots": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {}
+      ]
+    },
+    "2-3": {
+      "enemyId": "knight",
+      "cards": [
+        { "id": "attack", "power": 20 },
+        { "id": "reflect" }
+      ],
+      "slots": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 30 } }
+      ]
+    },
+    "2-4": {
+      "enemyId": "golem",
+      "cards": [
+        { "id": "attack", "power": 20 },
+        { "id": "guard",  "power": 80 },
+        { "id": "heal",   "power": 100 },
+        { "id": "reflect" }
+      ],
+      "slots": [
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } }
+      ]
     }
   }
 }
