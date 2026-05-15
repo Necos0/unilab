@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import styles from './EnemySprite.module.css';
 import enemiesData from '../../../data/enemies.json';
 import { getEnemyFramePath } from './enemySpritePath';
-import { useSpriteAnimation } from './useSpriteAnimation';
+import { useSpriteAnimation } from '../../../hooks/useSpriteAnimation';
 import useBattleStore from '../../../stores/battleStore';
 
 /**

@@ -140,6 +140,12 @@ unilab/
     │   │   └── flowchart/        ← フローチャート関連アイコン(goal/play/reset/start.svg)
     │   ├── maps/                 ← マップ画像(map_<id>.png)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+    │       ├── hero/             ← プレイヤースプライト(<state>/hero_<state>_NN.png)
+    │       │   ├── idle/         ← 静止(現在はテスト用に 1 枚)
+    │       │   ├── up/           ← 上方向への歩行
+    │       │   ├── down/         ← 下方向への歩行
+    │       │   ├── left/         ← 左方向への歩行
+    │       │   └── right/        ← 右方向への歩行
     │       └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
     │           ├── slime/        ← idle のみ(dead 未実装)
     │           ├── wolf/         ← idle / dead
@@ -163,6 +169,8 @@ unilab/
         │   ├── battleStore.js    ← 手札・スロット割当・ドラッグ状態
         │   ├── mapStore.js       ← マップ画面の現在位置・移動状態
         │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
+        ├── hooks/                ← 機能横断のカスタムフック
+        │   └── useSpriteAnimation.js  ← スプライト連番のフレーム送り(敵・主人公共用)
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
@@ -183,8 +191,7 @@ unilab/
             │   │   ├── ReflectDamageFloater.module.css
             │   │   ├── EnemySprite.jsx
             │   │   ├── EnemySprite.module.css
-            │   │   ├── enemySpritePath.js
-            │   │   └── useSpriteAnimation.js
+            │   │   └── enemySpritePath.js
             │   ├── player/       ← プレイヤー側の演出(被弾ダメージ・回復数字表示)
             │   │   ├── PlayerDamageFloater.jsx
             │   │   ├── PlayerDamageFloater.module.css
@@ -229,6 +236,8 @@ unilab/
                 ├── FullscreenToggleButton.jsx     ← 左上の大画面表示トグル
                 ├── FullscreenToggleButton.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
+                ├── heroSpritePath.js      ← /sprites/hero 配下のスプライト URL を組み立てる(純関数)
+                ├── reverseDirection.js    ← エッジ方向を逆走時に反転する(純関数)
                 ├── findNodeById.js        ← ランドマーク/分岐点を ID 横断で引く(純関数)
                 ├── findShortestPath.js    ← BFS による最短経路探索(純関数)
                 ├── parseStageId.js        ← ステージ ID を world/number に分解(純関数)
@@ -244,7 +253,6 @@ unilab/
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
 | `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
-| `frontend/src/hooks/` | カスタムフック |
 | `backend/` | Python サーバー(将来導入) |
 
 ### 設計の意図

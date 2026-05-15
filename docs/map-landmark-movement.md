@@ -52,6 +52,12 @@ graph TD
 を別軸で持つことで「アイコンは目印の上、移動は道の上」という見せ方を
 両立できる。
 
+各エッジは `from` / `to` / `waypoints` に加えて `direction` を持つ。
+`direction` は `from → to` 方向に歩いたときの主人公スプライトの向き
+（`up` / `down` / `left` / `right` のいずれか）で、`PlayerSprite` が
+歩行アニメの状態を切り替えるのに使う。`to → from` の向き（逆走時）は
+`reverseDirection` で軸反転して用いる。
+
 ### `mapStore` (Zustand)
 
 | フィールド | 役割 |
@@ -156,6 +162,16 @@ setAnimPos({ x: point.x, y: point.y });
 する。これがないと「片方向にだけ正しく進んで、逆方向は止まって見える」
 バグになる。
 
+#### 歩行スプライトの方向切り替え
+
+進行中のセグメントから `edge.direction` を引き、`reverse` のときは
+`reverseDirection` で軸反転して `up` / `down` / `left` / `right` の
+スプライト状態を決める。フレーム送りは `useSpriteAnimation` フックに
+委譲し（敵スプライトと共用）、`player.json` の `sprite.animations.<状態>`
+で `frameCount` / `frameDurationMs` / `loop` を宣言する。静止時の
+状態は `idle` で、フレーム枚数が 1 のときフックは内部で `setInterval` を
+張らず先頭フレームを表示し続ける。
+
 #### `<path>` がまだ DOM にいない初回フレーム対策
 
 `querySelector` が `null` を返すフレームでは何もせずに `requestAnimationFrame`
@@ -231,9 +247,13 @@ t=~d1+d2   : 完了スナップ → advanceSegment()
 | `frontend/src/features/map/Landmark.jsx` | 1 ランドマークの描画とクリック受付(`isMoving` で抑止) |
 | `frontend/src/features/map/MapPaths.jsx` | エッジを `<path data-edge-id>` として描画(二次ベジェ) |
 | `frontend/src/features/map/PlayerSprite.jsx` | プレイヤー描画と `requestAnimationFrame` 駆動の補間移動 |
+| `frontend/src/features/map/heroSpritePath.js` | `/sprites/hero/<状態>/hero_<状態>_NN.png` を組み立てる純関数 |
+| `frontend/src/features/map/reverseDirection.js` | 逆走時にエッジの `direction` を反転する純関数 |
 | `frontend/src/features/map/findShortestPath.js` | BFS で最短経路(エッジ数最小)を求める純関数 |
 | `frontend/src/features/map/findNodeById.js` | landmark / junction を横断してノード定義を引く純関数 |
+| `frontend/src/hooks/useSpriteAnimation.js` | スプライト連番のフレーム送り(敵スプライトと共用) |
 | `frontend/src/stores/mapStore.js` | 現在地・移動中フラグ・残りセグメントの一元管理 |
+| `frontend/src/data/player.json` | プレイヤーのステータス + スプライト定義(歩行アニメの枚数・速度) |
 
 ## 関連する設計ドキュメント
 

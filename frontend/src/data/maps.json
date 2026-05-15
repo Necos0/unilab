@@ -91,6 +91,7 @@
           "id": "e-gate-well",
           "from": "village_gate",
           "to": "well",
+          "direction": "right",
           "waypoints": [
             {
               "x": 400,
@@ -102,6 +103,7 @@
           "id": "e-well-fork",
           "from": "well",
           "to": "j-well-fork",
+          "direction": "right",
           "waypoints": [
             {
               "x": 620,
@@ -113,6 +115,7 @@
           "id": "e-fork-fallen",
           "from": "j-well-fork",
           "to": "fallen_tree",
+          "direction": "up",
           "waypoints": [
             {
               "x": 910,
@@ -128,6 +131,7 @@
           "id": "e-fork-fortress",
           "from": "j-well-fork",
           "to": "fortress",
+          "direction": "right",
           "waypoints": [
             {
               "x": 850,
@@ -139,6 +143,7 @@
           "id": "e-fortress-stone",
           "from": "fortress",
           "to": "stone_circle",
+          "direction": "right",
           "waypoints": [
             {
               "x": 1130,
