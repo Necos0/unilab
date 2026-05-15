@@ -1,0 +1,64 @@
+/* マップ画面の右下にオーバーレイ表示するマップ移動アイコンボタン。
+   テキストラベル・背景・ボーダーを持たない純アイコン UI（アイコン自体が
+   ボタンの形を持つ）。ホバー時は拡大とアイコンへの暖色グローで「選べる」
+   感を強調する。 */
+.button {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10.8rem;
+  height: 10.8rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.button:hover {
+  transform: scale(1.08);
+}
+
+.button:focus-visible {
+  outline: none;
+}
+
+.button:active {
+  transform: scale(1.02);
+}
+
+/*
+ * ドット絵アイコンの粒立ちを保つために `pixelated` を指定。常時は黒の
+ * 落ち影だけでマップ画像と分離させ、ホバー／フォーカス時は暖色グローを
+ * 上乗せして「選べる」感を出す。
+ */
+.icon {
+  width: 7.8rem;
+  height: 7.8rem;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+  transition: filter 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.button:hover .icon,
+.button:focus-visible .icon {
+  transform: translateY(-1px);
+  filter:
+    drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 6px rgba(255, 210, 140, 0.85))
+    drop-shadow(0 0 14px rgba(255, 190, 100, 0.55));
+}
+
+.button:active .icon {
+  transform: translateY(0);
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 4px rgba(255, 200, 120, 0.6));
+}

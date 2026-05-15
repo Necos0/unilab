@@ -1,30 +1,51 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './MapScreen.module.css';
 import MapBackground from './MapBackground';
 import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import BattleDemoButton from './BattleDemoButton';
-import CoordinateGrid from './CoordinateGrid';
+// DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
+// import CoordinateGrid from './CoordinateGrid';
 import FullscreenToggleButton from './FullscreenToggleButton';
+import MapTravelButton from './MapTravelButton';
+import MapSelectOverlay from './MapSelectOverlay';
+import MapSwitchTransition from './MapSwitchTransition';
 import useMapStore from '../../stores/mapStore';
 import useProgressStore from '../../stores/progressStore';
 import mapsData from '../../data/maps.json';
 
-const mapDef = mapsData.maps.map_1;
+const DEFAULT_MAP_ID = 'map_1';
+
+/*
+ * マップ ID → 表示ラベル の対応表。専用のアイコン画像と日本語名を用意
+ * するまでの暫定で、`maps.json` の側にラベルを持たせる選択肢もあるが、
+ * 現状はマップ移動 UI でしか使わないためこの近くに置く。マップを増やし
+ * たらここに 1 行足す。
+ */
+const MAP_LABELS = {
+  map_1: 'マップ 1（草原）',
+  map_2: 'マップ 2（砂漠）',
+};
 
 /**
  * マップ画面のルートコンポーネント。
  *
  * 単一の SVG（viewBox 1920×1080）の中に、背景画像 → 道（エッジ） →
- * ランドマーク → プレイヤーの順で重ねて描画する。マウント時に
- * `mapStore.initializeMap(mapDef)` を呼んでストアを初期化する
- * （要件 1-1, 3-1, 3-3）。ただしバトル画面に遷移して戻ってきた際の
- * 再マウントで初期化が走ると `currentLocation` が出発点に戻ってしまい、
- * 「戦った場所に居続ける」要件を満たせない。そのため初期化はストアが
- * 未初期化（`mapDef === null`）のときだけ行う。viewBox スケーリングに
- * より、ウィンドウリサイズ時も背景・道・キャラの相対位置が崩れない
- * （要件 6-3）。
+ * ランドマーク → プレイヤーの順で重ねて描画する。マウント時にストアが
+ * 未初期化（`mapDef === null`）であれば `initializeMap` を呼ぶ
+ * （要件 1-1, 3-1, 3-3）。バトル画面に遷移して戻ってきた際の再マウントで
+ * 初期化が走ると `currentLocation` が出発点に戻ってしまうため、初期化は
+ * 未初期化のときだけに限定する。viewBox スケーリングにより、ウィンドウ
+ * リサイズ時も背景・道・キャラの相対位置が崩れない（要件 6-3）。
+ *
+ * 表示するマップ定義はストアの `currentMapId` から `maps.json` を引いて
+ * 解決する。右下の「マップ移動」ボタンを押すと `MapSelectOverlay` を開き、
+ * マップを選ぶと `MapSwitchTransition`（黒フェード）を挟んで `switchMap`
+ * を呼ぶ。フェードイン完了時にマップを切り替えることで、画像の差し替えと
+ * 勇者の `startId` への再配置が黒幕の裏側で行われ、視覚的に唐突さが出ない。
+ * 切替時は新マップの `startId` に勇者を再配置する（移動中状態と残セグメント
+ * もリセット）。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -38,13 +59,26 @@ const mapDef = mapsData.maps.map_1;
  */
 function MapScreen({ onStartBattle, onStartBattleDemo }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
+  const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
   const currentLocation = useMapStore((state) => state.currentLocation);
   const requestMove = useMapStore((state) => state.requestMove);
+  const currentMapId =
+    useMapStore((state) => state.currentMapId) ?? DEFAULT_MAP_ID;
+
+  const mapDef = mapsData.maps[currentMapId];
+
+  const [isMapSelectOpen, setIsMapSelectOpen] = useState(false);
+  /*
+   * `pendingMapId` が立っている間は `MapSwitchTransition` がマウントされ、
+   * 黒フェード演出が走る。フェードイン完了で `switchMap` を呼び、フェード
+   * アウト完了で `pendingMapId` を null に戻してアンマウントする。
+   */
+  const [pendingMapId, setPendingMapId] = useState(null);
 
   useEffect(() => {
     if (useMapStore.getState().mapDef === null) {
-      initializeMap(mapDef);
+      initializeMap(DEFAULT_MAP_ID, mapsData.maps[DEFAULT_MAP_ID]);
     }
   }, [initializeMap]);
 
@@ -91,6 +125,44 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const mapList = useMemo(
+    () =>
+      Object.keys(mapsData.maps).map((id) => ({
+        id,
+        label: MAP_LABELS[id] ?? id,
+      })),
+    [],
+  );
+
+  const handleSelectMap = (mapId) => {
+    setIsMapSelectOpen(false);
+    if (mapId === currentMapId) {
+      return;
+    }
+    /*
+     * 黒フェードを起動するだけにとどめ、実際の `switchMap` はフェードイン
+     * 完了時の `handleSwitchTransitionMidpoint` で行う。多重発火を防ぐため
+     * 既にフェード中（`pendingMapId !== null`）なら無視する。
+     */
+    if (pendingMapId !== null) {
+      return;
+    }
+    setPendingMapId(mapId);
+  };
+
+  const handleSwitchTransitionMidpoint = useCallback(() => {
+    setPendingMapId((mapId) => {
+      if (mapId !== null) {
+        switchMap(mapId, mapsData.maps[mapId]);
+      }
+      return mapId;
+    });
+  }, [switchMap]);
+
+  const handleSwitchTransitionEnd = useCallback(() => {
+    setPendingMapId(null);
+  }, []);
+
   const { viewBox } = mapDef;
 
   return (
@@ -114,12 +186,27 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
             />
           ))}
           <PlayerSprite />
-          {/* DEBUG: 座標調整用の格子オーバーレイ。確定後は削除する。*/}
-          <CoordinateGrid viewBox={viewBox} />
+          {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
+          {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
         <FullscreenToggleButton />
         <BattleDemoButton onClick={onStartBattleDemo} />
+        <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
+        {isMapSelectOpen && (
+          <MapSelectOverlay
+            maps={mapList}
+            currentMapId={currentMapId}
+            onSelect={handleSelectMap}
+            onClose={() => setIsMapSelectOpen(false)}
+          />
+        )}
       </div>
+      {pendingMapId !== null && (
+        <MapSwitchTransition
+          onMidpoint={handleSwitchTransitionMidpoint}
+          onEnd={handleSwitchTransitionEnd}
+        />
+      )}
     </section>
   );
 }

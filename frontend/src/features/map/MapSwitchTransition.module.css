@@ -1,0 +1,42 @@
+/*
+ * マップ切替用の黒オーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）
+ *   - z-index は MapSelectOverlay（20）やボタン群（10）より十分上に置く
+ *   - 遷移中のクリックをブロックするため pointer-events を有効にする
+ *   - 不透明度は `fadeIn` / `fadeOut` のキーフレーム終了状態を `forwards` で
+ *     保持し、JS 側の phase 切替と CSS アニメーションを同期させる
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 0;
+  pointer-events: auto;
+}
+
+.fadeIn {
+  animation: mapSwitchFadeIn 300ms ease-in forwards;
+}
+
+.fadeOut {
+  animation: mapSwitchFadeOut 300ms ease-out forwards;
+}
+
+@keyframes mapSwitchFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mapSwitchFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

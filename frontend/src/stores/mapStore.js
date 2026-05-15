@@ -10,12 +10,13 @@ import findShortestPath from '../features/map/findShortestPath';
  * `PlayerSprite` のアニメーションループから購読・更新する。
  *
  * 公開アクション：
- *   - `initializeMap(mapDef)` : `maps.json` の 1 マップ分から状態を初期化する
- *   - `requestMove(targetId)` : ランドマーククリック起点の移動要求を処理する
- *                               （同地点・移動中なら no-op、それ以外は BFS で
- *                                経路を求めて `segments` にセット）
- *   - `advanceSegment()`      : 1 セグメント分のアニメ完了時に呼び、`segments`
- *                                先頭を消費して `currentLocation` を進める
+ *   - `initializeMap(mapId, mapDef)` : `maps.json` の 1 マップ分から状態を初期化する
+ *   - `switchMap(mapId, mapDef)`     : 別マップへ切り替え、勇者を `startId` に再配置する
+ *   - `requestMove(targetId)`        : ランドマーククリック起点の移動要求を処理する
+ *                                      （同地点・移動中なら no-op、それ以外は BFS で
+ *                                       経路を求めて `segments` にセット）
+ *   - `advanceSegment()`             : 1 セグメント分のアニメ完了時に呼び、`segments`
+ *                                       先頭を消費して `currentLocation` を進める
  */
 
 const SEGMENT = 'segment';
@@ -68,6 +69,7 @@ function findEdgeBetween(edges, a, b) {
 
 const useMapStore = create((set, get) => ({
   mapDef: null,
+  currentMapId: null,
   currentLocation: null,
   isMoving: false,
   segments: [],
@@ -80,17 +82,45 @@ const useMapStore = create((set, get) => ({
    * 隣接リストをこの 1 回だけ構築する。
    *
    * Args:
+   *     mapId (string): `maps.json` のキー（例: `"map_1"`）。
    *     mapDef (object): `maps.json` の 1 マップ分。
    *         `landmarks` と `edges` と `startId` を持つ。
    */
-  initializeMap: (mapDef) =>
+  initializeMap: (mapId, mapDef) =>
     set(() => ({
       mapDef,
+      currentMapId: mapId,
       currentLocation: mapDef.startId,
       isMoving: false,
       segments: [],
       adjacency: buildAdjacency(mapDef.edges),
     })),
+
+  /**
+   * 別のマップへ切り替える。
+   *
+   * 勇者を新マップの `startId` に再配置し、移動中状態と残セグメントを
+   * リセットする。隣接リストは新マップのエッジで再構築する。同マップへの
+   * 切り替えは no-op。
+   *
+   * Args:
+   *     mapId (string): 切り替え先マップの ID。
+   *     mapDef (object): `maps.json` の 1 マップ分。
+   */
+  switchMap: (mapId, mapDef) => {
+    const state = get();
+    if (state.currentMapId === mapId) {
+      return;
+    }
+    set({
+      mapDef,
+      currentMapId: mapId,
+      currentLocation: mapDef.startId,
+      isMoving: false,
+      segments: [],
+      adjacency: buildAdjacency(mapDef.edges),
+    });
+  },
 
   /**
    * ランドマーククリック起点の移動要求を処理する。
