@@ -1,5 +1,5 @@
 {
-  "demoStageId": "2-1",
+  "demoStageId": "3-1",
   "stages": {
     "1-1": {
       "enemyId": "slime",
@@ -13,38 +13,65 @@
     "1-2": {
       "enemyId": "wolf",
       "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "guard",  "power": 10 },
-        { "id": "heal",   "power": 100 }
+        { "id": "attack", "power": 20 },
+        { "id": "guard",  "power": 50 }
       ],
       "slots": [
-        { "lockedCard": { "id": "monster", "power": 90 } },
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        { "lockedCard": { "id": "monster", "power": 20 } },
-        {},
-        { "lockedCard": { "id": "monster", "power": 20 } },
-        {},
+        { "lockedCard": { "id": "monster", "power": 100 } },
         {}
       ]
     },
     "1-3": {
       "enemyId": "knight",
       "cards": [
-        { "id": "reflect" }
+        { "id": "heal", "power": 50 },
+        { "id": "attack", "power": 20 }
       ],
       "slots": [
+        { "lockedCard": { "id": "monster", "power": 60 } },
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } }
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        {}
       ]
     },
     "1-4": {
       "enemyId": "golem",
       "cards": [
+        { "id": "attack", "power": 30 },
+        { "id": "reflect" }
+      ],
+      "slots": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {}
+      ]
+    },
+    "2-1": {
+      "enemyId": "wolf",
+      "cards": [
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 10 },
+        { "id": "guard", "power": 10 },
+        { "id": "heal",   "power": 100 }
+      ],
+      "slots": [
+        { "lockedCard": { "id": "monster", "power": 80 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "lockedCard": { "id": "monster", "power": 30 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 20 } },
+        {},
+        {}
+      ]
+    },
+    "2-2": {
+      "enemyId": "golem",
+      "cards": [
         { "id": "attack", "power": 20 },
-        { "id": "guard",  "power": 80 },
-        { "id": "heal",   "power": 100 },
+        { "id": "guard", "power": 80 },
+        { "id": "heal",  "power": 100 },
         { "id": "reflect" }
       ],
       "slots": [
@@ -60,47 +87,29 @@
         { "lockedCard": { "id": "monster", "power": 80 } }
       ]
     },
-    "2-1": {
-      "enemyId": "wolf",
-      "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "heal",   "power": 10 }
-      ],
-      "flow": [
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        {},
-        {
-          "condition": "playerHp > 50",
-          "true": [
-            { "lockedCard": { "id": "attack", "power": 20 } }
-          ],
-          "false": []
-        },
-        {}
-      ]
-    },
-    "2-2": {
-      "enemyId": "wolf",
-      "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "guard",  "power": 10 }
-      ],
-      "slots": [
-        {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        {}
-      ]
-    },
     "2-3": {
-      "enemyId": "knight",
+      "enemyId": "slime",
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "reflect" }
+        { "id": "attack", "power": 10 },
+        { "id": "guard", "power": 20 },
+        { "id": "guard", "power": 30 },
+        { "id": "guard", "power": 40 },
+        { "id": "guard", "power": 60 },
+        { "id": "heal", "power": 40 },
+        { "id": "heal", "power": 100 }
       ],
       "slots": [
         {},
-        { "lockedCard": { "id": "monster", "power": 30 } }
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 150 } },
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 110 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 90 } },
+        {}
       ]
     },
     "2-4": {
@@ -117,6 +126,25 @@
         { "lockedCard": { "id": "monster", "power": 50 } },
         {},
         { "lockedCard": { "id": "monster", "power": 50 } }
+      ]
+    },
+    "3-1": {
+      "enemyId": "wolf",
+      "cards": [
+        { "id": "attack", "power": 10 },
+        { "id": "heal",   "power": 10 }
+      ],
+      "flow": [
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {},
+        {
+          "condition": "playerHp > 50",
+          "true": [
+            { "lockedCard": { "id": "attack", "power": 20 } }
+          ],
+          "false": []
+        },
+        {}
       ]
     }
   }
