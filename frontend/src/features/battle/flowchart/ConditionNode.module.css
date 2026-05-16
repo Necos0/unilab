@@ -1,0 +1,60 @@
+.diamond {
+  width: 140px;
+  height: 120px;
+  background: #f5f5f5;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.diamond::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: #15151c;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  z-index: 0;
+}
+
+.expression {
+  color: #f5f5f5;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0 1.5rem;
+  pointer-events: none;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  position: relative;
+  z-index: 1;
+}
+
+.handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.diamond.active {
+  animation: conditionHighlight 0.3s ease-in-out 2 alternate;
+}
+
+@keyframes conditionHighlight {
+  from {
+    filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+  }
+  to {
+    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+  }
+}
+
+.diamond.traversed {
+  filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+}

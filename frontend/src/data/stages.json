@@ -1,5 +1,5 @@
 {
-  "demoStageId": "1-1",
+  "demoStageId": "2-1",
   "stages": {
     "1-1": {
       "enemyId": "slime",
@@ -61,11 +61,21 @@
       ]
     },
     "2-1": {
-      "enemyId": "slime",
+      "enemyId": "wolf",
       "cards": [
-        { "id": "attack", "power": 10 }
+        { "id": "attack", "power": 10 },
+        { "id": "heal",   "power": 10 }
       ],
-      "slots": [
+      "flow": [
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {},
+        {
+          "condition": "playerHp > 50",
+          "true": [
+            { "lockedCard": { "id": "attack", "power": 20 } }
+          ],
+          "false": []
+        },
         {}
       ]
     },
