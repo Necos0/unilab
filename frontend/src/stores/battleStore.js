@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import enemiesData from '../data/enemies.json';
 import playerData from '../data/player.json';
+import evaluateCondition from '../engine/evaluateCondition';
 
 /**
  * バトル状態を一元管理する Zustand ストア。
@@ -674,8 +675,14 @@ const useBattleStore = create((set, get) => ({
    * とタイマー破棄の二重防御により、どちらか一方が漏れても安全側に倒れる。
    *
    * Args:
-   *     stage (object): `stages.json` の 1 ステージ分。`slots` と `edges`
-   *         と `enemyId` を持つ。
+   *     stage (object): `stages.json` の 1 ステージ分。`enemyId` / `slots` /
+   *         `edges` に加え、任意で `conditions`（条件分岐ノード配列、空または
+   *         未定義可）/ `mergeNodes`（合流ノード配列、`stagesLoader` が条件分岐
+   *         を検知して自動生成、線形ステージでは `[]`）を持つ。`nodeMap` 構築
+   *         時に `conditions` は `{ type: 'condition', expression }`、`mergeNodes`
+   *         は `{ type: 'merge' }` として登録され、合流ノードはカード効果分岐の
+   *         ガード（`card && card.id === 'xxx'`）に対して `slotAssignments[id]`
+   *         が undefined のため自動的に素通りされる。
    */
    startExecution: (stage) => {
     const state = get();
@@ -688,21 +695,29 @@ const useBattleStore = create((set, get) => ({
 
     const beginSequence = () => {
       cancelExecutionTimers();
-      const phases = buildExecutionPath(stage);
-      const phaseStartMs = [];
-      const phaseDurations = [];
-      let acc = 0;
-      for (const phase of phases) {
-        phaseStartMs.push(acc);
-        const duration = phase.type === 'node' ? NODE_PHASE_MS : EDGE_PHASE_MS;
-        phaseDurations.push(duration);
-        acc += duration;
+
+      const nodeMap = {};
+      nodeMap['start'] = { type: 'start' };
+      nodeMap['goal'] = { type: 'goal' };
+      for (const slot of stage.slots ?? []) {
+        nodeMap[slot.id] = { type: 'slot' };
       }
-      const totalMs = acc;
+      for (const c of stage.conditions ?? []) {
+        nodeMap[c.id] = { type: 'condition', expression: c.expression };
+      }
+      for (const m of stage.mergeNodes ?? []) {
+        nodeMap[m.id] = { type: 'merge' };
+      }
+
+      const edgesBySource = {};
+      for (const edge of stage.edges ?? []) {
+        if (!edgesBySource[edge.source]) edgesBySource[edge.source] = [];
+        edgesBySource[edge.source].push(edge);
+      }
 
       set((s) => ({
         isExecuting: true,
-        currentPhaseMs: phaseDurations[0],
+        currentPhaseMs: NODE_PHASE_MS,
         currentEnemyHp: s.maxEnemyHp,
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
@@ -716,67 +731,121 @@ const useBattleStore = create((set, get) => ({
         reflectActive: false,
         enemyReflectEvents: [],
       }));
-      phases.forEach((phase, i) => {
-        const timerId = setTimeout(() => {
-          if (get().failPhase !== null) return;
-          set((s) => ({
-            executionStep: phase,
-            currentPhaseMs: phaseDurations[i],
-            ...(phase.type === 'edge'
-              ? { traversedEdgeIds: [...s.traversedEdgeIds, phase.id] }
-              : { traversedNodeIds: [...s.traversedNodeIds, phase.id] }
-            ),
-          }));
-          if (phase.type === 'node') {
-            const card = get().slotAssignments[phase.id];
-            if (card && card.id === 'attack' && card.power > 0) {
-              get().applyEnemyDamage(card.power);
-            }
-            if (card && card.id === 'monster' && card.power > 0) {
-              if (get().reflectActive) {
-                get().applyReflectDamage(card.power);
-              } else {
-                get().consumeShieldOnDamage(card.power);
-              }
-            }
-            if (card && card.id === 'heal' && card.power > 0) {
-              get().applyPlayerHeal(card.power);
-            }
-            if (card && card.id === 'guard' && card.power > 0) {
-              get().applyGuard(card.power);
-            }
-            if (card && card.id === 'reflect') {
-              get().applyReflect();
-            }
-          }
-          if (phase.type === 'edge') {
-            const prevPhase = phases[i - 1];
-            if (prevPhase && prevPhase.type === 'node') {
-              const prevCard = get().slotAssignments[prevPhase.id];
-              const isPrevGuard = prevCard && prevCard.id === 'guard';
-              const isPrevReflect = prevCard && prevCard.id === 'reflect';
-              if (!isPrevGuard && get().guardShield > 0) {
-                get().clearGuard();
-              }
-              if (!isPrevReflect && get().reflectActive) {
-                get().clearReflect();
-              }
-            }
-          }
-        }, phaseStartMs[i]);
-        executionTimers.push(timerId);
+
+      const buildEvalContext = (state) => ({
+        variables: {
+          playerHp: state.currentPlayerHp,
+          enemyHp: state.currentEnemyHp,
+          maxPlayerHp: state.maxPlayerHp,
+          maxEnemyHp: state.maxEnemyHp,
+          guardShield: state.guardShield,
+          reflectActive: state.reflectActive,
+        },
+        slot: (slotId) => {
+          const card = state.slotAssignments[slotId];
+          return card?.id ?? null;
+        },
       });
-      const completeTimerId = setTimeout(() => {
-        if (get().failPhase !== null)return;
-        set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
-        const { currentEnemyHp, currentPlayerHp } = get();
-        if (currentEnemyHp === 0 && currentPlayerHp > 0) {
-          get().startVictorySequence(stage.enemyId);
-        } else {
-          set({ failPhase: 'shown' });
+
+      const selectNextEdge = (nodeId) => {
+        const edges = edgesBySource[nodeId] ?? [];
+        const node = nodeMap[nodeId];
+        if (node?.type === 'condition') {
+          const result = evaluateCondition(node.expression, buildEvalContext(get()));
+          const target = result ? 'true' : 'false';
+          return edges.find((e) => e.sourceHandle === target);
         }
-      }, totalMs);
-      executionTimers.push(completeTimerId);
+        return edges[0];
+      };
+
+      const scheduleNodePhase = (nodeId, delay) => {
+        const tid = setTimeout(() => {
+          if (get().failPhase !== null) return;
+
+          set((s) => ({
+            executionStep: { type: 'node', id: nodeId },
+            currentPhaseMs: NODE_PHASE_MS,
+            traversedNodeIds: [...s.traversedNodeIds, nodeId],
+          }));
+
+          const card = get().slotAssignments[nodeId];
+          if (card && card.id === 'attack' && card.power > 0) {
+            get().applyEnemyDamage(card.power);
+          }
+          if (card && card.id === 'monster' && card.power > 0) {
+            if (get().reflectActive) {
+              get().applyReflectDamage(card.power);
+            } else {
+              get().consumeShieldOnDamage(card.power);
+            }
+          }
+          if (card && card.id === 'heal' && card.power > 0) {
+            get().applyPlayerHeal(card.power);
+          }
+          if (card && card.id === 'guard' && card.power > 0) {
+            get().applyGuard(card.power);
+          }
+          if (card && card.id === 'reflect') {
+            get().applyReflect();
+          }
+
+          if (nodeId === 'goal') {
+            scheduleComplete(NODE_PHASE_MS);
+            return;
+          }
+
+          const nextEdge = selectNextEdge(nodeId);
+          if (!nextEdge) {
+            scheduleComplete(NODE_PHASE_MS);
+            return;
+          }
+
+          scheduleEdgePhase(nextEdge, NODE_PHASE_MS);
+        }, delay);
+        executionTimers.push(tid); 
+      };
+
+      const scheduleEdgePhase = (edge, delay) => {
+        const tid = setTimeout(() => {
+          if (get().failPhase !== null) return;
+
+          set((s) => ({
+            executionStep: { tyoe: 'edge', id: edge.id },
+            currentPhaseMs: EDGE_PHASE_MS,
+            traversedEdgeIds: [...s.traversedEdgeIds, edge.id],
+          }));
+
+          const prevNodeId = edge.source;
+          const prevCard = get().slotAssignments[prevNodeId];
+          const isPrevGuard = prevCard && prevCard.id === 'guard';
+          const isPrevReflect = prevCard && prevCard.id === 'reflect';
+          if (!isPrevGuard && get().guardShield > 0) {
+            get().clearGuard();
+          }
+          if (!isPrevReflect && get().reflectActive) {
+            get().clearReflect();
+          }
+
+          scheduleNodePhase(edge.target, EDGE_PHASE_MS);
+        }, delay);
+        executionTimers.push(tid);
+      };
+
+      const scheduleComplete = (delay) => {
+        const tid = setTimeout(() => {
+          if (get().failPhase !== null) return;
+          set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
+          const { currentEnemyHp, currentPlayerHp } = get();
+          if (currentEnemyHp === 0 && currentPlayerHp > 0) {
+            get().startVictorySequence(stage.enemyId);
+          } else {
+            set({ failPhase: 'shown' });
+          }
+        }, delay);
+        executionTimers.push(tid);
+      };
+
+      scheduleNodePhase('start', 0);
     };
 
     if (state.isExpanded) {

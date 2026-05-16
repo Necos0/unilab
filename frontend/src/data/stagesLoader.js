@@ -37,6 +37,9 @@ const SLOT_X_START = 80;
 const SLOT_X_STEP = 200;
 const SLOT_Y_DEFAULT = 120;
 const START_X = -120;
+const MERGE_SIZE = 16;
+const SLOT_WIDTH = 80;
+const SLOT_HEIGHT = 120;
 
 /**
  * スロット配列を完全形式に展開する。
@@ -162,32 +165,340 @@ function buildLinearEdges(slots) {
 }
 
 /**
- * 1 ステージ分の短縮形式定義を完全形式に展開する。
+ * `flow` 配列の要素が条件分岐ノードかどうかを判定する。
  *
- * 各補完ヘルパー（`expandSlots` / `expandStart` / `expandGoal` /
- * `buildLinearEdges`）を順に呼び出し、`slots` を展開した結果を `start` /
- * `goal` / `edges` の自動補完で参照する。`edges` は `raw.edges` が
- * 明示されていればそれを尊重し、未定義の場合のみ `buildLinearEdges` で
- * 線形生成する。
- *
- * `cards` フィールドは展開を経由せず、`raw.cards` をそのまま渡す（カード
- * 定義自体は短縮の余地が少なく、ステージごとに必須要素のため）。
+ * `condition` キーに文字列がセットされていれば条件分岐、それ以外（空オブ
+ * ジェクト、`lockedCard` 持ちなど）は通常スロットとして扱う。`typeof` で
+ * 厳密に文字列をチェックすることで、`condition: true` のような誤記が
+ * 「条件分岐」として誤分類されないようガードしている。
  *
  * Args:
- *     raw (object): `stages.json` 内の 1 ステージ分。`enemyId` / `cards` /
- *         `slots` は必須、`start` / `goal` / `edges` および各スロットの
- *         `id` / `position` は省略可能。
+ *     item (object): `flow` 配列の 1 要素。
+ *
+ * Returns:
+ *     boolean: 条件分岐要素なら `true`。
+ */
+function isCondition(item) {
+  return typeof item?.condition === 'string';
+}
+
+/**
+ * 1 本のエッジオブジェクトを `{ id, source, target, sourceHandle? }` 形式で
+ * 組み立てる。
+ *
+ * `ending` は「直前の終端ノード」を表す `{ nodeId, sourceHandle }` の形式。
+ * `sourceHandle` が undefined の場合はキー自体を含めないことで、線形ステージ
+ * の既存エッジ形式（`sourceHandle` フィールドなし）と完全に一致させる。
+ * これにより `FlowchartArea` の `edgesToFlowEdges` で `sourceHandle:
+ * undefined` を渡したときに React Flow がデフォルトハンドルに接続する挙動
+ * との整合が取れる。
+ *
+ * Args:
+ *     ending (object): `{ nodeId: string, sourceHandle?: string }`。
+ *     targetId (string): エッジの target ノード id。
+ *
+ * Returns:
+ *     {id, source, target, sourceHandle?}: 完全形式のエッジオブジェクト。
+ */
+function buildEdge(ending, targetId) {
+  const edge = {
+    id: `e-${ending.nodeId}-${targetId}`,
+    source: ending.nodeId,
+    target: targetId,
+  };
+  if (ending.sourceHandle) {
+    edge.sourceHandle = ending.sourceHandle;
+  }
+  if (ending.targetHandle) {
+    edge.targetHandle = ending.targetHandle;
+  }
+  return edge;
+}
+
+/**
+ * サブフロー（メイン経路 or 分岐経路）を再帰的に展開する内部ヘルパー。
+ *
+ * `items` 配列の各要素を順に走査し、通常スロット要素なら `ctx.slots` に
+ * 連番採番で追加、条件分岐要素なら `ctx.conditions` に追加した上で
+ * `true` / `false` の各経路を再帰的に展開する。エッジは「直前の終端
+ * （`endings`）から、いま作ったノードへ」の方向で `ctx.edges` に追加する。
+ *
+ * `endings` 配列の役割：
+ *   通常の線形ステージでは「直前のノード 1 個」だけが直後ノードへ繋がる
+ *   出発点となる。条件分岐の中では True / False 両経路を再帰展開した後、
+ *   合流ノード（merge ノード）を介してそれぞれの終端を 1 つにまとめるため、
+ *   親に返される `endings` は条件分岐後でも常に 1 要素（merge ノード）になる。
+ *   入れ子の分岐でも同様で、各レベルで個別の合流ノードが生成される。
+ *
+ * 再帰呼び出し：
+ *   条件分岐要素に遭遇した瞬間、`item.true` と `item.false` の **配列全体**
+ *   をそれぞれ別のサブフローとして `processSubFlow` に渡す。`true` 経路は
+ *   親と同じ `yLevel`（メイン経路の延長として右に並ぶ）、`false` 経路は
+ *   `yLevel + 160`（下にずらして並行に描く）。入れ子の分岐（`true` 配列の
+ *   中にさらに condition 要素）も同じ再帰呼び出しで自然に対応できる。
+ *
+ * 合流ノードの自動挿入（`merge-node` 仕様）：
+ *   True / False の再帰展開後、両経路の `endColumn` の最大値を `mergeColumn`
+ *   として、`ctx.mergeNodes` に新しい合流ノード（id: `merge-K`）を追加する。
+ *   座標は merge ノードの **視覚中心** を slot[mergeColumn-1] と
+ *   slot[mergeColumn] の視覚中心の中間（横）、かつ slot の縦中心（縦）に
+ *   一致させる方針で計算し、最後に React Flow が要求する **左上座標**
+ *   に変換する（`- MERGE_SIZE / 2` を 2 軸とも引く）。slot 80×120 と
+ *   merge 16×16 でサイズが大きく異なるため、左上座標どうしを単純に揃えると
+ *   縦に約 52px、横に約 40px ズレるため、サイズの違いを吸収する中心アンカー
+ *   方式が必須。True 経路の各終端から合流ノードの left target へ直線エッジ、
+ *   False 経路の各終端から合流ノードの **bottom** target へ smoothstep エッジ
+ *   （`targetHandle: 'bottom'` 付与）を引く。False 経路は `yLevel + 160` の
+ *   下段を通って合流ノードに **下から上向きに** 進入する自然な U 字経路に
+ *   なるよう、合流先ハンドルを `Position.Bottom` に置いている（過去に
+ *   `Position.Top` を使っていた版は、source が target より下にあるため
+ *   smoothstep が「target を一度上方へ越えて上から進入」する不自然な
+ *   経路を生成し、途中で slot を裏切るように貫通する見た目になっていた）。
+ *   その後 `endings` を合流ノード 1 つ
+ *   に統一し、`column` を `mergeColumn` に進める。これにより、次のループ周回で
+ *   通常スロット要素が来たとき、合流ノードから直線でその要素に繋がる自然な
+ *   フローが生成される。
+ *
+ * 戻り値の `endColumn` は呼び出し元での「合流先の column 位置決定」に使う。
+ *
+ * Args:
+ *     items (Array<object>): 走査対象のサブフロー配列。空配列も受け付ける
+ *         （空のときは何もループせず `prevNodeId` を `endings` として返す）。
+ *     options (object): 再帰呼び出しの状態。
+ *         startColumn (number): このサブフローの開始 column。
+ *         yLevel (number): このサブフローの y 座標。
+ *         prevNodeId (string): 直前の終端ノード id。
+ *         prevSourceHandle (string | undefined): 直前の終端が条件分岐から
+ *             の分岐エッジである場合の `sourceHandle`（`'true'` / `'false'`）。
+ *         ctx (object): 共有のアキュムレータ。`slotCounter` / `condCounter` /
+ *             `slots[]` / `conditions[]` / `edges[]` を持つ。
+ *
+ * Returns:
+ *     {endings: Array<{nodeId, sourceHandle?}>, endColumn: number}:
+ *         このサブフロー処理後の終端ノード配列と、使い終わった column 値。
+ */
+function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHandle, ctx }) {
+  let column = startColumn;
+  let endings = [{ nodeId: prevNodeId, sourceHandle: prevSourceHandle }];
+
+  for (const item of items) {
+    if (isCondition(item)) {
+      ctx.condCounter += 1;
+      const condId = `cond-${ctx.condCounter}`;
+      ctx.conditions.push({
+        id: condId,
+        position: { x: 80 + column * 200, y: yLevel },
+        expression: item.condition,
+      });
+      for (const ending of endings) {
+        ctx.edges.push(buildEdge(ending, condId));
+      }
+      column += 1;
+
+      const trueItems = item.true ?? [];
+      const trueResult = processSubFlow(trueItems, {
+        startColumn: column,
+        yLevel,
+        prevNodeId: condId,
+        prevSourceHandle: 'true',
+        ctx,
+      });
+
+      const falseItems = item.false ?? [];
+      const falseResult = processSubFlow(falseItems, {
+        startColumn: column,
+        yLevel: yLevel + 160,
+        prevNodeId: condId,
+        prevSourceHandle: 'false',
+        ctx,
+      });
+
+      const mergeColumn = Math.max(trueResult.endColumn, falseResult.endColumn);
+      ctx.mergeCounter += 1;
+      const mergeId = `merge-${ctx.mergeCounter}`;
+      ctx.mergeNodes.push({
+        id: mergeId,
+        position: {
+          x: SLOT_X_START + mergeColumn * SLOT_X_STEP - SLOT_X_STEP / 2 + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+          y: yLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+        },
+      });
+
+      for (const ending of trueResult.endings) {
+        ctx.edges.push(buildEdge(ending, mergeId));
+      }
+      for (const ending of falseResult.endings) {
+        ctx.edges.push(buildEdge({ ...ending, targetHandle: 'bottom' }, mergeId));
+      }
+
+      endings = [{ nodeId: mergeId, sourceHandle: undefined }];
+      column = mergeColumn;
+    } else {
+      ctx.slotCounter += 1;
+      const slotId = `slot-${ctx.slotCounter}`;
+      const slot = {
+        id: slotId,
+        position: { x: SLOT_X_START + column * SLOT_X_STEP, y: yLevel },
+      };
+      if (item.lockedCard) {
+        slot.lockedCard = item.lockedCard;
+      }
+      ctx.slots.push(slot);
+      for (const ending of endings) {
+        ctx.edges.push(buildEdge(ending, slotId));
+      }
+      endings = [{ nodeId: slotId, sourceHandle: undefined }];
+      column += 1;
+    }
+  }
+
+  return { endings, endColumn: column };
+}
+
+/**
+ * `flow` 形式のステージ定義を完全形式に展開する公開関数。
+ *
+ * `stages.json` のステージに `flow` キーがある場合、`expandStage` がこの
+ * 関数を呼び出して `{ slots, conditions, edges, start, goal }` の完全形式
+ * オブジェクトを得る。`flow` 配列を `processSubFlow` で再帰的に展開し、
+ * 最後にメイン経路の終端を `goal` に繋ぐエッジを追加する。`start` は固定
+ * 座標（`x: -120, y: 120`）、`goal` はメイン経路の最終 column の次に配置。
+ *
+ * 不正な入力（`flow` が配列でない場合）は `console.warn` で警告ログを出し、
+ * 空のステージ相当の戻り値を返してアプリのクラッシュを防ぐ。
+ *
+ * Args:
+ *     flow (Array<object>): `stage.flow` 配列。階層構造で通常スロット要素と
+ *         条件分岐要素を並べる。
+ *
+ * Returns:
+ *     {slots, conditions, edges, start, goal}: 完全形式のステージ要素。
+ *         `expandStage` でこれを `enemyId` / `cards` と合わせて返す。
+ */
+function expandFlow(flow) {
+  const ctx = {
+    slotCounter: 0,
+    condCounter: 0,
+    mergeCounter: 0,
+    slots: [],
+    conditions: [],
+    mergeNodes: [],
+    edges: [],
+  };
+
+  if (!Array.isArray(flow)) {
+    console.warn('[stagesLoader] `flow` must be an array');
+    return {
+      slots: [],
+      conditions: [],
+      mergeNodes: [],
+      edges: [],
+      start: { position: { x: -120, y: 120 } },
+      goal: { position: { x: 80, y: 120 } },
+    };
+  }
+
+  const result = processSubFlow(flow, {
+    startColumn: 0,
+    yLevel: 120,
+    prevNodeId: 'start',
+    prevSourceHandle: undefined,
+    ctx,
+  });
+
+  for (const ending of result.endings) {
+    ctx.edges.push(buildEdge(ending, 'goal'));
+  }
+
+  return {
+    slots: ctx.slots,
+    conditions: ctx.conditions,
+    mergeNodes: ctx.mergeNodes,
+    edges: ctx.edges,
+    start: { position: { x: -120, y: 120 } },
+    goal: { position: { x: 80 + result.endColumn * 200, y: 120 } },
+  };
+}
+
+/**
+ * 条件分岐ノード配列を完全形式に展開する。
+ *
+ * `stage.conditions` は分岐ステージにのみ存在する optional フィールド。
+ * 未定義（線形ステージ）の場合は空配列を返し、呼び出し側が「すべての
+ * ステージで `stage.conditions` が配列である」前提で扱えるようにする。
+ *
+ * 各条件オブジェクトからは `id` / `position` / `expression` の 3 フィールド
+ * のみ抽出してコピーする。将来 `condition` に追加フィールド（アニメーション
+ * オプション等）が増えても、ここで明示的に列挙することで後方互換性を保つ。
+ *
+ * Args:
+ *     conditions (Array<{id, position, expression}> | undefined):
+ *         ステージ定義の `conditions` フィールド。未定義可。
+ *
+ * Returns:
+ *     Array<{id: string, position: {x, y}, expression: string}>:
+ *         完全形式の条件分岐ノード配列。未定義時は空配列。
+ */
+function expandConditions(conditions) {
+  if (!conditions) return [];
+  return conditions.map((raw) => ({
+    id: raw.id,
+    position: raw.position,
+    expression: raw.expression,
+  }));
+}
+
+/**
+ * 1 ステージ分の定義を完全形式に展開する。
+ *
+ * ステージ定義の形式によって 2 つのルートに分岐する：
+ *   - `raw.flow` が存在する場合：`expandFlow` を呼び出して階層構造の
+ *     `flow` 配列から `slots` / `conditions` / `edges` / `start` / `goal` を
+ *     自動生成する（条件分岐を含む短縮形式、`loader-branching-shortcut` 仕様）。
+ *     両方のキーが定義されていた場合は `console.warn` で警告を残し、
+ *     `flow` を優先する。
+ *   - そうでない場合：従来の `slots` ベースのルート。`expandSlots` /
+ *     `expandStart` / `expandGoal` / `buildLinearEdges` を順に呼び出し、
+ *     `raw.slots` の短縮形式から完全形式を組み立てる。`edges` は `raw.edges`
+ *     が明示されていればそれを尊重し、未定義の場合のみ線形生成する。
+ *
+ * `cards` フィールドはどちらのルートでも展開を経由せず、`raw.cards` を
+ * そのまま渡す（カード定義自体は短縮の余地が少なく、ステージごとに必須
+ * 要素のため）。両ルートの戻り値オブジェクトは同じ形状
+ * （`{ enemyId, cards, slots, conditions, start, goal, edges }`）なので、
+ * 後段の `battleStore` / `FlowchartArea` は形式の違いを意識せず動作する。
+ *
+ * Args:
+ *     raw (object): `stages.json` 内の 1 ステージ分。`enemyId` / `cards` は
+ *         必須。`flow` を使う場合は `slots` / `conditions` / `edges` /
+ *         `start` / `goal` は不要。`slots` を使う場合は短縮形式（各スロット
+ *         の `id` / `position` 省略可能）または完全形式どちらでも可。
  *
  * Returns:
  *     object: 完全形式の 1 ステージ定義。`battleStore.initializeBattle` /
  *         `FlowchartArea` が期待する形。
  */
 function expandStage(raw) {
+  if (raw.flow) {
+    if (raw.slots) {
+      console.warn(
+        '[stagesLoader] both `flow` and `slots` defined for stage, using `flow`',
+      );
+    }
+    const expanded = expandFlow(raw.flow);
+    return {
+      enemyId: raw.enemyId,
+      cards: raw.cards ?? [],
+      ...expanded,
+    };
+  }
   const slots = expandSlots(raw.slots ?? []);
   return {
     enemyId: raw.enemyId,
     cards: raw.cards ?? [],
     slots,
+    conditions: expandConditions(raw.conditions),
+    mergeNodes: [],
     start: expandStart(raw.start),
     goal: expandGoal(raw.goal, slots.length),
     edges: raw.edges ?? buildLinearEdges(slots),

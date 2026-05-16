@@ -87,6 +87,13 @@ function SlotNode({ id }) {
         className={styles.handle}
         isConnectable={false}
       />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        className={styles.handle}
+        isConnectable={false}
+      />
       {assignedCard && (
         <DraggableCard card={assignedCard} source={id} variant="fill" />
       )}

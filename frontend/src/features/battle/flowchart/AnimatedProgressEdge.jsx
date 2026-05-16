@@ -1,4 +1,4 @@
-import { getStraightPath } from '@xyflow/react';
+import { getStraightPath, getSmoothStepPath } from '@xyflow/react';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './AnimatedProgressEdge.module.css';
 
@@ -78,8 +78,21 @@ import styles from './AnimatedProgressEdge.module.css';
  * Returns:
  *     JSX.Element: SVG `<path>` ＋ 実行中の `<circle>` を含むフラグメント。
  */
-function AnimatedProgressEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, }) {
-    const [edgePath] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+function AnimatedProgressEdge({ 
+    id, 
+    sourceX, sourceY, targetX, targetY, 
+    sourcePosition, targetPosition,
+    sourceHandleId, targetHandleId,
+    markerEnd, 
+}) {
+    const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom';
+    const [edgePath] = shouldUseStep 
+        ? getSmoothStepPath({ 
+            sourceX, sourceY, sourcePosition,
+            targetX, targetY, targetPosition,
+            borderRadius: 5,
+        })
+        : getStraightPath({ sourceX, sourceY, targetX, targetY });
 
     const isActive = useBattleStore(
         (s) => s.executionStep?.type === 'edge' && s.executionStep?.id === id,
