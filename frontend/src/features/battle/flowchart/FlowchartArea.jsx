@@ -81,7 +81,7 @@ function conditionsToNodes(conditions) {
     id: c.id,
     type: 'condition',
     position: c.position,
-    data: { expression: c.expression },
+    data: { expression: c.expression, label: c.label },
   }));
 }
 

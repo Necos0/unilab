@@ -84,6 +84,18 @@ import styles from './AnimatedProgressEdge.module.css';
  * 瞬間にのみマウントされる従来挙動を維持しており、`.traversed` の filter は
  * `<path>` 専用なので進行アイコンの描画には干渉しない。
  *
+ * 条件分岐エッジの Yes/No ラベル：
+ * `sourceHandleId === 'true'` のエッジには始点近く（cond の右頂点の右上）に
+ * `Yes` テキストを、`sourceHandleId === 'false'` のエッジには始点近く（cond
+ * の下頂点の右下）に `No` テキストを SVG `<text>` で常時描画する。これにより
+ * フローチャートを実行する前から「どちらが Yes 側か」が一目で判別できる。
+ * 位置は `(sourceX + 6, sourceY - 6)`（Yes、true 水平エッジの上側）と
+ * `(sourceX + 6, sourceY + 14)`（No、false 垂直エッジの右側、ベースライン
+ * 補正込み）。スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 11px`
+ * ／ `font-weight: bold`、`pointer-events: none` でエッジクリックを奪わない。
+ * `isActive` / `isTraversed` には依存させず、常時同じ見た目で表示する（実行
+ * 中のラベル色変えは視覚ノイズが増えるだけで判別性に貢献しないと判断）。
+ *
  * Args:
  *     props (object): React Flow のカスタムエッジに渡される props。
  *         id (string): エッジ ID（`stages.json` の `edges[].id` に一致）。
@@ -174,6 +186,24 @@ function AnimatedProgressEdge({
             animationDuration: `${phaseMs}ms`,
           }}
         />
+      )}
+      {sourceHandleId === 'true' && (
+        <text
+          className={styles.handleLabel}
+          x={sourceX + 6}
+          y={sourceY - 6}
+        >
+          Yes
+        </text>
+      )}
+      {sourceHandleId === 'false' && (
+        <text
+          className={styles.handleLabel}
+          x={sourceX + 6}
+          y={sourceY + 14}
+        >
+          No
+        </text>
       )}
     </>
   );

@@ -139,6 +139,7 @@
         {},
         {
           "condition": "playerHp > 50",
+          "label": "playerHpが50より大きい",
           "true": [
             { "lockedCard": { "id": "attack", "power": 20 } }
           ],
