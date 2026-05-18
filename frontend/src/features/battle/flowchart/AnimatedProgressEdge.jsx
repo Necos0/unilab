@@ -36,14 +36,32 @@ import styles from './AnimatedProgressEdge.module.css';
  * 通過済みエッジの可視化（`battle-fail-retry` 要件 1-1, 1-2, 1-5）：
  * `battleStore.traversedEdgeIds` を購読し、自身の `id` が含まれていれば
  * `<path>` の className 配列に CSS Modules の `.traversed` クラスを足す。
- * `react-flow__edge-path` クラス（React Flow がストローク幅・ヒット判定
- * 等で参照する基本クラス）と `.basePath`（デフォルトの太さ・色）は常に保持し、
- * 追加クラスとして `.traversed` を上乗せする形を取ることで、CSS の同特異性
- * ルールの順序勝ちで `.traversed` の `stroke` ／ `filter` がデフォルト値を上書き
- * する。`.traversed` は `stroke` を白系に、`filter: drop-shadow(...)` で淡い発光を
- * 加え、「実行が通った経路」が白いネオン光のように残るエフェクトを作る。
- * 通過軌跡は `initializeBattle` または `retryFromFail` が呼ばれるまで残り、
- * 失敗時にプレイヤーが「どの経路を通ったか」を振り返れる。
+ * ただし `isActive`（自身がいま実行中のエッジ）の間は `.traversed` を当てない：
+ * 代わりに後述のオーバーレイ `<path>` が「ハイライトを徐々に描き進める」
+ * 役目を担い、エッジフェーズ完了で `isActive` が false に落ちた瞬間に
+ * `.traversed` が当たって固定発光に切り替わる。`react-flow__edge-path` クラス
+ * （React Flow がストローク幅・ヒット判定等で参照する基本クラス）と `.basePath`
+ * （デフォルトの太さ・色）は常に保持し、追加クラスとして `.traversed` を
+ * 上乗せする形を取ることで、CSS の同特異性ルールの順序勝ちで `.traversed`
+ * の `stroke` ／ `filter` がデフォルト値を上書きする。`.traversed` は `stroke`
+ * を白系に、`filter: drop-shadow(...)` で淡い発光を加え、「実行が通った経路」
+ * が白いネオン光のように残るエフェクトを作る。通過軌跡は `initializeBattle`
+ * または `retryFromFail` が呼ばれるまで残り、失敗時にプレイヤーが「どの経路を
+ * 通ったか」を振り返れる。
+ *
+ * 進行ハイライトの描き進め（drawingPath オーバーレイ）：
+ * `isActive` が true の間だけ、メインの `<path>` に加えてもう 1 本の `<path
+ * className={styles.drawingPath} pathLength="1" />` を同じ `d` で重ねて描画する。
+ * `pathLength="1"` で「このパスは全長 1 単位」と宣言することで、実長を計算
+ * せずに `stroke-dasharray: 1` ／ `stroke-dashoffset: 1 → 0` のアニメで進行
+ * 比率を扱える（直線でも smoothstep L 字でも同じロジックで動く）。
+ * `animation-duration` は inline style で `${phaseMs}ms` を渡し、緑ドットの
+ * `traverseEdge` と完全に同じ持続時間 + `linear` イージングで揃える：ドット
+ * の現在位置とハイライトの先端が常に一致する。`animation-fill-mode: forwards`
+ * で終了時 `offset=0`（全長描画完了）を維持し、`isActive` が false に落ちて
+ * unmount される直前まで全長が見える。`.drawingPath` の `stroke` / `filter`
+ * は `.traversed` と同じ白系に揃えてあるため、unmount → `.traversed` クラス
+ * 切替のフレームで光が途切れて見えない。
  *
  * 矢印マーカーの色追従：通過済み状態では矢印の三角部分も白（`#f5f5ff`）に
  * 変える必要があるが、React Flow が `markerEnd: { type: ArrowClosed, color }`
@@ -79,78 +97,86 @@ import styles from './AnimatedProgressEdge.module.css';
  *     JSX.Element: SVG `<path>` ＋ 実行中の `<circle>` を含むフラグメント。
  */
 function AnimatedProgressEdge({ 
-    id, 
-    sourceX, sourceY, targetX, targetY, 
-    sourcePosition, targetPosition,
-    sourceHandleId, targetHandleId,
-    markerEnd, 
+  id, 
+  sourceX, sourceY, targetX, targetY, 
+  sourcePosition, targetPosition,
+  sourceHandleId, targetHandleId,
+  markerEnd, 
 }) {
-    const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom';
-    const [edgePath] = shouldUseStep 
-        ? getSmoothStepPath({ 
-            sourceX, sourceY, sourcePosition,
-            targetX, targetY, targetPosition,
-            borderRadius: 5,
-        })
-        : getStraightPath({ sourceX, sourceY, targetX, targetY });
+  const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom';
+  const [edgePath] = shouldUseStep 
+    ? getSmoothStepPath({ 
+      sourceX, sourceY, sourcePosition,
+      targetX, targetY, targetPosition,
+      borderRadius: 5,
+    })
+    : getStraightPath({ sourceX, sourceY, targetX, targetY });
 
-    const isActive = useBattleStore(
-        (s) => s.executionStep?.type === 'edge' && s.executionStep?.id === id,
-    );
-    const phaseMs = useBattleStore((s) => s.currentPhaseMs ?? 666);
-    const isTraversed = useBattleStore((s) => s.traversedEdgeIds.includes(id));
+  const isActive = useBattleStore(
+      (s) => s.executionStep?.type === 'edge' && s.executionStep?.id === id,
+  );
+  const phaseMs = useBattleStore((s) => s.currentPhaseMs ?? 666);
+  const isTraversed = useBattleStore((s) => s.traversedEdgeIds.includes(id));
 
-    const pathClassName = [
-        'react-flow__edge-path',
-        styles.basePath,
-        isTraversed && styles.traversed,
-    ]
-        .filter(Boolean)
-        .join(' ');
+  const pathClassName = [
+    'react-flow__edge-path',
+    styles.basePath,
+    isTraversed && !isActive && styles.traversed,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-    const traversedMarkerId = `arrow-traversed-${id}`;
+  const traversedMarkerId = `arrow-traversed-${id}`;
 
-    return (
-        <>
-            <defs>                                                            
-                <marker                                                       
-                    id={traversedMarkerId}
-                    className="react-flow__arrowhead"                         
-                    markerWidth="12.5"
-                    markerHeight="12.5"
-                    viewBox="-10 -10 20 20"                                   
-                    markerUnits="strokeWidth"
-                    orient="auto-start-reverse"                               
-                    refX="0"
-                    refY="0"                                                  
-                >
-                    <polyline                                                 
-                        style={{ stroke: '#f5f5ff', fill: '#f5f5ff' }}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"                                
-                        points="-5,-4 0,0 -5,4 -5,-4"
-                    />                                                        
-                </marker>
-              </defs>
-            <path
-                id={id}
-                className={pathClassName}
-                d={edgePath}
-                markerEnd={isTraversed ? `url(#${traversedMarkerId})` : markerEnd}
-            />
-            {isActive && (
-                <circle
-                    r="4"
-                    fill="#66dd6e"
-                    className={styles.dot}
-                    style={{
-                        offsetPath: `path('${edgePath}')`,
-                        animationDuration: `${phaseMs}ms`,
-                    }}
-                />
-            )}
-        </>
-    );
+  return (
+    <>
+      <defs>                                                            
+        <marker                                                       
+          id={traversedMarkerId}
+          className="react-flow__arrowhead"                         
+          markerWidth="12.5"
+          markerHeight="12.5"
+          viewBox="-10 -10 20 20"                                   
+          markerUnits="strokeWidth"
+          orient="auto-start-reverse"                               
+          refX="0"
+          refY="0"                                                  
+        >
+          <polyline                                                 
+            style={{ stroke: '#f5f5ff', fill: '#f5f5ff' }}
+            strokeLinecap="round"
+            strokeLinejoin="round"                                
+            points="-5,-4 0,0 -5,4 -5,-4"
+          />                                                        
+        </marker>
+      </defs>
+      <path
+        id={id}
+        className={pathClassName}
+        d={edgePath}
+        markerEnd={isTraversed ? `url(#${traversedMarkerId})` : markerEnd}
+      />
+      {isActive && (
+        <path
+          className={styles.drawingPath}
+          d={edgePath}
+          pathLength="1"
+          style={{ animationDuration: `${phaseMs}ms` }}
+        />
+      )}
+      {isActive && (
+        <circle
+          r="4"
+          fill="#66dd6e"
+          className={styles.dot}
+          style={{
+            offsetPath: `path('${edgePath}')`,
+            animationDuration: `${phaseMs}ms`,
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 export default AnimatedProgressEdge;
