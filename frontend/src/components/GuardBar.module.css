@@ -27,10 +27,7 @@
   left: 0;
   top: 0;
   height: 100%;
-  background: #3ad430;
-  transition: width 0.25s ease-out, background 0.25s ease-out;
-}
-
-.fill.reflect {
-  background: #ff8c42;
+  background: #4a8ef0;
+  box-shadow: 0 0 6px rgba(120, 180, 255, 0.5);
+  transition: width 0.25s ease-out;
 }

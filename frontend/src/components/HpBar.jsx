@@ -4,30 +4,16 @@ import styles from './HpBar.module.css';
  * 汎用の HP バーコンポーネント。
  *
  * ピクセルアート調の白枠と暗色背景で「器」を、緑色のフィルで「残量」を
- * 表示する。`currentHp` は 0 〜 `maxHp` にクランプされ、`maxHp + shield`
- * を共通分母とした比率で fill の幅が決まる。`maxHp` が未指定または 0 以下
- * の場合は `null` を返してレイアウトを崩さない。
+ * 表示する。`currentHp` は 0 〜 `maxHp` にクランプされ、`clampedHp / maxHp`
+ * の比率で `.fill` の幅が決まる。`maxHp` が未指定または 0 以下の場合は
+ * `null` を返してレイアウトを崩さない。
  *
- * `shield` プロパティ（optional、デフォルト 0）が正の値のときは、`.frame`
- * の幅を `(maxHp + shield) / maxHp` 倍に拡張し、青色の「シールド領域」を
- * 緑の現在 HP fill の右端に直接くっつける形で描画する。`.shield` の `left`
- * を `${hpRatio * 100}%`、`width` を `${shieldRatio * 100}%` の inline style
- * で動的に指定することで、HP が減ったときは緑の終端と青の左端が同期して
- * 左へ縮み、失った HP 分は `.frame` 自身の `background: #0b0b10` がそのまま
- * 透けて見えて右端に黒として残る。これにより「緑（現在 HP）→ 青（シールド）
- * → 黒（失った HP）」の 3 セグメント構造が、追加の要素なしで自然に成立する
- * （`guard-card-effect` 要件 6-1〜6-4）。
- *
- * `.shield` の `transition` は `width` だけでなく `left` にも `0.25s` を
- * 適用しているため、被弾でシールドが減るときも回復で緑が伸びるときも、
- * 緑の右端と青の左端の追従が滑らかに同期する。`.fill` の `width` トラン
- * ジションと持続時間を揃えることで、3 つの要素（`.fill` の width、
- * `.shield` の left と width）が同じカーブで動くアニメーションになる。
- *
- * `shield = 0` のときは `.shield` 要素自体をレンダリングせず、`.frame` の
- * `width` も `var(--shield-scale, 1)` のフォールバック値 `1` によって従来の
- * 180px に戻る。これにより、敵側 HP バー（`shield` を渡していない呼び出し）
- * を含む既存呼び出しはすべて完全後方互換で動作する。
+ * 外側を `.row`（flex）でラップし、`icon` props（ReactNode、デフォルト
+ * `null`）が渡されたときに `.frame` の左にアイコンを並べる。`icon == null`
+ * のとき React は何も描画しないため、敵 HP バーのような「左アイコン不要」の
+ * 呼び出しは props を渡さないだけで従来通りの見た目になる。プレイヤー HP
+ * バーは `BattleScreen` 側で `<CrossIcon />` を `icon` に渡すことで、HP の
+ * 種別を視覚的に示すアイコンを左に表示する（`guard-bar-redesign` 要件 1-4）。
  *
  * `reflectActive` プロパティ（optional、デフォルト false）が `true` のときは、
  * `.fill` に `.reflect` クラスを付与して背景色を緑（`#3ad430`）からオレンジ
@@ -36,53 +22,48 @@ import styles from './HpBar.module.css';
  * する複合セレクタ（`.fill.reflect`）として書かれているため、CSS Specificity
  * が高く、緑↔オレンジの切替が確実に効く（`reflect-card-effect` 要件 1-2, 4-2）。
  * `reflectActive` は `guardShield > 0` と排他関係にあり（`battleStore` の
- * `applyGuard` / `applyReflect` で互いをクリア）、同時にオレンジ fill と
- * シールド領域の両方が表示されることはない。
+ * `applyGuard` / `applyReflect` で互いをクリア）、ガードが立っているときに
+ * オレンジ fill が出ることはない。
+ *
+ * 設計の変遷：旧仕様では `shield` props と `--shield-scale` CSS 変数を使い、
+ * HP バー右側に青いシールド領域を連結描画していた（`guard-card-effect`
+ * 要件 6-1〜6-4）。`guard-bar-redesign` 仕様で「HP バーの真上に独立した
+ * GuardBar を置く Fortnite 風の 2 段スタック構造」に切り替えたため、本
+ * コンポーネントは HP のみを描画し、ガード表示は `GuardBar.jsx` に分離した。
+ * `.frame` の `width` は 180px 固定に戻り、`width` トランジションも不要に
+ * なった。
  *
  * Args:
  *     props (object): React プロパティ。
  *         currentHp (number): 現在 HP。
  *         maxHp (number): 最大 HP。1 以上を想定。
- *         shield (number, optional): 防御シールド残量。0 以上の数値で、
- *             デフォルト 0。負の値は内部で `Math.max(0, ...)` で 0 に
- *             クランプする。
  *         reflectActive (boolean, optional): リフレクト状態のフラグ。
  *             デフォルト false。true のとき `.fill` がオレンジ色に変化する。
+ *         icon (ReactNode, optional): バー左側に表示するアイコン。デフォルト
+ *             `null`（アイコンなし）。敵 HP バーは未指定、プレイヤー HP バーは
+ *             `<CrossIcon />` を渡す想定。
  *
  * Returns:
  *     JSX.Element | null: HP バー要素、または無効な入力時 null。
  */
-function HpBar({ currentHp, maxHp, shield = 0, reflectActive = false }) {
+function HpBar({ currentHp, maxHp, reflectActive = false, icon = null }) {
   if (maxHp == null || maxHp <= 0) {
     return null;
   }
 
   const clampedHp = Math.max(0, Math.min(maxHp, currentHp));
-  const normalizedShield = Math.max(0, shield);
-  const total = maxHp + normalizedShield;
-  const hpRatio = clampedHp / total;
-  const shieldRatio = normalizedShield / total;
-  const scale = total / maxHp;
+  const hpRatio = clampedHp / maxHp;
   const fillClassName = reflectActive ? `${styles.fill} ${styles.reflect}` : styles.fill;
 
   return (
-    <div 
-      className={styles.frame}
-      style={{ '--shield-scale': scale }}
-    >
-      <div
-        className={fillClassName}
-        style={{ width: `${hpRatio * 100}%` }}
-      />
-      {normalizedShield > 0 && (
-        <div 
-          className={styles.shield}
-          style={{ 
-            left: `${hpRatio * 100}%`,
-            width: `${shieldRatio * 100}%`, 
-          }}
+    <div className={styles.row}>
+      {icon}
+      <div className={styles.frame}>
+        <div
+          className={fillClassName}
+          style={{ width: `${hpRatio * 100}%` }}
         />
-      )}
+      </div>
     </div>
   );
 }

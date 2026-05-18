@@ -208,6 +208,7 @@ const HAND = 'hand';
 const TRANSITION_DURATION_MS = 250;
 const NODE_PHASE_MS = 800;
 const EDGE_PHASE_MS = 400;
+const GUARD_TO_HP_DELAY_MS = 250;
 const VICTORY_FADE_DURATION_MS = 500;
 let executionTimers = [];
 
@@ -810,7 +811,7 @@ const useBattleStore = create((set, get) => ({
           if (get().failPhase !== null) return;
 
           set((s) => ({
-            executionStep: { tyoe: 'edge', id: edge.id },
+            executionStep: { type: 'edge', id: edge.id },
             currentPhaseMs: EDGE_PHASE_MS,
             traversedEdgeIds: [...s.traversedEdgeIds, edge.id],
           }));
@@ -1030,40 +1031,60 @@ const useBattleStore = create((set, get) => ({
    /**
     * 防御シールドを付与する。
     *
-    * `guardShield` フィールドに `amount` をそのままセットする（既存値との累積は
-    * せず上書き式）。同時に `reflectActive` を `false` にクリアする：guard と
-    * reflect は互いに排他のバフ系として扱い、後発のバフが先発を上書きする
-    * （`reflect-card-effect` 要件 6-2）。`startExecution` の防御カード
+    * `guardShield` フィールドに `Math.min(amount, state.maxPlayerHp)` をセット
+    * する（既存値との累積はせず上書き式、`guard-bar-redesign` 要件 3-1）。
+    * `maxPlayerHp` でクランプすることでガードバーがバー幅を超えないことを保証
+    * する（要件 3-2）。`set` を関数形式に切り替えているのは `state.maxPlayerHp`
+    * を読みながら更新する必要があるため。
+    *
+    * 同時に `reflectActive` を `false` にクリアする：guard と reflect は互いに
+    * 排他のバフ系として扱い、後発のバフが先発を上書きする（`reflect-card-effect`
+    * 要件 6-2、`guard-bar-redesign` 要件 7-1）。`startExecution` の防御カード
     * （`id === 'guard'`）ノードフェーズから呼ばれる。上書き式にすることで、
     * 同一実行内に複数の防御カードが配置されている場合でも「最後に通った防御
-    * カードの power」が有効になる（`guard-card-effect` 要件 5-1）。直後 1
-    * ノード分のみ有効で、次のエッジフェーズで `clearGuard` が呼ばれて 0 に
-    * 戻る運用を `startExecution` 側で担保する。
+    * カードの power」が有効になる（`guard-card-effect` 要件 5-1、
+    * `guard-bar-redesign` 要件 3-4）。直後 1 ノード分のみ有効で、次のエッジ
+    * フェーズで `clearGuard` が呼ばれて 0 に戻る運用を `startExecution` 側で
+    * 担保する。
     *
     * Args:
     *     amount (number): シールドとしてセットする値。`card.power` がそのまま
     *         渡される前提で、呼び出し側で `card.power > 0` をガードしている。
+    *         `maxPlayerHp` を超える値は内部でクランプされる。
     */
-   applyGuard: (amount) => set({ guardShield: amount, reflectActive: false }),
+   applyGuard: (amount) => set((state) => ({
+    guardShield: Math.min(amount, state.maxPlayerHp),
+    reflectActive: false
+   })),
 
    /**
     * シールド吸収を考慮してプレイヤーにダメージを適用する。
     *
     * `guardShield` が正の値の場合は `Math.min(guardShield, amount)` を吸収量
-    * として算出し、`guardShield` から減算する。残ダメージ（`amount - absorbed`）
-    * が正なら `applyPlayerDamage(remaining)` を呼んで通常の被弾処理（HP 減算・
-    * 被弾フロート・HP バー shake・実行中の HP=0 中断ガード）に流す。完全吸収
-    * された場合（`remaining === 0`）は `applyPlayerDamage` を呼ばないため、
-    * 被弾演出は発火しない（`guard-card-effect` 要件 2-3）。
+    * として算出し、`guardShield` から減算する（同期的に `set` で反映、青バーが
+    * すぐ縮み始める）。残ダメージ（`amount - absorbed`）が正なら、`setTimeout`
+    * で `GUARD_TO_HP_DELAY_MS`（= 250ms、CSS `.fill` の `transition: width
+    * 0.25s` と同期）だけ待ってから `applyPlayerDamage(remaining)` を呼ぶ。
+    * これにより「青バーが完全に縮みきってから緑バーが動き出す」段階アニメー
+    * ションが成立し、ガードが防いだ印象を強調する（`guard-bar-redesign`
+    * 要件 4-5/4-6）。完全吸収された場合（`remaining === 0`）は
+    * `applyPlayerDamage` を呼ばないため、被弾演出は発火しない（`guard-card-effect`
+    * 要件 2-3）。
+    *
+    * 遅延 `setTimeout` の戻り値はモジュールスコープの `executionTimers` 配列に
+    * push する。これにより `cancelExecutionTimers()`（リトライ・初期化時に呼ばれる）
+    * の対象に含まれ、ガード吸収中にリトライしても予約済みの HP 減算が暴走しない。
+    * さらに `setTimeout` のコールバック先頭で `if (get().failPhase !== null)
+    * return;` の中断ガードを置き、ガード吸収中に他経路で Fail が発火した場合
+    * （別フェーズで HP=0 になった等）の二重防御とする。
     *
     * `guardShield` が 0 の場合は `applyPlayerDamage(amount)` を直接呼ぶだけで、
     * 従来挙動と完全互換。これにより `startExecution` のモンスターカード分岐は
     * シールド有無を意識せず `consumeShieldOnDamage` を呼ぶだけでよい。
     *
-    * `set` を 2 回（シールド減算と HP 減算が別アクション）に分けることで、
-    * `applyPlayerDamage` 内の死亡検知・中断ロジックを変更せずに再利用できる。
-    * 視覚的にもシールド減算 → HP 減算の 2 段階アニメーションになり、「シールドが
-    * まず削れて、その後 HP が削れる」流れがプレイヤーに伝わる。
+    * `set` を 2 回（シールド減算と HP 減算が別アクション）に分けて呼ぶ構造を
+    * 維持しているのは、`applyPlayerDamage` 内の死亡検知・中断ロジックを変更
+    * せずに再利用するため。
     *
     * Args:
     *     amount (number): モンスターカードの `power` 値。シールド吸収前の生
@@ -1076,7 +1097,11 @@ const useBattleStore = create((set, get) => ({
       const remaining = amount - absorbed;
       set({ guardShield: shield - absorbed });
       if (remaining > 0) {
-        get().applyPlayerDamage(remaining);
+        const tid = setTimeout(() => {
+          if (get().failPhase !== null) return;
+          get().applyPlayerDamage(remaining);
+        }, GUARD_TO_HP_DELAY_MS);
+        executionTimers.push(tid);
       }
     } else {
       get().applyPlayerDamage(amount);

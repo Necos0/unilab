@@ -17,6 +17,7 @@ import BackToMapButton from './BackToMapButton';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
+import GuardBar from '../../components/GuardBar';
 import DamageFloater from './enemy/DamageFloater';
 import ReflectDamageFloater from './enemy/ReflectDamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
@@ -56,6 +57,21 @@ function selectActiveCard(state) {
     }
   }
   return null;
+}
+
+function CrossIcon() {
+  return (
+    <svg 
+      width="14"
+      height="14"
+      viewBox="0 0 14 14" 
+      shapeRendering="crispEdges"
+      style={{ flex: '0 0 14px' }}
+    >
+      <rect x="5" y="2" width="4" height="10" fill="#3ad430" />
+      <rect x="2" y="5" width="10" height="4" fill="#3ad430" />
+    </svg>
+  );
 }
 
 /**
@@ -127,24 +143,41 @@ function selectActiveCard(state) {
  * `useEffect` の cleanup と組み合わせて連続発火時のタイマー破棄も担保する。
  * CSS の `@keyframes hpBoxShielded` は 0% → 30% で青い box-shadow が広がり、
  * 30% → 100% でフェードアウトする 1 ショットアニメで、`hpBoxHit`（赤）／
- * `hpBoxHealed`（緑）と同じ意匠系。プレイヤー HP 数値表示は `guardShield > 0`
- * のとき `currentPlayerHp + guardShield` を分子として表示し、内側 `<span>`
- * に `.hpNumeratorShielded` クラスを条件付与して分子のみを青色化する
- * （要件 1-4, 1-5, 1-6）。プレイヤー側 `HpBar` には `shield={guardShield}`
- * を渡すことで box 幅と右側の青い領域が連動して可変表示される（要件 6-1〜6-4）。
+ * `hpBoxHealed`（緑）と同じ意匠系。
+ *
+ * ガード残量の視覚表示は `playerHpBox` 内の **HP バー真上に並べた専用
+ * `GuardBar`** が担う（`guard-bar-redesign` 仕様）。プレイヤー HUD は
+ * `.playerStatusBars`（flex column）でラップし、`<GuardBar current={guardShield}
+ * max={maxPlayerHp} />` と `<HpBar ... icon={<CrossIcon />} />` を縦に並べる
+ * Fortnite 風 2 段スタック構造。プレイヤー HP バーは左に小さな緑の十字
+ * アイコン（`CrossIcon`、SVG `<rect>` の 2 段構成、`fill: #3ad430` で
+ * HpBar の `.fill` 背景色と一致）、Guard バーは左に小さな青い盾アイコン
+ * （`GuardBar` 内蔵、`fill: #4a8ef0` で GuardBar の `.fill` 背景色と一致）が
+ * 付き、「緑 = HP 関連」「青 = ガード関連」のカラーグルーピングで種別を視覚的に
+ * 区別する。reflect 中も CrossIcon は緑のまま固定（reflect の視覚表現はバー
+ * 本体と数値テキスト分子の 2 ヶ所で十分強調されており、アイコンまで色を
+ * 変えるとノイズが増える + 「HP の概念」自体は reflect 中も存在し続けるため、
+ * 色の一貫性を優先）。
+ *
+ * HP 数値テキストは旧仕様のまま「総体力 = HP + ガード」を 1 文字列で表示する：
+ * 分子は `currentPlayerHp + guardShield`、分母は `maxPlayerHp`。さらに分子
+ * 部分の内側 `<span>` に三項演算子で `.hpNumeratorShielded` / `.hpNumeratorReflect`
+ * のクラスを条件付与し、`guardShield > 0` なら青、`reflectActive === true`
+ * なら橙、いずれもなければデフォルト色にする。これにより GuardBar の青い
+ * 塗り幅と HP テキストの青色化が連動し、「いま積まれているガード値はいくつ
+ * なのか」を数値でも読み取れる（Fortnite 同様に HUD 数字 = Shield + Health
+ * の合算という慣習にも合致）。`guardShield` と `reflectActive` は
+ * `battleStore` 側の `applyGuard` / `applyReflect` で互いをクリアする排他
+ * 制御がかかっているため、青と橙が同時に分子に乗ることはない。
  *
  * `playerHpBox` にはさらにカウンターカード通過時のリフレクト演出も乗る
  * （`reflect-card-effect` 要件 1）。`battleStore.reflectActive` を購読し、
- * `true` の間は guard 状態と同じく「HP バーの中身（`.fill`）の色変化」と
- * 「HP 数値の分子の色変化」の 2 要素だけでシンプルに状態表示する設計。
+ * `true` の間は `HpBar` の `.fill` が緑→オレンジに切替わる演出と、上述の
+ * HP 数値分子のオレンジ化（`.hpNumeratorReflect`）の 2 要素で状態を示す。
  * `HpBar` には `reflectActive={reflectActive}` を渡して `.fill` の色を
- * 緑→オレンジに切替、HP 数値の分子クラスは
- * `guardShield > 0 ? 青 : reflectActive ? オレンジ : 通常色` の三項演算子
- * チェーンで判定する。`guardShield` と `reflectActive` は `battleStore`
- * 側の `applyGuard` / `applyReflect` で互いをクリアする排他制御がかかって
- * いるため、青とオレンジが同時に表示されることはない。継続的なグロー演出
- * （box-shadow など）は意図的に持たせず、戦闘画面全体の演出ノイズを下げて
- * 反射成立時の縦シェイク + オレンジフロートのインパクトを際立たせる設計。
+ * 緑→オレンジに切替える。継続的なグロー演出（box-shadow など）は意図的に
+ * 持たせず、戦闘画面全体の演出ノイズを下げて反射成立時の縦シェイク +
+ * オレンジフロートのインパクトを際立たせる設計。
  *
  * 敵側のダメージフロートは赤系の `DamageFloater`（`enemyDamageEvents` 購読）と
  * オレンジ系の `ReflectDamageFloater`（`enemyReflectEvents` 購読）を独立 2 系統で
@@ -401,11 +434,19 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               }
             }}
           >
-            <HpBar currentHp={currentPlayerHp} maxHp={maxPlayerHp} shield={guardShield} reflectActive={reflectActive} />
+            <div className={styles.playerStatusBars}>
+              <GuardBar current={guardShield} max={maxPlayerHp} />
+              <HpBar
+                currentHp={currentPlayerHp}
+                maxHp={maxPlayerHp}
+                reflectActive={reflectActive}
+                icon={<CrossIcon />}
+              />
+            </div>
             <span className={styles.hpText}>
-              <span 
-                className={guardShield > 0 
-                  ? styles.hpNumeratorShielded 
+              <span
+                className={guardShield > 0
+                  ? styles.hpNumeratorShielded
                   : reflectActive
                     ? styles.hpNumeratorReflect
                     : undefined}>
