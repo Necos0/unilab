@@ -32,12 +32,22 @@ import styles from './ConditionNode.module.css';
  * 条件分岐ノードは dnd-kit のドロップターゲットではない（`useDroppable` を
  * 呼ばない）。カードを配置する概念がないため。
  *
+ * 表示テキストは「子ども（小学生）にも条件が読める」よう、`label`（自然言語
+ * の説明文、例: `"playerHpが50より大きい"`）が指定されていればそれを優先表示
+ * し、未指定なら `expression`（評価用の式、例: `"playerHp > 50"`）に
+ * フォールバックする。判定ロジック側（`battleStore.selectNextEdge` →
+ * `evaluateCondition`）には常に `expression` が渡されるため、ラベルは純粋に
+ * 視覚表現を差し替えるだけで分岐挙動には影響しない。`??` 演算子による
+ * フォールバックなので、`label: ""`（空文字）を意図的に渡せば空表示も可能
+ * （ラベル未定義時のみフォールバックされる）。
+ *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
  *         id (string): 条件ノード ID（`stages.json` の `conditions[].id` に一致）。
- *         data (object): `{ expression: string }` を含むデータ。`FlowchartArea`
- *             の `conditionsToNodes` で `data: { expression: c.expression }` の
- *             形で渡される。
+ *         data (object): `{ expression: string, label?: string }` を含むデータ。
+ *             `FlowchartArea` の `conditionsToNodes` で
+ *             `data: { expression: c.expression, label: c.label }` の形で
+ *             渡される。`label` は optional。
  *
  * Returns:
  *     JSX.Element: 菱形ノードを表す div 要素。
@@ -85,7 +95,7 @@ function ConditionNode({ id, data }) {
         className={styles.handle}
         isConnectable={false}
       />
-      <div className={styles.expression}>{data.expression}</div>
+      <div className={styles.expression}>{data.label ?? data.expression}</div>
     </div>
   );
 }

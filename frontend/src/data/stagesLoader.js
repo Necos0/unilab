@@ -223,6 +223,15 @@ function buildEdge(ending, targetId) {
  * `true` / `false` の各経路を再帰的に展開する。エッジは「直前の終端
  * （`endings`）から、いま作ったノードへ」の方向で `ctx.edges` に追加する。
  *
+ * 条件分岐要素の `label` フィールド（optional、自然言語の説明文）も
+ * `ctx.conditions[]` の各要素にそのまま転記する。例: `{ condition:
+ * "playerHp > 50", label: "playerHpが50より大きい", ... }` という flow 要素
+ * からは `ctx.conditions.push({ id, position, expression: "playerHp > 50",
+ * label: "playerHpが50より大きい" })` が作られる。`label` は ConditionNode の
+ * 表示テキストとして `expression` より優先される（小学生向けに評価式の代わりに
+ * 自然言語の文を見せるための仕組み）。`label` 未指定なら `undefined` のまま
+ * 流れ、ConditionNode 側で `expression` にフォールバックされる。
+ *
  * `endings` 配列の役割：
  *   通常の線形ステージでは「直前のノード 1 個」だけが直後ノードへ繋がる
  *   出発点となる。条件分岐の中では True / False 両経路を再帰展開した後、
@@ -289,6 +298,7 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
         id: condId,
         position: { x: 80 + column * 200, y: yLevel },
         expression: item.condition,
+        label: item.label,
       });
       for (const ending of endings) {
         ctx.edges.push(buildEdge(ending, condId));
@@ -427,16 +437,21 @@ function expandFlow(flow) {
  * 未定義（線形ステージ）の場合は空配列を返し、呼び出し側が「すべての
  * ステージで `stage.conditions` が配列である」前提で扱えるようにする。
  *
- * 各条件オブジェクトからは `id` / `position` / `expression` の 3 フィールド
- * のみ抽出してコピーする。将来 `condition` に追加フィールド（アニメーション
- * オプション等）が増えても、ここで明示的に列挙することで後方互換性を保つ。
+ * 各条件オブジェクトからは `id` / `position` / `expression` / `label`
+ * の 4 フィールドを抽出してコピーする。`label` は optional で、ConditionNode
+ * の表示テキストとして `expression` より優先される（小学生向けに自然言語の
+ * 説明文を別途与えるための仕組み、例: `expression="playerHp > 50"` に対して
+ * `label="playerHpが50より大きい"`）。判定ロジックは常に `expression` を
+ * 使うので、`label` の有無で分岐挙動は変わらない。将来 `condition` に追加
+ * フィールド（アニメーションオプション等）が増えても、ここで明示的に列挙
+ * することで後方互換性を保つ。
  *
  * Args:
- *     conditions (Array<{id, position, expression}> | undefined):
+ *     conditions (Array<{id, position, expression, label?}> | undefined):
  *         ステージ定義の `conditions` フィールド。未定義可。
  *
  * Returns:
- *     Array<{id: string, position: {x, y}, expression: string}>:
+ *     Array<{id, position, expression, label?}>:
  *         完全形式の条件分岐ノード配列。未定義時は空配列。
  */
 function expandConditions(conditions) {
@@ -445,6 +460,7 @@ function expandConditions(conditions) {
     id: raw.id,
     position: raw.position,
     expression: raw.expression,
+    label: raw.label,
   }));
 }
 
