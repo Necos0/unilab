@@ -1,11 +1,14 @@
 /* マップ画面の左上にオーバーレイ表示するデバッグ用ボタン。
     フローチャート画面の各ボタン（ResetButton 等）とトーンを揃えつつ、
-    絶対配置で SVG マップの上に重ねる */
+    絶対配置で SVG マップの上に重ねる */ 
+.container {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+}
+
 .button {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
-    z-index: 10;
     padding: 0.4rem 0.9rem;
     font-family: system-ui, sans-serif;
     font-size: 0.85rem;
@@ -24,4 +27,36 @@
 
 .button:active {
     background: rgba(21, 21, 28, 0.95);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: rgba(31, 31, 40, 0.95);
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+  min-width: 6rem;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.7rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: #e5e5ff;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.menuItem:hover {
+  background: rgba(58, 58, 69, 0.6);
 }

@@ -256,7 +256,8 @@ function CrossIcon() {
  * Args:
  *     props (object): React プロパティ。
  *         stageId (string): 戦うステージの ID。`stages.json` のキーに対応。
- *             未指定時は `demoStageId` をフォールバックとして使う。
+ *             未指定時は `stagesData.demoStageIds[0]` をフォールバックとして使う
+ *             （開発用バトルデモのデフォルト ID）。
  *         onExitToMap (function): 通常退出時に呼ぶハンドラ。引数なし。
  *             右上の `BackToMapButton`（テスト用）と `BattleFailOverlay`
  *             内「マップへ戻る」ボタンから呼ばれる（敗北はクリア対象外）。
@@ -269,7 +270,7 @@ function CrossIcon() {
  *     JSX.Element: 戦闘画面全体を表す section 要素。
  */
 function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
-  const resolvedStageId = stageId ?? stagesData.demoStageId;
+  const resolvedStageId = stageId ?? stagesData.demoStageIds[0];
   const stage = stagesData.stages[resolvedStageId];
 
   const initializeBattle = useBattleStore((s) => s.initializeBattle);

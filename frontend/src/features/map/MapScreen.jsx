@@ -51,13 +51,18 @@ const MAP_LABELS = {
  *     props (object): React プロパティ。
  *         onStartBattle (function): ランドマーク詳細パネルの「たたかう」
  *             ボタン押下時に `stageId` を渡して呼ぶ関数。
- *         onStartBattleDemo (function): デバッグ用「バトルデモ」ボタン
- *             押下時に呼ぶ関数（引数なし）。
+ *         onStartBattleDemo (function): デバッグ用「バトルデモ」ドロップダウン
+ *             で選択されたステージ ID を渡して呼ぶ関数（`onStartBattle` と
+ *             同じシグネチャ）。`BattleDemoButton` の `onSelectStage` props
+ *             として転送される。
+ *         demoStageIds (Array<string>): バトルデモドロップダウンに並べる
+ *             ステージ ID 配列。`stagesLoader.js` 経由で `stages.json` の
+ *             `demoStageIds` から流れてくる。
  *
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onStartBattleDemo }) {
+function MapScreen({ onStartBattle, onStartBattleDemo, demoStageIds }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -190,7 +195,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo }) {
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
         <FullscreenToggleButton />
-        <BattleDemoButton onClick={onStartBattleDemo} />
+        <BattleDemoButton demoStageIds={demoStageIds} onSelectStage={onStartBattleDemo} />
         <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
         {isMapSelectOpen && (
           <MapSelectOverlay

@@ -26,8 +26,10 @@
  * import しても展開は 1 度しか走らない。
  *
  * Exports:
- *     stagesData (object): `{ demoStageId, stages }` 形式の完全形式ステージ
- *         データ。既存の `stages.json` を直接 import していた箇所は、本
+ *     stagesData (object): `{ demoStageIds, stages }` 形式の完全形式ステージ
+ *         データ。`demoStageIds` は開発用バトルデモボタンから選べるステージ ID
+ *         配列で、先頭要素は `BattleScreen` の `stageId` 未指定時のフォールバック
+ *         も兼ねる。既存の `stages.json` を直接 import していた箇所は、本
  *         モジュールに import パスを差し替えるだけで動作する（形状が完全互換）。
  */
 
@@ -527,7 +529,7 @@ for (const [key, raw] of Object.entries(rawStagesData.stages)) {
 }
 
 const stagesData = {
-  demoStageId: rawStagesData.demoStageId,
+  demoStageIds: rawStagesData.demoStageIds,
   stages: expandedStages,
 };
 
