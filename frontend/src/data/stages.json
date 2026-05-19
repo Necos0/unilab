@@ -1,5 +1,5 @@
 {
-  "demoStageId": "3-1",
+  "demoStageIds": ["3-1", "3-2"],
   "stages": {
     "1-1": {
       "enemyId": "slime",
@@ -146,6 +146,32 @@
           "false": []
         },
         {}
+      ]
+    },
+    "3-2": {
+      "enemyId": "wolf",
+      "cards": [
+        { "id": "attack", "power":20 },
+        { "id":"attack", "power":15 },
+        { "id":"guard", "power":30 },
+        { "id":"reflect" }
+      ],
+      "flow": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 15 } },
+        {
+          "condition": "slot('slot-1') === 'attack'",
+          "label": "スロット1が攻撃カード",
+          "true": [
+            {},
+            { "lockedCard": { "id": "monster", "power": 20 } }
+          ],
+          "false": [
+            {},
+            { "lockedCard": { "id": "monster", "power": 25 } },
+            {}
+          ]
+        }
       ]
     }
   }

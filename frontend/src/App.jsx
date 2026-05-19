@@ -40,7 +40,7 @@ import stagesData from './data/stagesLoader.js';
  */
 function App() {
   const [screen, setScreen] = useState('map');
-  const [stageId, setStageId] = useState(stagesData.demoStageId);
+  const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
   const [pendingStageId, setPendingStageId] = useState(null);
 
   const handleStartBattle = (id) => {
@@ -78,7 +78,8 @@ function App() {
     ) : (
       <MapScreen
         onStartBattle={handleStartBattle}
-        onStartBattleDemo={() => handleStartBattle(stagesData.demoStageId)}
+        onStartBattleDemo={handleStartBattle}
+        demoStageIds={stagesData.demoStageIds}
       />
     );
 
