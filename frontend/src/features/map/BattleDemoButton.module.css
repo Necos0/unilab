@@ -4,7 +4,7 @@
 .container {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
+  left: 0.5rem;
   z-index: 10;
 }
 
@@ -32,7 +32,7 @@
 .dropdown {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
   margin: 0.25rem 0 0;
   padding: 0.25rem;
   list-style: none;
