@@ -1,7 +1,7 @@
 import styles from './MapTravelButton.module.css';
 
 /**
- * マップ画面の右下にオーバーレイ表示するマップ移動ボタン。
+ * マップ画面の右上にオーバーレイ表示するマップ移動ボタン。
  *
  * クリックで `MapSelectOverlay`（マップ一覧のモーダル）を開くトリガー。本ボタン
  * 自体は遷移ロジックを持たず、`onClick` props として受けたハンドラを呼ぶだけ。

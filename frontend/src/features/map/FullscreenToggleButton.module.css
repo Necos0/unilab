@@ -1,9 +1,9 @@
-/* マップ画面の左上にオーバーレイ表示する大画面表示トグルボタン。
-   BattleDemoButton（右上）とトーンを揃え、絶対配置で SVG マップの上に
+/* マップ画面の左下にオーバーレイ表示する大画面表示トグルボタン。
+   BattleDemoButton（左上）とトーンを揃え、絶対配置で SVG マップの上に
    重ねる。 */
 .button {
   position: absolute;
-  top: 0.5rem;
+  bottom: 0.5rem;
   left: 0.5rem;
   z-index: 10;
   padding: 0.4rem 0.9rem;

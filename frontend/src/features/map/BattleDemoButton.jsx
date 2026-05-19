@@ -1,7 +1,7 @@
 import styles from './BattleDemoButton.module.css';
 
 /**
- * マップ画面の右上にオーバーレイ表示するデバッグ用ボタン。
+ * マップ画面の左上にオーバーレイ表示するデバッグ用ボタン。
  *
  * クリックで戦闘デモ画面（`BattleScreen`）への遷移をトリガーする。本ボタン
  * 自体は遷移ロジックを持たず、`onClick` props として受けたハンドラを呼ぶ

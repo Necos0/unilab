@@ -1,17 +1,17 @@
-/* マップ画面の右下にオーバーレイ表示するマップ移動アイコンボタン。
+/* マップ画面の右上にオーバーレイ表示するマップ移動アイコンボタン。
    テキストラベル・背景・ボーダーを持たない純アイコン UI（アイコン自体が
    ボタンの形を持つ）。ホバー時は拡大とアイコンへの暖色グローで「選べる」
    感を強調する。 */
 .button {
   position: absolute;
-  bottom: 0.75rem;
+  top: 0.75rem;
   right: 0.75rem;
   z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 10.8rem;
-  height: 10.8rem;
+  width: 7.56rem;
+  height: 7.56rem;
   padding: 0;
   background: transparent;
   border: none;
@@ -37,8 +37,8 @@
  * 上乗せして「選べる」感を出す。
  */
 .icon {
-  width: 7.8rem;
-  height: 7.8rem;
+  width: 5.46rem;
+  height: 5.46rem;
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;

@@ -3,7 +3,7 @@ import styles from './FullscreenToggleButton.module.css';
 
 /**
  * ブラウザの Fullscreen API でフルスクリーン表示を ON/OFF 切り替えする
- * トグルボタン。マップ画面の左上にオーバーレイ表示する想定。
+ * トグルボタン。マップ画面の左下にオーバーレイ表示する想定。
  *
  * `document.fullscreenchange` を購読して現在のフルスクリーン状態を
  * 自分の `useState` に同期させ、それに応じてラベルを「大画面」⇔
@@ -12,8 +12,8 @@ import styles from './FullscreenToggleButton.module.css';
  * UI ががた付かないようにする（例: フルスクリーン許可がブラウザ側で
  * 拒否された場合）。
  *
- * 配置は CSS の `position: absolute` でマップ画面の左上に重ねる。
- * BattleDemoButton（右上）と同じトーンで配色を揃え、デバッグ／視聴用
+ * 配置は CSS の `position: absolute` でマップ画面の左下に重ねる。
+ * BattleDemoButton（左上）と同じトーンで配色を揃え、デバッグ／視聴用
  * UI として控えめに表示する。
  *
  * Returns:
