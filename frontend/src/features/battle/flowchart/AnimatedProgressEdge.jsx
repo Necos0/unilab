@@ -193,7 +193,7 @@ function AnimatedProgressEdge({
           x={sourceX + 6}
           y={sourceY - 6}
         >
-          Yes
+          はい
         </text>
       )}
       {sourceHandleId === 'false' && (
@@ -202,7 +202,7 @@ function AnimatedProgressEdge({
           x={sourceX + 6}
           y={sourceY + 14}
         >
-          No
+          いいえ
         </text>
       )}
     </>

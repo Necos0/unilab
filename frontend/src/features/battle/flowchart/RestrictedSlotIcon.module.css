@@ -1,0 +1,9 @@
+.icon {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 2;
+}

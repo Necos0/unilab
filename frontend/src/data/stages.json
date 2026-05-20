@@ -101,11 +101,11 @@
       "slots": [
         {},
         { "lockedCard": { "id": "monster", "power": 60 } },
-        {},
-        {},
+        { "acceptOnly": "heal" },
+        { "acceptOnly": "guard" },
         { "lockedCard": { "id": "monster", "power": 150 } },
         {},
-        {},
+        { "multiplier": 2 },
         { "lockedCard": { "id": "monster", "power": 110 } },
         {},
         { "lockedCard": { "id": "monster", "power": 90 } },
@@ -139,7 +139,7 @@
         {},
         {
           "condition": "playerHp > 50",
-          "label": "playerHpが50より大きい",
+          "label": "自分のHpが50より大きい",
           "true": [
             { "lockedCard": { "id": "attack", "power": 20 } }
           ],

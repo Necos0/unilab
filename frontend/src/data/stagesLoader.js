@@ -48,21 +48,44 @@ const SLOT_HEIGHT = 120;
  *
  * 各スロットについて、`id` が未指定なら `slot-${index+1}` を自動採番し、
  * `position` が未指定なら `SLOT_X_START + index * SLOT_X_STEP` を x 座標、
- * `SLOT_Y_DEFAULT` を y 座標として等間隔配置する。`lockedCard` は定義
- * されている場合のみコピーする（未定義のスロットに `lockedCard: undefined`
- * フィールドが付かないように分岐）。
+ * `SLOT_Y_DEFAULT` を y 座標として等間隔配置する。
+ *
+ * オプションフィールドの取り込み（`restricted-slot` / `multiplier-slot` 仕様）：
+ * `lockedCard` / `acceptOnly` / `multiplier` の 3 つは **すべて独立した `if`
+ * ブロック** で処理し、クロスフィールドの排他チェックは行わない。各ブロックは
+ * 「自分のフィールド値が妥当か」だけを検証する：
+ *   - `lockedCard`: 指定されていれば `expanded.lockedCard` にコピー
+ *   - `acceptOnly`: `isValidAcceptOnly`（`'attack'`/`'guard'`/`'heal'`）を通れば
+ *     コピー、不正値なら `console.warn` + 無視
+ *   - `multiplier`: `isValidMultiplier`（整数 ≥ 2）を通ればコピー、不正値なら
+ *     `console.warn` + 無視
+ *
+ * `lockedCard` と `acceptOnly` を両方書いた場合の排他警告は **撤去** した。
+ * 理由：locked スロットは初期化時にカードが埋まり `computeDropTransition` の
+ * `destCard?.locked` ガードで全ドロップを拒否するため、`acceptOnly`（ドロップ
+ * 種別制限）は実行時に発火しようがなく機能的に無害。「両方書くと acceptOnly
+ * アイコンが locked スロットに出る」見た目自体がデザイナーへの視覚的ヒントに
+ * なるため、console 警告は不要と判断した。一方 `lockedCard` × `multiplier` は
+ * 意味があり（locked attack 20 × 2 = 40 ダメージ、`multiplier-slot` 要件 2-4）、
+ * multiplier ブロックがそのまま適用される。
+ *
+ * 未指定フィールドは付与しない（後段で `slot.acceptOnly === undefined` /
+ * `slot.multiplier === undefined` が後方互換の分岐として機能する）。`stageId`
+ * 引数は警告メッセージに含めてデザイナーが該当箇所を特定しやすくする用途。
  *
  * Args:
  *     slots (Array<object>): 短縮または完全形式のスロット配列。各要素は
- *         空オブジェクト `{}` から完全指定の `{id, position, lockedCard}`
+ *         空オブジェクト `{}` から `{id, position, lockedCard, acceptOnly, multiplier}`
  *         まで任意の指定度を取れる。
+ *     stageId (string): 当該ステージの ID（`stages.json` のキー）。警告ログの
+ *         デバッグコンテキストとして使う。
  *
  * Returns:
- *     Array<{id: string, position: {x: number, y: number}, lockedCard?: object}>:
+ *     Array<{id, position, lockedCard?, acceptOnly?, multiplier?}>:
  *         完全形式のスロット配列。`battleStore` / `FlowchartArea` がそのまま
  *         受け取れる形。
  */
-function expandSlots(slots) {
+function expandSlots(slots, stageId) {
   return slots.map((raw, index) => {
     const id = raw.id ?? `slot-${index + 1}`;
     const position = raw.position ?? {
@@ -72,6 +95,20 @@ function expandSlots(slots) {
     const expanded = { id, position };
     if (raw.lockedCard) {
       expanded.lockedCard = raw.lockedCard;
+    }
+    if (raw.acceptOnly) {
+      if (isValidAcceptOnly(raw.acceptOnly)) {
+        expanded.acceptOnly = raw.acceptOnly;
+      } else {
+        console.warn(`[stagesLoader] stage "${stageId}" slot "${id}": invalid acceptOnly "${raw.acceptOnly}". Ignoring.`);
+      }
+    }
+    if (raw.multiplier !== undefined) {
+      if (isValidMultiplier(raw.multiplier)) {
+        expanded.multiplier = raw.multiplier;
+      } else {
+        console.warn(`[stagesLoader] stage "${stageId}" slot "${id}": invalid multiplier "${raw.multiplier}". Must be integer >= 2. Ignoring.`);
+      }
     }
     return expanded;
   });
@@ -185,6 +222,44 @@ function isCondition(item) {
 }
 
 /**
+ * `acceptOnly` フィールドの値がサポートされた種別かを判定する。
+ *
+ * `restricted-slot` 仕様で許可される値は `'attack'` / `'guard'` / `'heal'` の
+ * 3 種類のみ。他の値（タイポ・空文字・未対応の id）はすべて `false` を返し、
+ * ローダー側が `console.warn` を出して当該 acceptOnly を破棄する。3 種類だけ
+ * のシンプルな許容判定なので Set ではなく直接の `===` 比較にしている（追加
+ * 時もこの 1 行を伸ばすだけ）。
+ *
+ * Args:
+ *     value (any): スロット定義の `acceptOnly` フィールド値。
+ *
+ * Returns:
+ *     boolean: 許容された値なら `true`。
+ */
+function isValidAcceptOnly(value) {
+  return value === 'attack' || value === 'guard' || value === 'heal';
+}
+
+/**
+ * `multiplier` フィールドの値がサポートされた倍率かを判定する。
+ *
+ * `multiplier-slot` 仕様で許可される値は **2 以上の整数**。`Number.isInteger`
+ * で小数（`1.5`）・文字列（`"2"`）・`null` / `undefined` / `boolean` / `NaN` /
+ * `Infinity` をすべて拒否し、`>= 2` で `0` / `1` / 負数を弾く。`multiplier: 1`
+ * は明示指定でも「倍率なし」と同義のため無効扱い（要件 1-5）。不正値はローダー
+ * 側が `console.warn` を出して当該 multiplier を破棄する。
+ *
+ * Args:
+ *     value (any): スロット定義の `multiplier` フィールド値。
+ *
+ * Returns:
+ *     boolean: 2 以上の整数なら `true`。
+ */
+function isValidMultiplier(value) {
+  return Number.isInteger(value) && value >= 2;
+}
+
+/**
  * 1 本のエッジオブジェクトを `{ id, source, target, sourceHandle? }` 形式で
  * 組み立てる。
  *
@@ -233,6 +308,16 @@ function buildEdge(ending, targetId) {
  * 表示テキストとして `expression` より優先される（小学生向けに評価式の代わりに
  * 自然言語の文を見せるための仕組み）。`label` 未指定なら `undefined` のまま
  * 流れ、ConditionNode 側で `expression` にフォールバックされる。
+ *
+ * 通常スロット要素の `lockedCard` / `acceptOnly` / `multiplier` の取り込み
+ * （`restricted-slot` / `multiplier-slot` 仕様）：`expandSlots` と同じく 3 つを
+ * **すべて独立した `if` ブロック** で処理し、クロスフィールドの排他チェックは
+ * 行わない。各ブロックは自フィールドの値妥当性のみ検証する（`acceptOnly` は
+ * `isValidAcceptOnly`、`multiplier` は `isValidMultiplier`、不正値は warning +
+ * 無視）。`lockedCard` × `acceptOnly` の排他警告は撤去済み（locked スロットは
+ * ドロップを全拒否するため acceptOnly が無害に無視されるだけで、警告不要）。
+ * flow ルートでは stageId を持っていないため警告メッセージは slotId のみで
+ * 構成するが、`slot-N` 通し番号で十分に特定可能。
  *
  * `endings` 配列の役割：
  *   通常の線形ステージでは「直前のノード 1 個」だけが直後ノードへ繋がる
@@ -354,6 +439,20 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
       };
       if (item.lockedCard) {
         slot.lockedCard = item.lockedCard;
+      }
+      if (item.acceptOnly) {
+        if (isValidAcceptOnly(item.acceptOnly)) {
+          slot.acceptOnly = item.acceptOnly;
+        } else {
+          console.warn(`[stagesLoader] slot "${slotId}": invalid acceptOnly "${item.acceptOnly}". Ignoring.`);
+        }
+      }
+      if (item.multiplier !== undefined) {
+        if (isValidMultiplier(item.multiplier)) {
+          slot.multiplier = item.multiplier;
+        } else {
+          console.warn(`[stagesLoader] slot "${slotId}": invalid multiplier "${item.multiplier}". Must be integer >= 2. Ignoring.`);
+        }
       }
       ctx.slots.push(slot);
       for (const ending of endings) {
@@ -490,13 +589,16 @@ function expandConditions(conditions) {
  *     raw (object): `stages.json` 内の 1 ステージ分。`enemyId` / `cards` は
  *         必須。`flow` を使う場合は `slots` / `conditions` / `edges` /
  *         `start` / `goal` は不要。`slots` を使う場合は短縮形式（各スロット
- *         の `id` / `position` 省略可能）または完全形式どちらでも可。
+ *         の `id` / `position` 省略可能、`lockedCard` / `acceptOnly` も任意）
+ *         または完全形式どちらでも可。
+ *     stageId (string): 当該ステージの ID（`stages.json` のキー）。`expandSlots`
+ *         に渡して警告ログに含めるためのもの。線形ルートでのみ使用。
  *
  * Returns:
  *     object: 完全形式の 1 ステージ定義。`battleStore.initializeBattle` /
  *         `FlowchartArea` が期待する形。
  */
-function expandStage(raw) {
+function expandStage(raw, stageId) {
   if (raw.flow) {
     if (raw.slots) {
       console.warn(
@@ -510,7 +612,7 @@ function expandStage(raw) {
       ...expanded,
     };
   }
-  const slots = expandSlots(raw.slots ?? []);
+  const slots = expandSlots(raw.slots ?? [], stageId);
   return {
     enemyId: raw.enemyId,
     cards: raw.cards ?? [],
@@ -525,7 +627,7 @@ function expandStage(raw) {
 
 const expandedStages = {};
 for (const [key, raw] of Object.entries(rawStagesData.stages)) {
-  expandedStages[key] = expandStage(raw);
+  expandedStages[key] = expandStage(raw, key);
 }
 
 const stagesData = {
