@@ -29,21 +29,44 @@ const EXPANDED_BASELINE_BOUNDS_WIDTH = 720;
  * undefined のスロットは `data.xxx === undefined` で SlotNode 側が後方互換の
  * 通常スロットとして扱う（restricted-slot 要件 6-1、multiplier-slot 要件 5-1）。
  *
+ * 加えて、空きスロット中央に表示する番号 `displayNumber` を採番して `data` に
+ * 渡す。**lockedCard を持たない（プレイヤーが配置できる）スロットだけ** を
+ * 配列順に 1, 2, 3... と数え、lockedCard スロットには `null` を割り当てる。
+ * これにより「(1) の次が (3)」のような飛びを防ぎ、空きスロットだけが連番に
+ * なる（locked スロットはカードが見えるので番号不要）。`fillableCount` の
+ * クロージャカウンタで実現。`map` が配列順を保つため採番順は安定。なお
+ * この表示番号は condition 式の `slot('slot-N')` グローバル番号とは別物
+ * （ステージデザイナーが label を表示番号に手動で合わせる）。
+ *
  * Args:
- *     slots (Array<{id, position, acceptOnly?, multiplier?}>):
- *         ステージ定義に含まれるスロット配列。`acceptOnly` / `multiplier` は任意。
+ *     slots (Array<{id, position, acceptOnly?, multiplier?, lockedCard?}>):
+ *         ステージ定義に含まれるスロット配列。`acceptOnly` / `multiplier` /
+ *         `lockedCard` は任意。
  *
  * Returns:
- *     Array<{id, type, position, data: {acceptOnly?, multiplier?}}>:
- *         React Flow に渡せるノード配列。
+ *     Array<{id, type, position, data: {acceptOnly?, multiplier?, displayNumber}}>:
+ *         React Flow に渡せるノード配列。`displayNumber` は lockedCard なし
+ *         スロットの通し番号、lockedCard スロットは `null`。
  */
 function slotsToNodes(slots) {
-  return slots.map((slot) => ({
-    id: slot.id,
-    type: 'slot',
-    position: slot.position,
-    data: { acceptOnly: slot.acceptOnly, multiplier: slot.multiplier },
-  }));
+  let fillableCount = 0;
+  return slots.map((slot) => {
+    let displayNumber = null;
+    if (!slot.lockedCard) {
+      fillableCount += 1;
+      displayNumber = fillableCount;
+    }
+    return {
+      id: slot.id,
+      type: 'slot',
+      position: slot.position,
+      data: {
+        acceptOnly: slot.acceptOnly,
+        multiplier: slot.multiplier,
+        displayNumber
+      },
+    };
+  });
 }
 
 /**
