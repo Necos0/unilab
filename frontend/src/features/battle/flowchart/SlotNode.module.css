@@ -135,3 +135,11 @@
 .slot.traversed {
   filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
 }
+
+.slotNumber {
+  color: #6a6a78;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  pointer-events: none;
+  user-select: none;
+}

@@ -56,6 +56,27 @@ import styles from './SlotNode.module.css';
  *     （`card.power × multiplier`）適用は `battleStore.scheduleNodePhase` 側が
  *     担い、本コンポーネントは表示のみ
  *
+ * 空きスロットの中央には番号「(N)」を表示する。番号 `data.displayNumber` は
+ * `FlowchartArea.slotsToNodes` が **lockedCard を持たない（プレイヤーが配置
+ * できる）スロットだけを通し番号で採番** した値で、`assignedCard` が無いとき
+ * （カード未配置）のみ中央に描画する。これは condition ノードの label を
+ * 「(1)が攻撃カード」のように書いて「スロット」という語を避け、画面の番号と
+ * 文章をリンクさせるための補助表示（小学生向けの分かりやすさ重視）。
+ *
+ * 注意：表示番号は condition 式 `slot('slot-N')` が参照するグローバル ID 番号
+ * （locked 含む連番）とは **一致しない**。locked スロットを飛ばして空きスロット
+ * だけを 1, 2, 3... と数えるため、「(1) の次が (3)」のような飛びを防ぐのが狙い。
+ * 例：slot-1（空）= (1) / slot-2（locked）= 番号なし / slot-3（空）= (2)。
+ * このため condition の label を書くときは「画面表示の番号」に合わせる必要が
+ * あり、式の `slot-N` 番号とは別管理になる（ステージデザイナーが手動で対応付け）。
+ *
+ * `displayNumber` は静的採番（実行時の空き状態に依存しない）なので、プレイヤー
+ * がカードを置いても他スロットの番号はずれない（置いたスロットは番号が隠れて
+ * カードが見えるだけ）。lockedCard スロットは `displayNumber: null` かつ
+ * `assignedCard` ありで二重に番号非表示。中央配置は `.slot` の flex
+ * センタリングに任せ、`Handle`（absolute 配置）や角のインジケータ（左上
+ * acceptOnly / 右上 multiplier）とは重ならない。
+ *
  * `Handle` はエッジの接続点として必要なため配置するが、ユーザーが手動で
  * エッジを引く用途ではないため CSS で視覚的に非表示にしている。
  *
@@ -69,6 +90,9 @@ import styles from './SlotNode.module.css';
  *             multiplier (number, optional): 2 以上の整数。指定時は右上に倍率
  *                 インジケータを表示する。`FlowchartArea.slotsToNodes` から
  *                 `slot.multiplier` が転記される。
+ *             displayNumber (number | null): 空きスロット中央に表示する番号。
+ *                 `FlowchartArea.slotsToNodes` が lockedCard なしスロットだけを
+ *                 通し番号で採番した値。lockedCard スロットは `null`。
  *
  * Returns:
  *     JSX.Element: スロットを表す div 要素。
@@ -110,6 +134,8 @@ function SlotNode({ id, data }) {
 
   const multiplier = data?.multiplier;
 
+  const displayNumber = data?.displayNumber;
+
   const className = [
     styles.slot,
     acceptClass,
@@ -142,6 +168,9 @@ function SlotNode({ id, data }) {
       />
       {assignedCard && (
         <DraggableCard card={assignedCard} source={id} variant="fill" />
+      )}
+      {!assignedCard && displayNumber && (
+        <div className={styles.slotNumber}>({displayNumber})</div>
       )}
       <Handle
         type="source"

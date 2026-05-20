@@ -161,7 +161,7 @@
         { "lockedCard": { "id": "monster", "power": 15 } },
         {
           "condition": "slot('slot-1') === 'attack'",
-          "label": "スロット1が攻撃カード",
+          "label": "(1)が攻撃カード",
           "true": [
             {},
             { "lockedCard": { "id": "monster", "power": 20 } }
