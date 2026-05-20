@@ -281,6 +281,51 @@ function buildSlotAssignmentsFromStage(stage) {
   return assignments;
 }
 
+/**
+ * ステージ定義からスロット静的メタ情報マップを生成する
+ * （`restricted-slot` / `multiplier-slot` 仕様）。
+ *
+ * `acceptOnly`（種別制限）または `multiplier`（効果倍率）が指定されている
+ * スロットを `{ [slotId]: { acceptOnly?, multiplier? } }` の形のマップにまとめる。
+ * 両方持つスロットは 1 エントリに両キーが入る。`slotAssignments`（実行中に
+ * 動的に変化）と分けて管理することで、カード配置の状態更新時に毎回静的情報を
+ * 運び直す必要がなくなる。`buildSlotAssignmentsFromStage` と並列の責務
+ * （ステージ初期化時の派生計算）。
+ *
+ * どちらのフィールドも持たないスロットはマップに登録しない（`entry` が空なら
+ * skip）。参照側は `state.slotMetadata[slotId]?.acceptOnly` /
+ * `state.slotMetadata[slotId]?.multiplier ?? 1` の optional chaining + フォール
+ * バックで判定する。これにより「未指定スロットは従来通りの挙動（全カード受け
+ * 入れ・倍率 1）」が分岐コストなしで成立する（restricted-slot 要件 6-1、
+ * multiplier-slot 要件 2-7 / 5-1）。
+ *
+ * `acceptOnly` と `multiplier` は独立フィールドで、ローダー（`stagesLoader`）
+ * でも排他チェックを行わないため、ここでも各キーを個別に拾う。将来さらに
+ * スロット制限フィールドが増えても、同じ entry オブジェクトにキーを足すだけで
+ * 拡張できる構造。
+ *
+ * Args:
+ *     stage (object): `stages.json` の 1 ステージ分。`slots` 配列を持ち、
+ *         各スロットは `{id, position, lockedCard?, acceptOnly?, multiplier?}` の形。
+ *
+ * Returns:
+ *     Object<string, {acceptOnly?: string, multiplier?: number}>: スロット ID を
+ *         キーに、メタ情報オブジェクトを値とするマップ。該当スロットがなければ
+ *         空オブジェクト。
+ */
+function buildSlotMetadataFromStage(stage) {
+  const metadata = {};
+  for (const slot of stage.slots ?? []) {
+    const entry = {};
+    if (slot.acceptOnly) entry.acceptOnly = slot.acceptOnly;
+    if (slot.multiplier) entry.multiplier = slot.multiplier;
+    if (Object.keys(entry).length > 0) {
+      metadata[slot.id] = entry;
+    }
+  }
+  return metadata;
+}
+
 /**                                                         
  * ステージ定義のエッジを辿って、実行時のフェーズ列を構築する。               
  *                                                          
@@ -336,12 +381,41 @@ function selectAllSlotsFilled(state) {
 }
 
 /**
+ * `instanceId` をキーに、手札・スロット割当の両方から `CardInstance` を探す。
+ *
+ * `BattleScreen.selectActiveCard` と同じロジックの純関数版（あちらは Zustand
+ * セレクタとして `state` を内部で取るスタイル、こちらは `state` を引数で受け取る）。
+ * `computeDropTransition` の `acceptOnly` ガード（`restricted-slot` 仕様）で
+ * 「いまドラッグされているカードの種別 id」を即座に取り出すために使う。
+ *
+ * 手札を先に検索する理由は単純に最も一般的なケース（手札からスロットへドラッグ）
+ * を高速に判定するため。スロット間移動の場合は `slotAssignments` 走査にフォール
+ * バックする。両方に見つからなければ `null` を返し、呼び出し側のガードが
+ * 「異常系として既存挙動に流す」フォールバックを担う。
+ *
+ * Args:
+ *     state (object): 現在のストア状態。`handCards` と `slotAssignments` を持つ。
+ *     instanceId (string): 検索する `CardInstance` の `instanceId`。
+ *
+ * Returns:
+ *     object | null: 見つかった `CardInstance`、または `null`。
+ */
+function findCardByInstanceId(state, instanceId) {
+  const fromHand = state.handCards.find((c) => c.instanceId === instanceId);
+  if (fromHand) return fromHand;
+  for (const card of Object.values(state.slotAssignments)) {
+    if (card && card.instanceId === instanceId) return card;
+  }
+  return null;
+}
+
+/**
  * ドラッグ終了時の状態遷移を計算する純粋関数。
  *
  * `source` と `destination` の組み合わせで 7 パターンに分岐する。
  * Zustand の `set` の引数として渡せる部分更新オブジェクトを返す。
  *
- * 関数冒頭で 4 つの早期リターンガードを通過する：
+ * 関数冒頭で 5 つの早期リターンガードを通過する：
  *   1. 手札 → スロット外（`source === HAND && destination === null`）：
  *      何もしない（手札からの撤回扱い）
  *   2. 同一位置への drop（`source === destination`）：何もしない
@@ -349,6 +423,13 @@ function selectAllSlotsFilled(state) {
  *      何もしない（モンスターカードを動かせない／monster-attack 要件 2-3）
  *   4. ドロップ先スロットがロックカードを持つ（`destCard.locked`）：
  *      何もしない（ロックスロットへ別カードを置けない／monster-attack 要件 2-2）
+ *   5. ドロップ先スロットの `acceptOnly` 制限とカード id が不一致（`restricted-slot`
+ *      仕様）：何もしない（カードは元の位置に戻る）。`state.slotMetadata[destination]`
+ *      に `acceptOnly` がセットされていて、`findCardByInstanceId` で取り出した
+ *      ドラッグ中カードの `id` が `acceptOnly` の値と一致しないときに発火する。
+ *      ガード 4（lockedCard）は acceptOnly と排他なので順序の前後で挙動は変わらない
+ *      が、「より特殊なケース（lockedCard 完全固定）を先」「次に新仕様（タイプ制限）」
+ *      の順で並べて可読性を保つ。
  * いずれにも該当しない場合のみ、本来の状態遷移ロジックに進む。
  *
  * Args:
@@ -383,6 +464,13 @@ function computeDropTransition(state, { instanceId, source, destination }) {
     const destCard = state.slotAssignments[destination];
     if (destCard?.locked) {
       return {};
+    }
+    const meta = state.slotMetadata[destination];
+    if (meta?.acceptOnly) {
+      const draggedCard = findCardByInstanceId(state, instanceId);
+      if (draggedCard && draggedCard.id !== meta.acceptOnly) {
+        return {};
+      }
     }
   }
 
@@ -429,6 +517,7 @@ function computeDropTransition(state, { instanceId, source, destination }) {
 const useBattleStore = create((set, get) => ({
   handCards: [],
   slotAssignments: {},
+  slotMetadata: {},
   activeInstanceId: null,
   isExpanded: false,
   isTransitioning: false,
@@ -505,6 +594,7 @@ const useBattleStore = create((set, get) => ({
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
       slotAssignments: buildSlotAssignmentsFromStage(stage),
+      slotMetadata: buildSlotMetadataFromStage(stage),
       activeInstanceId: null,
       maxEnemyHp,
       currentEnemyHp: maxEnemyHp,
@@ -613,20 +703,24 @@ const useBattleStore = create((set, get) => ({
    * reflect-card-effect 要件 5-2）。
    *
    * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
-   * 効果を発火する：
-   *   - `attack` カード → `applyEnemyDamage(card.power)`（敵 HP を減らす）
+   * 効果を発火する。発火前に `multiplier = get().slotMetadata[nodeId]?.multiplier
+   * ?? 1` を 1 回取得し、attack / heal / guard の `card.power` に掛ける
+   * （`multiplier-slot` 仕様）。`multiplier` 未指定スロットは `?? 1` で 1 倍
+   * （= 効果そのまま、後方互換）：
+   *   - `attack` カード → `applyEnemyDamage(card.power * multiplier)`（敵 HP を減らす）
    *   - `monster` カード → `reflectActive` で分岐：true なら
    *     `applyReflectDamage(card.power)`（敵 HP を power 減らし、オレンジフロート
    *     を発火、プレイヤー HP は不変）、false なら `consumeShieldOnDamage(card.power)`
    *     （シールド残量があれば吸収量を差し引いた残ダメージを `applyPlayerDamage`
    *     に渡し、シールドが 0 なら `applyPlayerDamage(card.power)` を直接呼ぶ）。
    *     モンスターカードは `lockedCard` でステージ定義から固定配置されている
-   *     ためユーザー操作では現れない
-   *   - `heal` カード → `applyPlayerHeal(card.power)`（プレイヤー HP を回復し、
-   *     `maxPlayerHp` でクランプする。HP が満タンでも演出キューには push
+   *     ためユーザー操作では現れない。**multiplier は適用しない**（敵攻撃なので
+   *     プレイヤー側カード強化の対象外、multiplier-slot 要件 2-5）
+   *   - `heal` カード → `applyPlayerHeal(card.power * multiplier)`（プレイヤー HP を
+   *     回復し、`maxPlayerHp` でクランプする。HP が満タンでも演出キューには push
    *     されるため、緑フラッシュと「+N」フロートは通常通り再生される
    *     ／heal-card 要件 2-3, 4-4）
-   *   - `guard` カード → `applyGuard(card.power)`（`guardShield` に `power` を
+   *   - `guard` カード → `applyGuard(card.power * multiplier)`（`guardShield` に
    *     上書きセットし、同時に `reflectActive` を `false` にクリアする）。
    *     直後 1 ノード分のみ有効な一時シールドとして機能する
    *     （guard-card-effect 要件 1, 5、reflect-card-effect 要件 6-2）
@@ -634,10 +728,13 @@ const useBattleStore = create((set, get) => ({
    *     同時に `guardShield` を 0 にクリアする）。直後 1 ノード分のみ有効な
    *     反射状態として機能する。`reflect` カードは設計上 `power` を持たないため、
    *     `card.power > 0` のガードを使わず `card.id === 'reflect'` の存在チェック
-   *     だけで分岐する（reflect-card-effect 要件 1, 6-1）
+   *     だけで分岐する。**multiplier は適用しない**（power なし、multiplier-slot
+   *     要件 2-6）
    * いずれも `card.power > 0` でガードしている（reflect は例外）。`else if` では
    * なく独立 `if` の並列構造にすることで、将来カード種別が追加されたときに
-   * 順序依存無く拡張できる。
+   * 順序依存無く拡張できる。`multiplier` は `card.id` のみで分岐するため、locked
+   * カード（attack/heal/guard）にも自動適用される（locked attack 20 × 2 = 40、
+   * multiplier-slot 要件 2-4）。
    *
    * 各エッジフェーズでは「直前ノードが guard でなく、かつ `guardShield > 0`」
    * のとき `clearGuard()` を呼んでシールドを 0 に戻し、「直前ノードが reflect で
@@ -770,8 +867,9 @@ const useBattleStore = create((set, get) => ({
           }));
 
           const card = get().slotAssignments[nodeId];
+          const multiplier = get().slotMetadata[nodeId]?.multiplier ?? 1;
           if (card && card.id === 'attack' && card.power > 0) {
-            get().applyEnemyDamage(card.power);
+            get().applyEnemyDamage(card.power * multiplier);
           }
           if (card && card.id === 'monster' && card.power > 0) {
             if (get().reflectActive) {
@@ -781,10 +879,10 @@ const useBattleStore = create((set, get) => ({
             }
           }
           if (card && card.id === 'heal' && card.power > 0) {
-            get().applyPlayerHeal(card.power);
+            get().applyPlayerHeal(card.power * multiplier);
           }
           if (card && card.id === 'guard' && card.power > 0) {
-            get().applyGuard(card.power);
+            get().applyGuard(card.power * multiplier);
           }
           if (card && card.id === 'reflect') {
             get().applyReflect();

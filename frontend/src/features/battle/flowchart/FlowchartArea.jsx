@@ -22,12 +22,19 @@ const EXPANDED_BASELINE_BOUNDS_WIDTH = 720;
 /**
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
  *
+ * 各スロットの `acceptOnly`（`restricted-slot` 仕様）と `multiplier`
+ * （`multiplier-slot` 仕様）の optional フィールドを React Flow node の `data`
+ * に転記する。`SlotNode` 側はこれを受け取って種別アイコン（左上）・倍率
+ * インジケータ（右上）の描画やドロップ拒否時の赤ハイライトに使う。どちらも
+ * undefined のスロットは `data.xxx === undefined` で SlotNode 側が後方互換の
+ * 通常スロットとして扱う（restricted-slot 要件 6-1、multiplier-slot 要件 5-1）。
+ *
  * Args:
- *     slots (Array<{id: string, position: {x: number, y: number}}>):
- *         ステージ定義に含まれるスロット配列。
+ *     slots (Array<{id, position, acceptOnly?, multiplier?}>):
+ *         ステージ定義に含まれるスロット配列。`acceptOnly` / `multiplier` は任意。
  *
  * Returns:
- *     Array<{id: string, type: string, position: object, data: object}>:
+ *     Array<{id, type, position, data: {acceptOnly?, multiplier?}}>:
  *         React Flow に渡せるノード配列。
  */
 function slotsToNodes(slots) {
@@ -35,7 +42,7 @@ function slotsToNodes(slots) {
     id: slot.id,
     type: 'slot',
     position: slot.position,
-    data: {},
+    data: { acceptOnly: slot.acceptOnly, multiplier: slot.multiplier },
   }));
 }
 

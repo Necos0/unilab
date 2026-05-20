@@ -1,0 +1,13 @@
+.indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #f5f5f5;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+}
