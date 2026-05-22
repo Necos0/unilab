@@ -16,9 +16,13 @@ import styles from './MergeNode.module.css';
  * （`battleStore.scheduleNodePhase` で `slotAssignments[mergeId]` が
  * undefined のため、既存の効果分岐ガードで自動的にスキップされる）。
  *
- * Handle 構成（3 つ）：
+ * Handle 構成（4 つ）：
  *   - Left（target、デフォルト id）：True 経路の終端ノードから水平直線で
- *     入ってくる
+ *     入ってくる。ループ構文では start（または直前の終端）からの入力もここで受ける
+ *   - Top（target、`id="top"`）：ループ構文の **戻りエッジ** がここに入る。前置では
+ *     ボディ末尾の `loop-out` から、後置では cond の `false` から、上側を回る
+ *     smoothstep でこの上辺に進入する（`flowchart-loop` 仕様）。分岐専用の merge
+ *     では未使用
  *   - Bottom（target、`id="bottom"`）：False 経路の終端から smoothstep の
  *     U 字経路で **下から上向きに** 入ってくる（`AnimatedProgressEdge` の
  *     `targetHandleId === 'bottom'` 判定で smoothstep が選ばれる）。
@@ -73,6 +77,13 @@ function MergeNode({ id }) {
         type="target"
         position={Position.Bottom}
         id="bottom"
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
         className={styles.handle}
         isConnectable={false}
       />

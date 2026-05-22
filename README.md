@@ -171,6 +171,9 @@ unilab/
         │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
         ├── hooks/                ← 機能横断のカスタムフック
         │   └── useSpriteAnimation.js  ← スプライト連番のフレーム送り(敵・主人公共用)
+        ├── engine/               ← UI 非依存のゲームロジック(純関数、将来 Python 移植の仕様書代わり)
+        │   ├── evaluateCondition.js   ← 条件式(文字列)を実行時状態で評価する純関数
+        │   └── simulateBattle.js      ← 実行前に勝敗/無限ループ(runaway)を数値だけで判定する純関数
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
@@ -252,7 +255,6 @@ unilab/
 |---|---|
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
-| `frontend/src/engine/` | UI 非依存のゲームロジック(純粋 JS、将来 Python 移植時の仕様書代わり) |
 | `backend/` | Python サーバー(将来導入) |
 
 ### 設計の意図

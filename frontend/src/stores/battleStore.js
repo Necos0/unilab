@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import enemiesData from '../data/enemies.json';
 import playerData from '../data/player.json';
 import evaluateCondition from '../engine/evaluateCondition';
+import { simulateBattle } from '../engine/simulateBattle';
 
 /**
  * バトル状態を一元管理する Zustand ストア。
@@ -210,6 +211,7 @@ const NODE_PHASE_MS = 800;
 const EDGE_PHASE_MS = 400;
 const GUARD_TO_HP_DELAY_MS = 250;
 const VICTORY_FADE_DURATION_MS = 500;
+const LOOP_MAX_VISITS = 100;
 let executionTimers = [];
 
 function cancelExecutionTimers() {
@@ -325,42 +327,6 @@ function buildSlotMetadataFromStage(stage) {
   }
   return metadata;
 }
-
-/**                                                         
- * ステージ定義のエッジを辿って、実行時のフェーズ列を構築する。               
- *                                                          
- * `'start'` ノードから始め、各ノードの outgoing エッジを 1 本ずつ辿って      
- * `'goal'` までの経路を `[{type:'node', id:'start'}, {type:'edge',           
-id:'e-start-1'},                                                              
-  * {type:'node', id:'slot-1'}, ..., {type:'node', id:'goal'}]`                
-の配列に展開する。                                                            
-  * 経路が途中で途切れている場合（参照不正など）は、辿れた範囲までで打ち切る。
-  *                                                          
-  * Args:                                                                      
-  *     stage (object): `stages.json` の 1 ステージ分。`edges` と `slots` 
-を持つ。                                                                      
-  *                                                                            
-  * Returns:                                                                   
-  *     Array<{type: 'node' | 'edge', id: string}>: フェーズ列。実行中の       
-  *         `executionStep` に時系列でセットされる。
-  */
- function buildExecutionPath(stage) {
-  const next = {};
-  for (const edge of stage.edges ?? []) {
-    next[edge.source] = { target: edge.target, edgeId: edge.id };
-  }
-  const phases = [];
-  let currentNode = 'start';
-  while (true) {
-    phases.push({ type: 'node', id: currentNode });
-    if (currentNode === 'goal') break;
-    const trans = next[currentNode];
-    if (!trans) break;
-    phases.push({ type: 'edge', id: trans.edgeId });
-    currentNode = trans.target;
-  }
-  return phases;
- }
 
  /**                                                         
  * 全スロットがカードで埋まっているかを返すセレクタ関数。                     
@@ -563,8 +529,11 @@ const useBattleStore = create((set, get) => ({
    * 残さず通常状態へ復帰する（`victory-clear` 要件 7-1, 7-4 ／
    * `battle-fail-retry` 要件 6-1, 6-2）。
    *
-   * 敵 HP は `enemies.json` から `stage.enemyId` に対応する `maxHp` を
-   * 取得して `maxEnemyHp` / `currentEnemyHp` の双方に設定する。プレイヤー
+   * 敵 HP は `stage.maxEnemyHp`（ステージ側の上書き、`flowchart-loop` 仕様）が
+   * あればそれを最優先し、無ければ `enemies.json` から `stage.enemyId` に対応する
+   * `maxHp` を取得して `maxEnemyHp` / `currentEnemyHp` の双方に設定する。これにより
+   * パズル上必要な任意 HP（4-1=60 等）を共有 `enemies.json` を変更せずステージ
+   * ごとに指定できる。プレイヤー
    * HP は `player.json` の `maxHp` から同様に `maxPlayerHp` /
    * `currentPlayerHp` を初期化する（monster-attack 要件 3-1）。データが
    * 欠損している場合は `?? 0` で 0 にフォールバックし、`HpBar` 側で
@@ -585,11 +554,12 @@ const useBattleStore = create((set, get) => ({
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
+   *         任意で `maxEnemyHp`（敵 HP のステージ上書き）を持つ。
    */
   initializeBattle: (stage) => {
     cancelExecutionTimers();
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
-    const maxEnemyHp = enemy?.maxHp ?? 0;
+    const maxEnemyHp = stage.maxEnemyHp ?? enemy?.maxHp ?? 0;
     const maxPlayerHp = playerData.maxHp ?? 0;
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
@@ -676,22 +646,20 @@ const useBattleStore = create((set, get) => ({
    * `setTimeout(TRANSITION_DURATION_MS)` 後に実行シーケンスを開始する。
    * 縮小状態なら即実行する。
    *
-   * 実行シーケンスは `buildExecutionPath(stage)` で組み立てたフェーズ列を、
-   * フェーズ種別ごとに異なる時間（ノードフェーズ = `NODE_PHASE_MS` = 800ms、
-   * エッジフェーズ = `EDGE_PHASE_MS` = 400ms）で順次 `setTimeout` 発火する。
-   * 実数は実機調整で決定した値で、定数を変えるだけで全ステージのテンポが
-   * 一括変更できる設計。
-   * 各フェーズの開始時刻は事前に累積で計算（`phaseStartMs` 配列）し、各フェーズ
-   * の持続時間は `phaseDurations` 配列に格納する。これによりステージのスロット
-   * 数によらず「エッジ移動は常に 500ms、ノードでの効果発火は常に 1000ms」と
-   * いう一定のテンポが保たれる（以前は `EXECUTION_PER_CARD_MS / phases.length`
-   * の等分配で、スロット数によってフェーズ単価が変動していた）。`currentPhaseMs`
-   * は各フェーズ進入時にそのフェーズの持続時間で更新され、`AnimatedProgressEdge`
-   * の進行アニメーション速度（エッジ通過時 0.5 秒）と連動する。最後に
-   * `isExecuting` を `false`、`executionStep` と `currentPhaseMs` を `null` に
-   * 戻す。シーケンス完了時点で `currentEnemyHp === 0` なら、続けて
-   * `startVictorySequence(stage.enemyId)` を呼び出して CLEAR! 演出を起動する
-   * （`victory-clear` 要件 1-1, 1-3：実行終了の合図に同期して勝利演出を始める）。
+   * 実行シーケンスは `'start'` ノードから始まる **動的なエッジ追跡** で進む。各
+   * ノードフェーズ（`scheduleNodePhase`）はカード効果を適用したのち `selectNextEdge`
+   * で次の 1 本を選び、エッジフェーズ（`scheduleEdgePhase`）→ 次のノードフェーズ、と
+   * `setTimeout` を連鎖させる。`'goal'` 到達、または outgoing エッジの無いノードに
+   * 達したら `scheduleComplete` で締める。経路を事前に固定配列へ展開せず、ノード
+   * 到達のつど `edgesBySource` を引いて進むため、条件分岐（条件ノードでは
+   * `evaluateCondition` を **その時点の最新状態で再評価**）やループ（閉路）も
+   * そのまま辿れる。フェーズ時間はノード = `NODE_PHASE_MS`（800ms）、エッジ =
+   * `EDGE_PHASE_MS`（400ms）の固定値で、定数を変えるだけで全ステージのテンポを
+   * 一括変更できる。`currentPhaseMs` は各フェーズ進入時にそのフェーズの持続時間で
+   * 更新され、`AnimatedProgressEdge` の進行アニメーション速度と連動する。
+   * `scheduleComplete` では `currentEnemyHp === 0 && currentPlayerHp > 0` なら
+   * `startVictorySequence(stage.enemyId)` で CLEAR! 演出を起動し、そうでなければ
+   * `failPhase: 'shown'` を立てる（`victory-clear` 要件 1-1, 1-3）。
    *
    * シーケンス開始時には `currentEnemyHp` を `maxEnemyHp` に、
    * `currentPlayerHp` を `maxPlayerHp` に戻し、両側のダメージ演出キュー
@@ -771,6 +739,18 @@ const useBattleStore = create((set, get) => ({
    * setTimeout の中断ガードが解除されて勝手に実行が再開する」というバグ
    * （`battle-fail-retry` の追加保護）を防ぐための明示破棄。early-return ガード
    * とタイマー破棄の二重防御により、どちらか一方が漏れても安全側に倒れる。
+ *
+ * ループ構文（`flowchart-loop` 仕様）の無限ループ対策は 2 段構え。**主検出は実行前
+ * シミュレーション**：`beginSequence` で `simulateBattle`（`engine/simulateBattle.js`、
+ * 数値だけの純関数）を 1 回走らせ、`'runaway'`（あるノードの訪問が `LOOP_MAX_VISITS`
+ * =100 超）ならアニメせずに即 `failPhase: 'shown'` で負けにする（プレイヤー待ち時間
+ * ゼロ）。**保険は live の周回ガード**：`scheduleNodePhase` の冒頭でクロージャ
+ * `nodeVisitCounts` を加算し、100 超で `cancelExecutionTimers()` ＋ `failPhase` で
+ * 打ち切る（sim が万一見逃しても停止）。線形・分岐ステージは各ノード 1 回しか通らない
+ * のでどちらも発火しない（後方互換）。sim と live は別実装なので、開発時
+ * （`import.meta.env.DEV`）のみ `scheduleComplete` で live の最終結果と sim 結果を
+ * 突き合わせ、不一致なら `console.warn` してルールのドリフトを早期検知する
+ * （本番ビルドでは何もしない）。
    *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`enemyId` / `slots` /
@@ -813,6 +793,8 @@ const useBattleStore = create((set, get) => ({
         edgesBySource[edge.source].push(edge);
       }
 
+      const nodeVisitCounts = {};
+
       set((s) => ({
         isExecuting: true,
         currentPhaseMs: NODE_PHASE_MS,
@@ -829,6 +811,31 @@ const useBattleStore = create((set, get) => ({
         reflectActive: false,
         enemyReflectEvents: [],
       }));
+
+      const simOutcome = simulateBattle({
+        edgesBySource,
+        nodeMap,
+        slotAssignments: get().slotAssignments,
+        slotMetadata: get().slotMetadata,
+        initialState: {
+          enemyHp: get().maxEnemyHp,
+          playerHp: get().maxPlayerHp,
+          guardShield: 0,
+          reflectActive: false,
+          maxPlayerHp: get().maxPlayerHp,
+          maxEnemyHp: get().maxEnemyHp,
+        },
+        maxVisits: LOOP_MAX_VISITS,
+      });
+      if (simOutcome === 'runaway') {
+        set({
+          isExecuting: false,
+          executionStep: null,
+          currentPhaseMs: null,
+          failPhase: 'shown',
+        });
+        return;
+      }
 
       const buildEvalContext = (state) => ({
         variables: {
@@ -860,6 +867,18 @@ const useBattleStore = create((set, get) => ({
         const tid = setTimeout(() => {
           if (get().failPhase !== null) return;
 
+          nodeVisitCounts[nodeId] = (nodeVisitCounts[nodeId] ?? 0) + 1;
+          if (nodeVisitCounts[nodeId] > LOOP_MAX_VISITS) {
+            cancelExecutionTimers();
+            set({
+              failPhase: 'shown',
+              isExecuting: false,
+              executionStep: null,
+              currentPhaseMs: null,
+            });
+            return;
+          }
+          
           set((s) => ({
             executionStep: { type: 'node', id: nodeId },
             currentPhaseMs: NODE_PHASE_MS,
@@ -935,6 +954,12 @@ const useBattleStore = create((set, get) => ({
           if (get().failPhase !== null) return;
           set({ isExecuting: false, executionStep: null, currentPhaseMs: null });
           const { currentEnemyHp, currentPlayerHp } = get();
+          if (import.meta.env.DEV) {
+            const liveOutcome = currentEnemyHp <= 0 && currentPlayerHp > 0 ? 'win' : 'lose';
+            if (liveOutcome !== simOutcome) {
+              console.warn(`[simulateBattle] outcome mismatch: sim=${simOutcome} live=${liveOutcome} (効果ルールがズレている可能性) `);
+            }
+          }
           if (currentEnemyHp === 0 && currentPlayerHp > 0) {
             get().startVictorySequence(stage.enemyId);
           } else {

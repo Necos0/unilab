@@ -42,6 +42,8 @@ const START_X = -120;
 const MERGE_SIZE = 16;
 const SLOT_WIDTH = 80;
 const SLOT_HEIGHT = 120;
+const LOOP_ROW_GAP = 160;
+const COND_WIDTH = 140;
 
 /**
  * スロット配列を完全形式に展開する。
@@ -222,6 +224,23 @@ function isCondition(item) {
 }
 
 /**
+ * `flow` 配列の要素がループ構文かどうかを判定する。
+ *
+ * `loop` キーにオブジェクトがセットされていればループ要素とみなす。`isCondition`
+ * と同様に `typeof` で厳密に判定し、`loop: true` のような誤記を「ループ」と誤分類
+ * しないようガードしている。
+ *
+ * Args:
+ *     item (object): `flow` 配列の 1 要素。
+ *
+ * Returns:
+ *     boolean: ループ要素なら `true`。
+ */
+function isLoop(item) {
+  return typeof item?.loop === 'object' && item.loop !== null;
+}
+
+/**
  * `acceptOnly` フィールドの値がサポートされた種別かを判定する。
  *
  * `restricted-slot` 仕様で許可される値は `'attack'` / `'guard'` / `'heal'` の
@@ -293,12 +312,56 @@ function buildEdge(ending, targetId) {
 }
 
 /**
+ * 通常スロット要素 1 個を完全形式に展開して `ctx` に積む共通ヘルパー。
+ *
+ * `ctx.slotCounter` を進めて `slot-${n}` を採番し、`lockedCard` / `acceptOnly` /
+ * `multiplier` の各オプションを（`isValidAcceptOnly` / `isValidMultiplier` で
+ * 検証しつつ）取り込んで `ctx.slots` に push する。`processSubFlow` の通常スロット
+ * 分岐と `expandLoop` のループボディの両方から呼ばれ、スロット生成ロジックを
+ * 1 箇所に集約する。
+ *
+ * Args:
+ *     ctx (object): 共有アキュムレータ。`slotCounter` / `slots` を持つ。
+ *     raw (object): スロットの短縮定義（`{lockedCard?, acceptOnly?, multiplier?}`）。
+ *     position ({x: number, y: number}): スロットの配置座標。
+ *
+ * Returns:
+ *     string: 採番したスロット id（`slot-${n}`）。呼び出し側がエッジ結線に使う。
+ */
+function buildBodySlot(ctx, raw, position) {
+  ctx.slotCounter += 1;
+  const slotId = `slot-${ctx.slotCounter}`;
+  const slot = { id: slotId, position };
+  if (raw.lockedCard) {
+    slot.lockedCard = raw.lockedCard;
+  }
+  if (raw.acceptOnly) {
+    if (isValidAcceptOnly(raw.acceptOnly)) {
+      slot.acceptOnly = raw.acceptOnly;
+    } else {
+      console.warn(`[stagesLoader] slot "${slotId}": invalid acceptOnly "${raw.acceptOnly}". Ignoring.`);
+    }
+  }
+  if (raw.multiplier !== undefined) {
+    if (isValidMultiplier(raw.multiplier)) {
+      slot.multiplier = raw.multiplier;
+    } else {
+      console.warn(`[stagesLoader] slot "${slotId}": invalid multiplier "${raw.multiplier}". Must be integer >= 2. Ignoring.`);
+    }
+  }
+  ctx.slots.push(slot);
+  return slotId;
+}
+
+/**
  * サブフロー（メイン経路 or 分岐経路）を再帰的に展開する内部ヘルパー。
  *
  * `items` 配列の各要素を順に走査し、通常スロット要素なら `ctx.slots` に
  * 連番採番で追加、条件分岐要素なら `ctx.conditions` に追加した上で
- * `true` / `false` の各経路を再帰的に展開する。エッジは「直前の終端
- * （`endings`）から、いま作ったノードへ」の方向で `ctx.edges` に追加する。
+ * `true` / `false` の各経路を再帰的に展開する。ループ要素（`loop` キー）なら
+ * `expandLoop` に委譲し、合流ノード・条件ノード・ボディ・戻りエッジを生成する。
+ * エッジは「直前の終端（`endings`）から、いま作ったノードへ」の方向で
+ * `ctx.edges` に追加する。
  *
  * 条件分岐要素の `label` フィールド（optional、自然言語の説明文）も
  * `ctx.conditions[]` の各要素にそのまま転記する。例: `{ condition:
@@ -378,7 +441,11 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
   let endings = [{ nodeId: prevNodeId, sourceHandle: prevSourceHandle }];
 
   for (const item of items) {
-    if (isCondition(item)) {
+    if (isLoop(item)) {
+      const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx });
+      endings = loopResult.endings;
+      column = loopResult.column;
+    } else if (isCondition(item)) {
       ctx.condCounter += 1;
       const condId = `cond-${ctx.condCounter}`;
       ctx.conditions.push({
@@ -386,6 +453,8 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
         position: { x: 80 + column * 200, y: yLevel },
         expression: item.condition,
         label: item.label,
+        trueDir: item.trueDir,
+        falseDir: item.falseDir,
       });
       for (const ending of endings) {
         ctx.edges.push(buildEdge(ending, condId));
@@ -431,30 +500,10 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
       endings = [{ nodeId: mergeId, sourceHandle: undefined }];
       column = mergeColumn;
     } else {
-      ctx.slotCounter += 1;
-      const slotId = `slot-${ctx.slotCounter}`;
-      const slot = {
-        id: slotId,
-        position: { x: SLOT_X_START + column * SLOT_X_STEP, y: yLevel },
-      };
-      if (item.lockedCard) {
-        slot.lockedCard = item.lockedCard;
-      }
-      if (item.acceptOnly) {
-        if (isValidAcceptOnly(item.acceptOnly)) {
-          slot.acceptOnly = item.acceptOnly;
-        } else {
-          console.warn(`[stagesLoader] slot "${slotId}": invalid acceptOnly "${item.acceptOnly}". Ignoring.`);
-        }
-      }
-      if (item.multiplier !== undefined) {
-        if (isValidMultiplier(item.multiplier)) {
-          slot.multiplier = item.multiplier;
-        } else {
-          console.warn(`[stagesLoader] slot "${slotId}": invalid multiplier "${item.multiplier}". Must be integer >= 2. Ignoring.`);
-        }
-      }
-      ctx.slots.push(slot);
+      const slotId = buildBodySlot(ctx, item, {
+        x: SLOT_X_START + column * SLOT_X_STEP,
+        y: yLevel,
+      });
       for (const ending of endings) {
         ctx.edges.push(buildEdge(ending, slotId));
       }
@@ -467,13 +516,218 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
 }
 
 /**
+ * ループ構文（while / do-while）を完全形式に展開する内部ヘルパー。
+ *
+ * `flow` 要素の `loop` 定義を受け取り、合流ノード（merge）・条件ノード（cond）・
+ * ループボディのスロット列・戻りエッジを `ctx` に積む。前置 / 後置は同じ部品で
+ * **エッジの結線だけが異なる**：
+ *   - `mode: 'pre'`（前置 while、既定）：`prev → merge → cond`、`cond -(false)→
+ *     body[0]…body[last]`、`body[last] -(loop-out → merge.top)→ merge`（戻り）。
+ *     ボディが空なら `cond -(false → merge.top)→ merge`。脱出は cond の `true`。
+ *   - `mode: 'post'`（後置 do-while）：`prev → merge → body[0]…body[last] → cond`、
+ *     `cond -(false → merge.top)→ merge`（戻り）。脱出は cond の `true`。
+ *
+ * `condition` は「脱出条件」として扱い、`true` でループを抜け `false` で継続する。
+ * cond には `trueDir` / `falseDir`（出口方向）を転記し、`ConditionNode` がハンドル
+ * 位置に反映する。`mode` が不正値なら `console.warn` して `pre` にフォールバック、
+ * `condition` が非文字列・`body` が非配列ならループ自体を `console.warn` して
+ * スキップ（`endings` / `column` を素通しで返す）。
+ *
+ * 座標は merge を自列の slot 中心にアンカーし、cond・body は列方式で右に並べる。
+ * 戻りエッジは `targetHandle: 'top'`（merge 上辺）を指定し、描画側
+ * （`AnimatedProgressEdge`）が smoothstep で上側を回す経路にする。
+ *
+ * Args:
+ *     loopDef (object): `loop` 定義（`{mode?, condition, label?, trueDir?,
+ *         falseDir?, body}`）。
+ *     options (object): `processSubFlow` から渡る状態。
+ *         column (number): ループ開始 column（merge を置く列）。
+ *         yLevel (number): ループの y 座標。
+ *         endings (Array<{nodeId, sourceHandle?}>): 直前の終端配列（merge へ繋ぐ）。
+ *         ctx (object): 共有アキュムレータ。
+ *
+ * Returns:
+ *     {endings: Array<{nodeId, sourceHandle}>, column: number}:
+ *         脱出側の終端（cond の `true`）と、ループ後の次 column。
+ */
+function expandLoop(loopDef, { column, yLevel, endings, ctx }) {
+  if (loopDef.mode !== undefined && loopDef.mode !== 'pre' && loopDef.mode !== 'post') {
+    console.warn(`[stagesLoader] invalid loop mode "${loopDef.mode}", falling back to "pre"`);
+  }
+  const mode = loopDef.mode === 'post' ? 'post' : 'pre';
+
+  if (typeof loopDef.condition !== 'string' || !Array.isArray(loopDef.body)) {
+    console.warn('[stagesLoader] invalid loop: `condition` must be a string and `body` must be an array. Skipping.');
+    return { endings, column };
+  }
+
+  ctx.condCounter += 1;
+  const condId = `cond-${ctx.condCounter}`;
+  ctx.mergeCounter += 1;
+  const mergeId = `merge-${ctx.mergeCounter}`;
+  const mergeColumn = column;
+
+  ctx.mergeNodes.push({
+    id: mergeId,
+    position: {
+      x: SLOT_X_START + mergeColumn * SLOT_X_STEP + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+      y: yLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+    },
+  });
+
+  for (const ending of endings) {
+    ctx.edges.push(buildEdge(ending, mergeId));
+  }
+
+  const pushCond = (condColumn) => {
+    ctx.conditions.push({
+      id: condId,
+      position: { x: SLOT_X_START + condColumn * SLOT_X_STEP, y: yLevel },
+      expression: loopDef.condition,
+      label: loopDef.label,
+      trueDir: loopDef.trueDir,
+      falseDir: loopDef.falseDir,
+    });
+  };
+
+  if (mode === 'pre') {
+    const condColumn = mergeColumn + 1;
+    pushCond(condColumn);
+    ctx.edges.push(buildEdge({ nodeId: mergeId }, condId));
+
+    let bodyColumn = condColumn + 1;
+    let prevId = condId;
+    let prevHandle = 'false';
+    let lastBodyId = null;
+    for (const raw of loopDef.body) {
+      const slotId = buildBodySlot(ctx, raw, {
+        x: SLOT_X_START + bodyColumn * SLOT_X_STEP,
+        y: yLevel,
+      });
+      ctx.edges.push(buildEdge({ nodeId: prevId, sourceHandle: prevHandle }, slotId));
+      prevId = slotId;
+      prevHandle = undefined;
+      lastBodyId = slotId;
+      bodyColumn += 1;
+    }
+
+    if (lastBodyId) {
+      ctx.edges.push(buildEdge({ nodeId: lastBodyId, sourceHandle: 'loop-out', targetHandle: 'top' }, mergeId));
+    } else {
+      ctx.edges.push(buildEdge({ nodeId: condId, sourceHandle: 'false', targetHandle: 'top' }, mergeId));
+    }
+
+    return {
+      endings: [{ nodeId: condId, sourceHandle: 'true' }],
+      column: bodyColumn,
+    };
+  }
+
+  let bodyColumn = mergeColumn + 1;
+  let prevId = mergeId;
+  let prevHandle = undefined;
+  let lastBodyId = null;
+  for (const raw of loopDef.body) {
+    const slotId = buildBodySlot(ctx, raw, {
+      x: SLOT_X_START + bodyColumn * SLOT_X_STEP,
+      y: yLevel,
+    });
+    ctx.edges.push(buildEdge({ nodeId: prevId, sourceHandle: prevHandle }, slotId));
+    prevId = slotId;
+    prevHandle = undefined;
+    lastBodyId = slotId;
+    bodyColumn += 1;
+  }
+
+  const condColumn = bodyColumn;
+  pushCond(condColumn);
+  ctx.edges.push(buildEdge({ nodeId: lastBodyId ?? mergeId }, condId));
+  ctx.edges.push(buildEdge({ nodeId: condId, sourceHandle: 'false', targetHandle: 'top' }, mergeId));
+
+  return {
+    endings: [{ nodeId: condId, sourceHandle: 'true' }],
+    column: condColumn + 1,
+  };
+}
+
+const GOAL_ENTRY_HANDLE = { down: 'top', up: 'bottom', left: 'right', right: undefined };
+
+/**
+ * 条件ノードの出口方向に応じて goal マーカーの配置座標を返す（純関数）。
+ *
+ * down / up（縦方向）は cond の中心 x に goal の中心が揃うよう
+ * `(COND_WIDTH - SLOT_WIDTH) / 2` だけ右へずらし、cond の真下/真上に `LOOP_ROW_GAP`
+ * 離して置く。これにより cond の下頂点と goal の上ハンドルの x が一致し、エッジが
+ * 垂直になる（`flowchart-loop` 仕様の縦 exit）。right / left（横方向）は cond と同じ y
+ * （同じ高さなので中心も揃う）で左右に 1 列ずらす。
+ *
+ * Args:
+ *     condPosition ({x: number, y: number}): 条件ノードの左上座標。
+ *     dir (string): 出口方向（`'down'` / `'up'` / `'left'` / `'right'`）。
+ *
+ * Returns:
+ *     {x: number, y: number}: goal の左上座標。
+ */
+function goalPositionFromCond(condPosition, dir) {
+  const centerX = condPosition.x + (COND_WIDTH - SLOT_WIDTH) / 2;
+  switch (dir) {
+    case 'down': return { x: centerX, y: condPosition.y + LOOP_ROW_GAP };
+    case 'up':   return { x: centerX, y: condPosition.y - LOOP_ROW_GAP };
+    case 'left': return { x: condPosition.x - SLOT_X_STEP, y: condPosition.y };
+    case 'right':
+    default:     return { x: condPosition.x + SLOT_X_STEP, y: condPosition.y };
+  }
+}
+
+/**
+ * goal の配置座標と goal 側の接続ハンドルを、最終終端から解決する（純関数）。
+ *
+ * 最終終端が条件ノードの true / false 出口なら、その出口方向（`trueDir` / `falseDir`、
+ * 未指定なら right / down）に応じて `goalPositionFromCond` で配置し、goal の入口
+ * ハンドルを `GOAL_ENTRY_HANDLE`（down→`'top'` / up→`'bottom'` / left→`'right'` /
+ * right→既定の Left）に決める。縦方向 exit で cond の直下 / 直上へ垂直なエッジを作る
+ * ための仕組み。終端が条件ノードでない場合（線形ステージ、既存の分岐ステージは
+ * 最終終端が merge）は、従来どおりメイン経路の最終 column の次に置き、ハンドルは
+ * 既定（Left）。
+ *
+ * Args:
+ *     result ({endings: Array, endColumn: number}): `processSubFlow` の戻り値。
+ *     ctx (object): 共有アキュムレータ。`conditions` を参照する。
+ *
+ * Returns:
+ *     {position: {x: number, y: number}, targetHandle: string | undefined}:
+ *         goal の左上座標と、goal 側の接続ハンドル id（既定接続は undefined）。
+ */
+function resolveGoalPlacement(result, ctx) {
+  const lastEnding = result.endings[0];
+  if (lastEnding) {
+    const cond = ctx.conditions.find((c) => c.id === lastEnding.nodeId);
+    if (cond && (lastEnding.sourceHandle === 'true' || lastEnding.sourceHandle === 'false')) {
+      const dir = lastEnding.sourceHandle === 'true'
+        ? (cond.trueDir ?? 'right')
+        : (cond.falseDir ?? 'down');
+      return {
+        position: goalPositionFromCond(cond.position, dir),
+        targetHandle: GOAL_ENTRY_HANDLE[dir],
+      };
+    }
+  }
+  return {
+    position: { x: SLOT_X_START + result.endColumn * SLOT_X_STEP, y: 120 },
+    targetHandle: undefined,
+  };
+}
+
+/**
  * `flow` 形式のステージ定義を完全形式に展開する公開関数。
  *
  * `stages.json` のステージに `flow` キーがある場合、`expandStage` がこの
  * 関数を呼び出して `{ slots, conditions, edges, start, goal }` の完全形式
  * オブジェクトを得る。`flow` 配列を `processSubFlow` で再帰的に展開し、
  * 最後にメイン経路の終端を `goal` に繋ぐエッジを追加する。`start` は固定
- * 座標（`x: -120, y: 120`）、`goal` はメイン経路の最終 column の次に配置。
+ * 座標（`x: -120, y: 120`）、`goal` は `computeGoalPosition` で配置する（最終
+ * 終端が条件ノードの出口ならその出口方向へ 1 ステップ、そうでなければ従来どおり
+ * メイン経路の最終 column の次）。
  *
  * 不正な入力（`flow` が配列でない場合）は `console.warn` で警告ログを出し、
  * 空のステージ相当の戻り値を返してアプリのクラッシュを防ぐ。
@@ -517,8 +771,9 @@ function expandFlow(flow) {
     ctx,
   });
 
+  const goalPlacement = resolveGoalPlacement(result, ctx);
   for (const ending of result.endings) {
-    ctx.edges.push(buildEdge(ending, 'goal'));
+    ctx.edges.push(buildEdge({ ...ending, targetHandle: goalPlacement.targetHandle }, 'goal'));
   }
 
   return {
@@ -527,7 +782,7 @@ function expandFlow(flow) {
     mergeNodes: ctx.mergeNodes,
     edges: ctx.edges,
     start: { position: { x: -120, y: 120 } },
-    goal: { position: { x: 80 + result.endColumn * 200, y: 120 } },
+    goal: { position: goalPlacement.position },
   };
 }
 
@@ -538,8 +793,10 @@ function expandFlow(flow) {
  * 未定義（線形ステージ）の場合は空配列を返し、呼び出し側が「すべての
  * ステージで `stage.conditions` が配列である」前提で扱えるようにする。
  *
- * 各条件オブジェクトからは `id` / `position` / `expression` / `label`
- * の 4 フィールドを抽出してコピーする。`label` は optional で、ConditionNode
+ * 各条件オブジェクトからは `id` / `position` / `expression` / `label` /
+ * `trueDir` / `falseDir` の 6 フィールドを抽出してコピーする。`trueDir` /
+ * `falseDir` は true / false ソースハンドルの出口方向（optional、ConditionNode で
+ * 既定 right / down にフォールバック）。`label` は optional で、ConditionNode
  * の表示テキストとして `expression` より優先される（小学生向けに自然言語の
  * 説明文を別途与えるための仕組み、例: `expression="playerHp > 50"` に対して
  * `label="playerHpが50より大きい"`）。判定ロジックは常に `expression` を
@@ -552,7 +809,7 @@ function expandFlow(flow) {
  *         ステージ定義の `conditions` フィールド。未定義可。
  *
  * Returns:
- *     Array<{id, position, expression, label?}>:
+ *     Array<{id, position, expression, label?, trueDir?, falseDir?}>:
  *         完全形式の条件分岐ノード配列。未定義時は空配列。
  */
 function expandConditions(conditions) {
@@ -562,6 +819,8 @@ function expandConditions(conditions) {
     position: raw.position,
     expression: raw.expression,
     label: raw.label,
+    trueDir: raw.trueDir,
+    falseDir: raw.falseDir,
   }));
 }
 
@@ -608,6 +867,7 @@ function expandStage(raw, stageId) {
     const expanded = expandFlow(raw.flow);
     return {
       enemyId: raw.enemyId,
+      maxEnemyHp: raw.maxEnemyHp,
       cards: raw.cards ?? [],
       ...expanded,
     };
@@ -615,6 +875,7 @@ function expandStage(raw, stageId) {
   const slots = expandSlots(raw.slots ?? [], stageId);
   return {
     enemyId: raw.enemyId,
+    maxEnemyHp: raw.maxEnemyHp,
     cards: raw.cards ?? [],
     slots,
     conditions: expandConditions(raw.conditions),

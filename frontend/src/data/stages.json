@@ -1,5 +1,5 @@
 {
-  "demoStageIds": ["3-1", "3-2"],
+  "demoStageIds": ["3-1", "3-2", "4-1", "4-3"],
   "stages": {
     "1-1": {
       "enemyId": "slime",
@@ -68,6 +68,7 @@
     },
     "2-2": {
       "enemyId": "golem",
+      "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 20 },
         { "id": "guard", "power": 80 },
@@ -130,6 +131,7 @@
     },
     "3-1": {
       "enemyId": "wolf",
+      "maxEnemyHp": 30,
       "cards": [
         { "id": "attack", "power": 10 },
         { "id": "heal",   "power": 10 }
@@ -150,6 +152,7 @@
     },
     "3-2": {
       "enemyId": "wolf",
+      "maxEnemyHp": 50,
       "cards": [
         { "id": "attack", "power":20 },
         { "id":"attack", "power":15 },
@@ -172,6 +175,63 @@
             {}
           ]
         }
+      ]
+    },
+    "4-1": {
+      "enemyId": "wolf",
+      "maxEnemyHp": 60,
+      "cards": [
+        { "id": "attack", "power": 15 },
+        { "id": "guard", "power": 10 }
+      ],
+      "flow": [
+        {
+          "loop": {
+            "mode": "pre",
+            "condition": "enemyHp <= 0",
+            "label": "敵のHPが0?",
+            "trueDir": "down",
+            "falseDir": "right",
+            "body": [
+              {},
+              { "lockedCard": { "id": "monster", "power": 20 } },
+              {}
+            ]
+          }
+        }
+      ]
+    },
+    "4-3": {
+      "enemyId": "wolf",
+      "maxEnemyHp": 100,
+      "cards": [
+        { "id": "attack", "power": 5 },
+        { "id": "attack", "power": 15 },
+        { "id": "guard", "power": 30 },
+        { "id": "heal", "power": 10 },
+        { "id": "heal", "power": 10 },
+        { "id": "heal", "power": 10 }
+      ],
+      "flow": [
+        {
+          "loop": {
+            "mode": "post",
+            "condition": "playerHp <= 50",
+            "label": "自分のHPが50以下",
+            "trueDir": "right",
+            "falseDir": "up",
+            "body": [
+              {},
+              { "lockedCard": { "id": "monster", "power": 60 } },
+              {},
+              {},
+              {}
+            ]
+          }
+        },
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "multiplier": 5 }
       ]
     }
   }

@@ -2,6 +2,40 @@ import { Handle, Position } from '@xyflow/react';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './ConditionNode.module.css';
 
+const DIRECTION_TO_POSITION = {
+  right: Position.Right,
+  left: Position.Left,
+  up: Position.Top,
+  down: Position.Bottom,
+};
+
+/**
+ * 方向文字列（`'right'` / `'left'` / `'up'` / `'down'`）を React Flow の
+ * `Position` に変換する。
+ *
+ * `stages.json` の `trueDir` / `falseDir` に書かれた方向を、ConditionNode の
+ * true / false ソースハンドルを配置する辺へ対応づける。未指定（`undefined`）
+ * のときは「省略＝既定方向」の正常系なので警告せず `fallback` を返す。未知の
+ * 文字列（タイポ等）のときだけ `console.warn` を出して `fallback` を返し、
+ * 不正なステージ定義でも描画が落ちないようにする。
+ *
+ * Args:
+ *     dir (string | undefined): 方向文字列。未指定可。
+ *     fallback (Position): 未指定・不正時に返す既定の `Position`。
+ *
+ * Returns:
+ *     Position: 対応する React Flow の `Position`。
+ */
+function directionToPosition(dir, fallback) {
+  if (dir === undefined) return fallback;
+  const position = DIRECTION_TO_POSITION[dir];
+  if (position === undefined) {
+    console.warn(`[ConditionNode] invalid direction "${dir}", falling back`);
+    return fallback;
+  }
+  return position;
+}
+
 /**
  * フローチャート上の条件分岐ノードを表す React Flow カスタムノード。
  *
@@ -18,10 +52,13 @@ import styles from './ConditionNode.module.css';
  *   - Top（target、`id="top"`）：将来「上からエッジが入ってくる」レイアウト
  *     用の予備ハンドル。エッジ側で `targetHandle: 'top'` を指定したときに
  *     接続される（要件 1-5 の拡張性確保）。
- *   - Right（source、`id="true"`）：菱形の右頂点。条件評価結果が `true` の
- *     とき進む経路。エッジ側で `sourceHandle: 'true'` を指定する。
- *   - Bottom（source、`id="false"`）：菱形の下頂点。条件評価結果が `false` の
- *     とき進む経路。エッジ側で `sourceHandle: 'false'` を指定する。
+ *   - source（`id="true"`）：条件評価結果が `true`（脱出 / Yes）のとき進む経路。
+ *     配置する辺は `data.trueDir`（`'right'` / `'left'` / `'up'` / `'down'`）で
+ *     決まり、未指定なら既定 Right（菱形の右頂点）。エッジ側で `sourceHandle: 'true'`。
+ *   - source（`id="false"`）：条件評価結果が `false`（継続 / No）のとき進む経路。
+ *     配置する辺は `data.falseDir` で決まり、未指定なら既定 Bottom（菱形の下頂点）。
+ *     エッジ側で `sourceHandle: 'false'`。向きを変えても **id は不変** なので
+ *     分岐ロジック（`battleStore.selectNextEdge`）には一切影響しない。
  *
  * 視覚演出は既存 `SlotNode` と同じパターンで以下を提供：
  *   - `executionStep` が自身に一致 → `.active` クラスで点滅発光
@@ -44,10 +81,11 @@ import styles from './ConditionNode.module.css';
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
  *         id (string): 条件ノード ID（`stages.json` の `conditions[].id` に一致）。
- *         data (object): `{ expression: string, label?: string }` を含むデータ。
- *             `FlowchartArea` の `conditionsToNodes` で
- *             `data: { expression: c.expression, label: c.label }` の形で
- *             渡される。`label` は optional。
+ *         data (object): `{ expression: string, label?: string, trueDir?: string,
+ *             falseDir?: string }` を含むデータ。`FlowchartArea` の
+ *             `conditionsToNodes` から渡される。`label` / `trueDir` / `falseDir`
+ *             は optional。`trueDir` / `falseDir` は true / false ソースハンドルの
+ *             配置辺（未指定なら右 / 下）。
  *
  * Returns:
  *     JSX.Element: 菱形ノードを表す div 要素。
@@ -57,6 +95,9 @@ function ConditionNode({ id, data }) {
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === id,
   );
   const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes(id));
+
+  const truePosition = directionToPosition(data.trueDir, Position.Right);
+  const falsePosition = directionToPosition(data.falseDir, Position.Bottom);
 
   const className = [
     styles.diamond,
@@ -83,14 +124,14 @@ function ConditionNode({ id, data }) {
       />
       <Handle
         type="source"
-        position={Position.Right}
+        position={truePosition}
         id="true"
         className={styles.handle}
         isConnectable={false}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={falsePosition}
         id="false"
         className={styles.handle}
         isConnectable={false}
