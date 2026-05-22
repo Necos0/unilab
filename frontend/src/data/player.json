@@ -3,7 +3,7 @@
   "sprite": {
     "id": "hero",
     "animations": {
-      "idle": { "frameCount": 1, "frameDurationMs": 238, "loop": true },
+      "idle": { "frameCount": 4, "frameDurationMs": 300, "loop": true },
       "up":   { "frameCount": 3, "frameDurationMs": 178, "loop": true },
       "down": { "frameCount": 4, "frameDurationMs": 178, "loop": true },
       "left": { "frameCount": 7, "frameDurationMs": 119, "loop": true },

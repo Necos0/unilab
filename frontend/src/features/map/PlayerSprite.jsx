@@ -13,15 +13,26 @@ const SPRITE_HEIGHT = 130;
 // 道のラインから足元をさらに下にずらして接地感を出すための補正(SVG 単位)。
 const SPRITE_Y_OFFSET = 10;
 
-// 足元に敷く楕円シャドウのサイズ・不透明度。地面接地感を出すための
-// 古典的な JRPG パターン（影が無いと「貼り付け感」が出る）。
-const SHADOW_RX = 32;
-const SHADOW_RY = 6;
-const SHADOW_OPACITY = 0.35;
-// PNG 下端に約 26〜39px（SVG 単位で約 9.7〜11.5）の透明パディングがあり、
-// 画像ボックス最下端 = 視覚的足元 にはならない。その分シャドウを上に
-// 持ち上げて実際の足元に揃える。
-const SHADOW_FEET_LIFT = 11;
+// 足元に敷く楕円シャドウ。地面接地感を出すための古典的な JRPG パターン
+// （影が無いと「貼り付け感」が出る）。輪郭がくっきりした 1 枚だと逆に
+// 浮くため、(1) 大きく薄い「拡散影」と (2) 小さく濃い「接地影」の 2 枚を
+// 重ね、両方に feGaussianBlur を掛けてエッジを柔らかくする。
+const SHADOW_RX = 34;
+const SHADOW_RY = 7;
+const SHADOW_OPACITY = 0.26;
+const CONTACT_SHADOW_RX = 19;
+const CONTACT_SHADOW_RY = 4;
+const CONTACT_SHADOW_OPACITY = 0.4;
+// シャドウのぼかし強度（SVG 単位の標準偏差）。大きいほどソフトになる。
+const SHADOW_BLUR_STD = 2.4;
+// PNG 下端に透明パディングがあり、画像ボックス最下端 = 視覚的足元 には
+// ならない。その分シャドウを上に持ち上げて実際の足元に揃える。値を
+// 大きくするほど影が上（スプライトの足元寄り）に動く。
+const SHADOW_FEET_LIFT = 16;
+// スプライトのカラーグレーディング。塗り背景に対してピクセルアートは
+// 彩度・明度が高く浮きやすいので、わずかに彩度・明度を落としてマップの
+// 環境光に馴染ませる。暖色寄りにしたいときは sepia() を少し足す。
+const SPRITE_COLOR_GRADE = 'saturate(0.92) brightness(0.97)';
 
 /**
  * 現在の歩行方向（`idle` / `up` / `down` / `left` / `right`）を、
@@ -82,6 +93,8 @@ function preloadFrames(state, frameCount) {
  * 常に `(x, y)` に一致し、ランドマーク間を結ぶ道の上で歩行接地点が
  * ぶれない（要件: 歩行中も静止中も足元基準で配置する）。
  * `image-rendering: pixelated` はピクセルアートのにじみを防ぐ。
+ * `filter`（`SPRITE_COLOR_GRADE`）で彩度・明度をわずかに落とし、塗りの
+ * マップ背景に対する「浮き」を抑える。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -101,20 +114,22 @@ function PlayerImage({ x, y, src }) {
       width={SPRITE_WIDTH}
       height={SPRITE_HEIGHT}
       preserveAspectRatio="xMidYMax meet"
-      style={{ imageRendering: 'pixelated' }}
+      style={{ imageRendering: 'pixelated', filter: SPRITE_COLOR_GRADE }}
       pointerEvents="none"
     />
   );
 }
 
 /**
- * プレイヤーの足元に敷く楕円シャドウ。
+ * プレイヤーの足元に敷くソフトシャドウ（2 層構成）。
  *
  * スプライト単体だと背景に対して「貼り付けられた」印象になりがちなため、
- * 地面側に半透明の楕円を 1 枚敷いて接地感を出す（JRPG の古典的手法）。
- * 描画順は `PlayerImage` より前で、勇者の足元の下に潜らせる。
- * シャドウの中心は視覚的な足元（`SPRITE_Y_OFFSET` で下にずらした位置）に
- * 合わせる。
+ * 地面側に半透明の楕円を敷いて接地感を出す（JRPG の古典的手法）。輪郭が
+ * くっきりした 1 枚だと逆に浮くので、大きく薄い「拡散影」と小さく濃い
+ * 「接地影」の 2 枚を重ね、両方に `feGaussianBlur` を掛けてエッジを柔ら
+ * かくする。描画順は `PlayerImage` より前で、勇者の足元の下に潜らせる。
+ * シャドウの中心は視覚的な足元（`SPRITE_Y_OFFSET` で下げた位置から
+ * `SHADOW_FEET_LIFT` ぶん持ち上げた点）に合わせる。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -122,18 +137,41 @@ function PlayerImage({ x, y, src }) {
  *         y (number): 足元 Y（スプライトと同じ基準）。
  *
  * Returns:
- *     JSX.Element: SVG `<ellipse>` 要素。
+ *     JSX.Element: ぼかしフィルタ定義と 2 枚の `<ellipse>` を含む `<g>` 要素。
  */
 function PlayerShadow({ x, y }) {
+  const cy = y + SPRITE_Y_OFFSET - SHADOW_FEET_LIFT;
   return (
-    <ellipse
-      cx={x}
-      cy={y + SPRITE_Y_OFFSET - SHADOW_FEET_LIFT}
-      rx={SHADOW_RX}
-      ry={SHADOW_RY}
-      fill={`rgba(0, 0, 0, ${SHADOW_OPACITY})`}
-      pointerEvents="none"
-    />
+    <g pointerEvents="none">
+      <defs>
+        {/* 既定のフィルタ領域だとぼかしが切れるため広めに確保する。*/}
+        <filter
+          id="hero-shadow-blur"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur stdDeviation={SHADOW_BLUR_STD} />
+        </filter>
+      </defs>
+      <ellipse
+        cx={x}
+        cy={cy}
+        rx={SHADOW_RX}
+        ry={SHADOW_RY}
+        fill={`rgba(0, 0, 0, ${SHADOW_OPACITY})`}
+        filter="url(#hero-shadow-blur)"
+      />
+      <ellipse
+        cx={x}
+        cy={cy}
+        rx={CONTACT_SHADOW_RX}
+        ry={CONTACT_SHADOW_RY}
+        fill={`rgba(0, 0, 0, ${CONTACT_SHADOW_OPACITY})`}
+        filter="url(#hero-shadow-blur)"
+      />
+    </g>
   );
 }
 
