@@ -4,6 +4,7 @@ import MapBackground from './MapBackground';
 import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
+import MapOverlay from './MapOverlay';
 import BattleDemoButton from './BattleDemoButton';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
@@ -191,6 +192,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, demoStageIds }) {
             />
           ))}
           <PlayerSprite />
+          <MapOverlay viewBox={viewBox} />
           {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
