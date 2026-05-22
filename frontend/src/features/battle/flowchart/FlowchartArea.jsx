@@ -18,6 +18,7 @@ import styles from './FlowchartArea.module.css';
 const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode, condition: ConditionNode, merge: MergeNode };
 const edgeTypes = { 'animated-progress': AnimatedProgressEdge };
 const EXPANDED_BASELINE_BOUNDS_WIDTH = 720;
+const LOOP_TOP_HEADROOM = 80;
 
 /**
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
@@ -111,7 +112,12 @@ function conditionsToNodes(conditions) {
     id: c.id,
     type: 'condition',
     position: c.position,
-    data: { expression: c.expression, label: c.label },
+    data: { 
+      expression: c.expression, 
+      label: c.label,
+      trueDir: c.trueDir,
+      falseDir: c.falseDir,
+    },
   }));
 }
 
@@ -205,9 +211,14 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoa
  * 強調する。
  *
  * 拡大／縮小切替（`battleStore.isExpanded`）に連動して以下をコントロール：
- *   - **縮小状態**：`fitView` に自前の上下限を付けず、React Flow 既定の
- *     自動フィット（0.5〜2.0）に任せる。1 行でエリアが余っているときは
- *     ~2x まで自動拡大、多段で溢れるときは自動縮小する
+ *   - **縮小状態**：`getNodesBounds` で求めたノード範囲を `fitBounds`
+ *     （`padding: 0.1`）でフィットさせ、全体が収まるよう自動でズームする。
+ *     ループの戻りエッジ（`targetHandle === 'top'` のエッジ）があるステージでは、
+ *     エッジが行の上を回ってノード上端より上に出るため、`fitView` 系がノード
+ *     bbox しか見ず上が見切れる。これを防ぐため、戻りエッジがある場合のみ
+ *     bbox 上端を `LOOP_TOP_HEADROOM`（80px）持ち上げた矩形にフィットさせる
+ *     （`flowchart-loop` 仕様）。戻りエッジが無いステージは bbox そのままで
+ *     従来表示と同じ
  *   - **拡大状態**：`setViewport` でズームを
  *     `(canvasWidth × 0.8) / EXPANDED_BASELINE_BOUNDS_WIDTH` で動的算出し、
  *     `getNodesBounds` で得たノード集合の中心が canvas の中心に重なるよう
@@ -284,10 +295,18 @@ function FlowchartArea({ stage }) {
           { duration: 0 },
         );
       } else {
-        reactFlowInstance.fitView({
-          padding: 0.1,
-          duration: 0,
-        });
+        const bounds = reactFlowInstance.getNodesBounds(nodes);
+        const hasLoopBackEdge = edges.some((e) => e.targetHandle === 'top');
+        const top = hasLoopBackEdge ? LOOP_TOP_HEADROOM : 0;
+        reactFlowInstance.fitBounds(
+          {
+            x: bounds.x,
+            y: bounds.y - top,
+            width: bounds.width,
+            height: bounds.height + top,
+          },
+          { padding: 0.1, duration: 0 },
+        );
       }
     };
 
@@ -296,7 +315,7 @@ function FlowchartArea({ stage }) {
     const observer = new ResizeObserver(refit);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [reactFlowInstance, isExpanded, nodes]);
+  }, [reactFlowInstance, isExpanded, nodes, edges]);
 
   return (
     <div ref={canvasRef} className={styles.canvas}>

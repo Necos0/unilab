@@ -78,7 +78,11 @@ import styles from './SlotNode.module.css';
  * acceptOnly / 右上 multiplier）とは重ならない。
  *
  * `Handle` はエッジの接続点として必要なため配置するが、ユーザーが手動で
- * エッジを引く用途ではないため CSS で視覚的に非表示にしている。
+ * エッジを引く用途ではないため CSS で視覚的に非表示にしている。Left（target）/
+ * Top（target、`id="top"`）/ Right（source）に加え、前置ループのボディ末尾から
+ * 合流ノードへ戻る戻りエッジの出口として Top（source、`id="loop-out"`）を持つ
+ * （`flowchart-loop` 仕様）。`loop-out` を参照しないスロットでは未使用ハンドルと
+ * して無害に存在するだけ。
  *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
@@ -175,6 +179,13 @@ function SlotNode({ id, data }) {
       <Handle
         type="source"
         position={Position.Right}
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="loop-out"
         className={styles.handle}
         isConnectable={false}
       />

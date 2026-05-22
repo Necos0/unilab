@@ -1,4 +1,4 @@
-import { getStraightPath, getSmoothStepPath } from '@xyflow/react';
+import { getStraightPath, getSmoothStepPath, Position } from '@xyflow/react';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './AnimatedProgressEdge.module.css';
 
@@ -11,8 +11,11 @@ import styles from './AnimatedProgressEdge.module.css';
  * （`react-flow__edge-path` クラスで React Flow デフォルトの見た目）として
  * 表示され、`battleStore.executionStep` が自身のエッジ ID と一致したときだけ
  * SVG `<circle>` を追加レンダリングし、CSS Motion Path（`offset-path` /
- * `offset-distance`）で `getStraightPath` が返したパスに沿って円を始点から
- * 終点まで移動させる（play-button 要件 5-2, 5-4）。
+ * `offset-distance`）でエッジパスに沿って円を始点から終点まで移動させる
+ * （play-button 要件 5-2, 5-4）。エッジパスは既定で `getStraightPath`（直線）、
+ * `sourceHandle === 'false'`・`targetHandle === 'bottom'`（分岐の合流）・
+ * `targetHandle === 'top'`（ループの戻りエッジ）のときは `getSmoothStepPath`
+ * （角丸の L 字 / U 字）を使う（`shouldUseStep`）。
  *
  * フェーズ時間 `currentPhaseMs` をストアから受け取り、inline style の
  * `animationDuration` に渡すことで「フェーズ時間ぴったりで点が始点から
@@ -84,14 +87,15 @@ import styles from './AnimatedProgressEdge.module.css';
  * 瞬間にのみマウントされる従来挙動を維持しており、`.traversed` の filter は
  * `<path>` 専用なので進行アイコンの描画には干渉しない。
  *
- * 条件分岐エッジの Yes/No ラベル：
- * `sourceHandleId === 'true'` のエッジには始点近く（cond の右頂点の右上）に
- * `Yes` テキストを、`sourceHandleId === 'false'` のエッジには始点近く（cond
- * の下頂点の右下）に `No` テキストを SVG `<text>` で常時描画する。これにより
- * フローチャートを実行する前から「どちらが Yes 側か」が一目で判別できる。
- * 位置は `(sourceX + 6, sourceY - 6)`（Yes、true 水平エッジの上側）と
- * `(sourceX + 6, sourceY + 14)`（No、false 垂直エッジの右側、ベースライン
- * 補正込み）。スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 11px`
+ * 条件分岐エッジの はい/いいえ ラベル：
+ * `sourceHandleId === 'true'` のエッジには始点近くに `はい`、
+ * `sourceHandleId === 'false'` のエッジには `いいえ` を SVG `<text>` で常時描画
+ * する。これによりフローチャートを実行する前から「どちらが Yes 側か」が一目で
+ * 判別できる。ラベルのオフセットは固定値ではなく `sourcePosition`（出口辺）から
+ * `labelPos` で算出する（`flowchart-loop` 仕様で cond の出口方向が可変になった
+ * ため）。右出口なら右上、下出口なら下、上出口なら上、左出口なら左にずらす。
+ * 既定（true=右 / false=下）の分岐ステージでも従来とほぼ同じ位置に収まる。
+ * スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 11px`
  * ／ `font-weight: bold`、`pointer-events: none` でエッジクリックを奪わない。
  * `isActive` / `isTraversed` には依存させず、常時同じ見た目で表示する（実行
  * 中のラベル色変えは視覚ノイズが増えるだけで判別性に貢献しないと判断）。
@@ -115,7 +119,7 @@ function AnimatedProgressEdge({
   sourceHandleId, targetHandleId,
   markerEnd, 
 }) {
-  const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom';
+  const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom' || targetHandleId === 'top';
   const [edgePath] = shouldUseStep 
     ? getSmoothStepPath({ 
       sourceX, sourceY, sourcePosition,
@@ -129,6 +133,13 @@ function AnimatedProgressEdge({
   );
   const phaseMs = useBattleStore((s) => s.currentPhaseMs ?? 666);
   const isTraversed = useBattleStore((s) => s.traversedEdgeIds.includes(id));
+
+  const labelPos = {
+    [Position.Right]: { dx: 8, dy: -6 },
+    [Position.Left]: { dx: -8, dy: -6 },
+    [Position.Top]: { dx: 8, dy: -8 },
+    [Position.Bottom]: { dx: 8, dy: 16 },
+  }[sourcePosition] ?? { dx: 8, dy: -6 };
 
   const pathClassName = [
     'react-flow__edge-path',
@@ -190,8 +201,8 @@ function AnimatedProgressEdge({
       {sourceHandleId === 'true' && (
         <text
           className={styles.handleLabel}
-          x={sourceX + 6}
-          y={sourceY - 6}
+          x={sourceX + labelPos.dx}
+          y={sourceY + labelPos.dy}
         >
           はい
         </text>
@@ -199,8 +210,8 @@ function AnimatedProgressEdge({
       {sourceHandleId === 'false' && (
         <text
           className={styles.handleLabel}
-          x={sourceX + 6}
-          y={sourceY + 14}
+          x={sourceX + labelPos.dx}
+          y={sourceY + labelPos.dy}
         >
           いいえ
         </text>
