@@ -67,6 +67,40 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "cactus",
+      "displayName": "サボテン",
+      "maxHp": 20,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "cobra",
+      "displayName": "コブラ",
+      "maxHp": 30,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }

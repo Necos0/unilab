@@ -48,7 +48,7 @@
       ]
     },
     "2-1": {
-      "enemyId": "wolf",
+      "enemyId": "cactus",
       "cards": [
         { "id": "attack", "power": 10 },
         { "id": "attack", "power": 10 },
@@ -67,7 +67,7 @@
       ]
     },
     "2-2": {
-      "enemyId": "golem",
+      "enemyId": "cobra",
       "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 20 },

@@ -150,7 +150,9 @@ unilab/
     │           ├── slime/        ← idle のみ(dead 未実装)
     │           ├── wolf/         ← idle / dead
     │           ├── knight/       ← idle / dead
-    │           └── golem/        ← idle / dead
+    │           ├── golem/        ← idle / dead
+    │           ├── cactus/       ← idle / dead
+    │           └── cobra/        ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
