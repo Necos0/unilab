@@ -216,8 +216,8 @@
         {
           "loop": {
             "mode": "post",
-            "condition": "playerHp <= 50",
-            "label": "自分のHPが50以下",
+            "condition": "playerHp <= 50 && enemyHp <= 50",
+            "label": "自分のHPが50以下で敵のHPも50以下",
             "trueDir": "right",
             "falseDir": "up",
             "body": [

@@ -22,13 +22,16 @@
 .expression {
   color: #f5f5f5;
   font-size: 0.75rem;
+  line-height: 1.15;
   text-align: center;
-  padding: 0 1.5rem;
+  width: 72px;
+  padding: 0;
   pointer-events: none;
   word-break: normal;
   overflow-wrap: break-word;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 .handle {
