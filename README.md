@@ -136,9 +136,12 @@ unilab/
     │   ├── favicon.svg
     │   ├── cards/                ← カード画像(<id>.png)
     │   ├── icons/                ← UI アイコン
-    │   │   ├── landmark_scroll.png  ← マップ上のステージ名バナー(巻物背景)
+    │   │   ├── icon_round.png        ← アプリのファビコン(index.html が参照)
+    │   │   ├── landmark_padlock.png  ← 未解放ランドマークに重ねる南京錠
+    │   │   ├── landmark_scroll.png   ← マップ上のステージ名バナー(巻物背景)
+    │   │   ├── map_travel.png        ← マップ移動ボタンのアイコン
     │   │   └── flowchart/        ← フローチャート関連アイコン(goal/play/reset/start.svg)
-    │   ├── maps/                 ← マップ画像(map_<id>.png)
+    │   ├── maps/                 ← マップ画像(map_<id>.png、現在 map_1 / map_2)
     │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
     │       ├── hero/             ← プレイヤースプライト(<state>/hero_<state>_NN.png)
     │       │   ├── idle/         ← 静止(現在はテスト用に 1 枚)
@@ -147,7 +150,7 @@ unilab/
     │       │   ├── left/         ← 左方向への歩行
     │       │   └── right/        ← 右方向への歩行
     │       └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
-    │           ├── slime/        ← idle のみ(dead 未実装)
+    │           ├── slime/        ← idle / dead
     │           ├── wolf/         ← idle / dead
     │           ├── knight/       ← idle / dead
     │           ├── golem/        ← idle / dead
@@ -160,7 +163,9 @@ unilab/
         ├── disableBrowserZoom.js ← ブラウザの拡大縮小を抑制するグローバルリスナー
         ├── components/           ← 汎用 UI パーツ
         │   ├── HpBar.jsx
-        │   └── HpBar.module.css
+        │   ├── HpBar.module.css
+        │   ├── GuardBar.jsx           ← ガード残量バー(HpBar の下に縦並び、盾アイコン付き)
+        │   └── GuardBar.module.css
         ├── data/                 ← 静的データ(stages.json 等、JS から import)
         │   ├── enemies.json
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
@@ -205,14 +210,22 @@ unilab/
             │   └── flowchart/    ← フローチャート描画(React Flow、戦闘画面内で使用)
             │       ├── AnimatedProgressEdge.jsx
             │       ├── AnimatedProgressEdge.module.css
+            │       ├── ConditionNode.jsx          ← 条件分岐ノード(菱形、true/false で経路を分岐)
+            │       ├── ConditionNode.module.css
             │       ├── FlowchartArea.jsx
             │       ├── FlowchartArea.module.css
             │       ├── GoalNode.jsx
             │       ├── GoalNode.module.css
+            │       ├── MergeNode.jsx              ← 条件分岐の合流点(円形、loader が自動挿入)
+            │       ├── MergeNode.module.css
+            │       ├── MultiplierIndicator.jsx    ← 倍率スロットの「x2」表示(スロット右上)
+            │       ├── MultiplierIndicator.module.css
             │       ├── PlayButton.jsx
             │       ├── PlayButton.module.css
             │       ├── ResetButton.jsx
             │       ├── ResetButton.module.css
+            │       ├── RestrictedSlotIcon.jsx     ← カード種別制限スロットのアイコン(スロット右上)
+            │       ├── RestrictedSlotIcon.module.css
             │       ├── SlotNode.jsx
             │       ├── SlotNode.module.css
             │       ├── StartNode.jsx
@@ -222,6 +235,8 @@ unilab/
             ├── cards/            ← カード UI(個別カード・手札レイアウト)
             │   ├── Card.jsx
             │   ├── Card.module.css
+            │   ├── DraggableCard.jsx      ← Card を dnd-kit でラップしドラッグ可能にする
+            │   ├── DraggableCard.module.css
             │   ├── Hand.jsx
             │   └── Hand.module.css
             └── map/              ← フィールドマップ画面
@@ -240,6 +255,16 @@ unilab/
                 ├── LandmarkLockOverlay.module.css
                 ├── FullscreenToggleButton.jsx     ← 左上の大画面表示トグル
                 ├── FullscreenToggleButton.module.css
+                ├── MapTravelButton.jsx            ← 右上のマップ移動ボタン(MapSelectOverlay を開く)
+                ├── MapTravelButton.module.css
+                ├── MapSelectOverlay.jsx           ← マップ移動先を選ぶモーダル風オーバーレイ
+                ├── MapSelectOverlay.module.css
+                ├── MapSwitchTransition.jsx        ← マップ切替時の黒フェード演出
+                ├── MapSwitchTransition.module.css
+                ├── BattleDemoButton.jsx           ← デバッグ用:戦闘デモへ飛ぶドロップダウン
+                ├── BattleDemoButton.module.css
+                ├── CoordinateGrid.jsx             ← デバッグ用:座標調整の格子オーバーレイ
+                ├── CoordinateGrid.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション
                 ├── heroSpritePath.js      ← /sprites/hero 配下のスプライト URL を組み立てる(純関数)
                 ├── reverseDirection.js    ← エッジ方向を逆走時に反転する(純関数)
