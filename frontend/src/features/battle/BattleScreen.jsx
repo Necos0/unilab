@@ -22,6 +22,7 @@ import DamageFloater from './enemy/DamageFloater';
 import ReflectDamageFloater from './enemy/ReflectDamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
 import PlayerHealFloater from './player/PlayerHealFloater';
+import PlayerGuardFloater from './player/PlayerGuardFloater';
 import useBattleStore from '../../stores/battleStore';
 import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
@@ -87,9 +88,10 @@ function CrossIcon() {
  *   - 中段: フローチャート領域（React Flow） ＋ 右上のコントロール群
  *      （上段に拡大トグル ＋ リセット、下段に実行ボタン）
  *   - 下段: プレイヤー HP バー（数値併記） + プレイヤー被弾ダメージ数字
- *      フロート層 + プレイヤー回復数字フロート層 + 手札カード領域。
- *      HP バーラッパーは `playerHpBox` クラスで、内側に
- *      `PlayerDamageFloater` と `PlayerHealFloater` を絶対配置で重ねる
+ *      フロート層 + プレイヤー回復数字フロート層 + プレイヤーガード数字
+ *      フロート層 + 手札カード領域。HP バーラッパーは `playerHpBox`
+ *      クラスで、内側に `PlayerDamageFloater` / `PlayerHealFloater` /
+ *      `PlayerGuardFloater` を絶対配置で重ねる
  *
  * `enemyHpBox` と `playerHpBox` は対称的な命名で、それぞれ片側だけに
  * レイアウト・演出変更が入っても他方に影響が出ないように分離している。
@@ -457,6 +459,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             </span>
             <PlayerDamageFloater />
             <PlayerHealFloater />
+            <PlayerGuardFloater />
           </div>
           <Hand />
         </div>

@@ -13,7 +13,8 @@ import { simulateBattle } from '../engine/simulateBattle';
  * / `maxEnemyHp`）・敵向けダメージ演出キュー（`enemyDamageEvents`）・プレイヤー
  * HP（`currentPlayerHp` / `maxPlayerHp`）・プレイヤー向けダメージ演出キュー
  * （`playerDamageEvents`）・プレイヤー向けヒール演出キュー
- * （`playerHealEvents`）・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
+ * （`playerHealEvents`）・プレイヤー向けガード演出キュー
+ * （`playerGuardEvents`）・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
  * （`failPhase`）・通過済みエッジ ID 配列（`traversedEdgeIds`）・通過済みノード
  * ID 配列（`traversedNodeIds`）・防御シールド残量（`guardShield`）・リフレクト状態
  * フラグ（`reflectActive`）・反射ダメージ演出キュー（`enemyReflectEvents`）を
@@ -152,9 +153,15 @@ import { simulateBattle } from '../engine/simulateBattle';
  *                                 `playerHealEvents` から取り除く
  *                                 （`PlayerHealFloater` 等の演出側からの自走削除）
  *   - `applyGuard(amount)`      : `guardShield` に `amount` をセットする（累積でなく
- *                                 上書き）。`startExecution` の防御カードフェーズで
- *                                 呼ばれる。上書き式にすることで連続防御カードに
- *                                 対応する（`guard-card-effect` 要件 5）
+ *                                 上書き）。同時にプレイヤー向けガード演出イベントを
+ *                                 `playerGuardEvents` に push し、`reflectActive` を
+ *                                 false にクリアする。`startExecution` の防御カード
+ *                                 フェーズで呼ばれる。上書き式にすることで連続防御
+ *                                 カードに対応する（`guard-card-effect` 要件 5）
+ *   - `dismissPlayerGuardEvent(id)`
+ *                               : 指定 id のプレイヤー向けガードイベントを
+ *                                 `playerGuardEvents` から取り除く
+ *                                 （`PlayerGuardFloater` 等の演出側からの自走削除）
  *   - `consumeShieldOnDamage(amount)`
  *                               : シールドがある場合は `Math.min(shield, amount)` を
  *                                 吸収量として `guardShield` から減算し、残ダメージ
@@ -504,6 +511,8 @@ const useBattleStore = create((set, get) => ({
   _playerDamageCounter: 0,
   playerHealEvents: [],
   _playerHealCounter: 0,
+  playerGuardEvents: [],
+  _playerGuardCounter: 0,
   playerShakeEvents: [],
   _playerShakeCounter: 0,
   guardShield: 0,
@@ -573,6 +582,7 @@ const useBattleStore = create((set, get) => ({
       currentPlayerHp: maxPlayerHp,
       playerDamageEvents: [],
       playerHealEvents: [],
+      playerGuardEvents: [],
       playerShakeEvents: [],
       victoryPhase: null,
       failPhase: null,
@@ -803,6 +813,7 @@ const useBattleStore = create((set, get) => ({
         currentPlayerHp: s.maxPlayerHp,
         playerDamageEvents: [],
         playerHealEvents: [],
+        playerGuardEvents: [],
         playerShakeEvents: [],
         traversedEdgeIds: [],
         traversedNodeIds: [],
@@ -1135,6 +1146,22 @@ const useBattleStore = create((set, get) => ({
    })),
 
    /**
+    * 指定 id のプレイヤー向けガードイベントを `playerGuardEvents` から削除する。
+    *
+    * `PlayerGuardFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、
+    * 自身を配列から取り除いて自走 unmount する。これにより
+    * `playerGuardEvents` が累積し続けるのを防ぐ。ヒール側
+    * `dismissPlayerHealEvent` と完全対称の責務を持つ。
+    *
+    * Args:
+    *     id (string): 削除対象のガードイベント id。`playerGuardEvents`
+    *         内に該当が無ければ no-op。
+    */
+   dismissPlayerGuardEvent: (id) => set((state) => ({
+    playerGuardEvents: state.playerGuardEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
     * 指定 id のプレイヤー縦シェイクイベントを `playerShakeEvents` から削除する。
     *
     * `BattleScreen` のプレイヤー HP ボックスが `onAnimationEnd` 時に
@@ -1170,15 +1197,30 @@ const useBattleStore = create((set, get) => ({
     * フェーズで `clearGuard` が呼ばれて 0 に戻る運用を `startExecution` 側で
     * 担保する。
     *
+    * あわせて `playerGuardEvents` に `{ id, amount }` を push する。`id` は
+    * `_playerGuardCounter` ベースの単調増加文字列で、敵被弾 (`d-`) ／プレイヤー
+    * 被弾 (`pd-`) ／ヒール (`ph-`) と区別するため `pg-` プレフィックスを付ける。
+    * このイベントは `PlayerGuardFloater` がガード青の浮き数字（`+<amount>`）を
+    * 描画するトリガーで、`applyPlayerHeal` → `playerHealEvents` と完全対称。
+    * `guardShield` は上書き式で実際の増分とは一致しないため、フロートには
+    * 実増分ではなく `amount`（= `card.power * multiplier`）をそのまま表示し、
+    * 「通った防御カードの power」を可視化する（ヒール演出と同じ思想）。
+    *
     * Args:
     *     amount (number): シールドとしてセットする値。`card.power` がそのまま
     *         渡される前提で、呼び出し側で `card.power > 0` をガードしている。
-    *         `maxPlayerHp` を超える値は内部でクランプされる。
+    *         `maxPlayerHp` を超える値は内部でクランプされる（フロート表示は
+    *         クランプ前の `amount`）。
     */
-   applyGuard: (amount) => set((state) => ({
-    guardShield: Math.min(amount, state.maxPlayerHp),
-    reflectActive: false
-   })),
+   applyGuard: (amount) => set((state) => {
+    const id = `pg-${state._playerGuardCounter}`;
+    return {
+      guardShield: Math.min(amount, state.maxPlayerHp),
+      reflectActive: false,
+      playerGuardEvents: [...state.playerGuardEvents, { id, amount }],
+      _playerGuardCounter: state._playerGuardCounter + 1,
+    };
+   }),
 
    /**
     * シールド吸収を考慮してプレイヤーにダメージを適用する。
@@ -1414,6 +1456,7 @@ const useBattleStore = create((set, get) => ({
       enemyDamageEvents: [],
       playerDamageEvents: [],
       playerHealEvents: [],
+      playerGuardEvents: [],
       playerShakeEvents: [],
       traversedEdgeIds: [],
       traversedNodeIds: [],
