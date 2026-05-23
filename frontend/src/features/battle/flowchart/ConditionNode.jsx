@@ -76,7 +76,19 @@ function directionToPosition(dir, fallback) {
  * `evaluateCondition`）には常に `expression` が渡されるため、ラベルは純粋に
  * 視覚表現を差し替えるだけで分岐挙動には影響しない。`??` 演算子による
  * フォールバックなので、`label: ""`（空文字）を意図的に渡せば空表示も可能
- * （ラベル未定義時のみフォールバックされる）。
+ * （ラベル未定義時のみフォールバックされる）。`label` / `expression` が
+ * ともに未定義の異常時は最終フォールバックの `?? ''` で空文字になり、
+ * `undefined` 表示やフォントサイズ計算（`text.length`）のクラッシュを防ぐ。
+ *
+ * 表示テキストのフォントサイズは文字数に応じて動的に縮小する（`fontSizePx`）。
+ * 菱形は固定サイズ（CSS 側 140×120px）で上下頂点へ近づくほど横幅が狭まるため、
+ * 長いラベルが複数行に折り返すと矩形ブロックの角が斜辺をはみ出して clip-path に
+ * 削られる。これを防ぐため `fontSizePx = clamp(8, 12, 50 / sqrt(len))` で
+ * テキスト面積を菱形の内接矩形（テキスト幅は `.expression` 側で 72px に固定）に
+ * 収める。フォント面積 ∝ font²・テキスト量 ∝ 文字数なので `font ∝ 1/sqrt(len)`
+ * の形になり、係数 50 と幅 72px は全長 1〜50 文字で内接するよう実測で決めた値。
+ * 17 文字以下は上限 12px に張り付くため短いラベル（他の条件ノード）の見た目は
+ * 不変で、18 文字以上だけ滑らかに縮小する。下限 8px は可読性の最低ライン。
  *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
@@ -107,6 +119,8 @@ function ConditionNode({ id, data }) {
     .filter(Boolean)
     .join(' ');
 
+  const text = data.label ?? data.expression ?? '';
+  const fontSizePx = Math.max(8, Math.min(12, 50 / Math.sqrt(text.length)));
   return (
     <div className={className}>
       <Handle
@@ -136,7 +150,9 @@ function ConditionNode({ id, data }) {
         className={styles.handle}
         isConnectable={false}
       />
-      <div className={styles.expression}>{data.label ?? data.expression}</div>
+      <div className={styles.expression} style={{ fontSize: `${fontSizePx}px` }}>
+        {text}
+      </div>
     </div>
   );
 }
