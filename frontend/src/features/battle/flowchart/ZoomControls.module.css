@@ -1,0 +1,29 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #e5e5ff;
+  background: #1f1f28;
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.button:hover {
+  background: #2a2a33;
+  border-color: #5a5a66;
+}
+
+.button:active {
+  background: #15151c;
+}

@@ -230,8 +230,10 @@ unilab/
             │       ├── SlotNode.module.css
             │       ├── StartNode.jsx
             │       ├── StartNode.module.css
-            │       ├── ZoomButton.jsx
-            │       └── ZoomButton.module.css
+            │       ├── ZoomButton.jsx          ← 拡大／縮小トグル(isExpanded 切替)
+            │       ├── ZoomButton.module.css
+            │       ├── ZoomControls.jsx        ← 拡大状態のビューズーム +/− ボタン
+            │       └── ZoomControls.module.css
             ├── cards/            ← カード UI(個別カード・手札レイアウト)
             │   ├── Card.jsx
             │   ├── Card.module.css
