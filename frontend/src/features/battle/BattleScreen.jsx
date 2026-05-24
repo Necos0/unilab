@@ -96,45 +96,54 @@ function CrossIcon() {
  * `enemyHpBox` と `playerHpBox` は対称的な命名で、それぞれ片側だけに
  * レイアウト・演出変更が入っても他方に影響が出ないように分離している。
  *
- * 被弾時の shake + 赤フラッシュ演出は `enemyHpBox` / `playerHpBox` 両方の
- * ラッパー側に実装している（HpBar 本体には触らない）。
- * `battleStore.{enemy,player}DamageEvents` 末尾要素の `id` を購読し、
- * 「最新の id」と「すでに消費済みの id」を比較する派生計算で
- * `isEnemyHit` / `isPlayerHit` を求める方式（`EnemySprite` のフラッシュ
- * 判定と同じパターン）。両者が異なるとき `.hit` クラスが付与され、CSS の
- * `@keyframes hpBoxHit`（0.3 秒の `translateX` 振動 +
- * `filter: brightness/saturate/hue-rotate` による赤系フラッシュを 1 つの
- * キーフレームに合成）が両ラッパー共通で 1 ショット再生される。
- * `onAnimationEnd` で「消費済み id」を「最新の id」に進めると判定が
- * `false` に戻り、次回の被弾で末尾 id が更新されると再び `true` になる。
- * `useEffect` を使わない派生計算パターンにより、React 19 の
+ * プレイヤー HUD（`playerHpBox`）の状態演出は、ガード付与時の青い box-shadow
+ * グローを基調に、被弾＝赤・回復＝緑・反射＝橙・ガード＝青の 4 色グローで
+ * 統一している（フロート数字の色とも一致）。被弾と反射はグローに加えてシェイク
+ * も併発する。各グローは 0.5 秒、シェイクは 0.3 秒で、CSS のカンマ区切り複数
+ * アニメ（`transform` と `box-shadow` で property 非衝突）として独立に持たせる。
+ * `onAnimationEnd` での id 消費は **最長の 0.5 秒グロー終了時**に行い、短い
+ * シェイク終了でクラスが外れてグローが途中で切れるのを防ぐ。
+ *
+ * 被弾は `battleStore.{enemy,player}DamageEvents` 末尾要素の `id` を購読し、
+ * 「最新の id」と「すでに消費済みの id」を比較する派生計算で `isEnemyHit` /
+ * `isPlayerHit` を求める方式（`EnemySprite` のフラッシュ判定と同じパターン）。
+ * 両者が異なるとき `.hit` クラスが付与される。**敵バー**は `@keyframes hpBoxHit`
+ * （0.3 秒の `translateX` 振動 + `filter: brightness/saturate/hue-rotate` の
+ * 赤系フラッシュを 1 キーフレームに合成）を従来どおり使う。**プレイヤーバー**は
+ * `hpBoxShakeX`（`translateX` 振動のみ）＋ `hpBoxDamageGlow`（赤い box-shadow
+ * グロー）の 2 アニメで、色フィルタではなくグローで赤を表現する。
+ * `onAnimationEnd` で「消費済み id」を「最新の id」に進めると判定が `false` に
+ * 戻り、次回の被弾で末尾 id が更新されると再び `true` になる。`useEffect` を
+ * 使わない派生計算パターンにより、React 19 の
  * `react-hooks/set-state-in-effect` ルールにも適合する。
  *
  * 反射成立時は通常被弾と区別された専用演出が発火する。`isEnemyReflected`
  * （`enemyReflectEvents` の末尾 id を購読する派生計算）が `true` のとき、
- * `enemyHpBox` には `.hit`（横シェイク + 赤フラッシュ）ではなく
- * `.shakenVert`（縦シェイクのみ）が付与される。同時に `isPlayerShaken`
- * （`playerShakeEvents` 購読）も `true` になり、`playerHpBox` にも同じ
- * `.shakenVert` が付与されて両者の HP バーが連動して縦揺れする。これにより
- * 「攻撃が来たが跳ね返した」という反射の手応えを、(1) オレンジ色のダメージ
- * フロート、(2) 両 HP バーの縦揺れ、(3) プレイヤー HP は不変、の 3 点で
- * 視覚化する。`.shakenVert` の CSS は `@keyframes hpBoxShakeVert`（`translateY`
- * の振動のみ、filter 変化なし）で、赤フラッシュを発生させない点が `.hit`
- * との明確な違い。`onAnimationEnd` では `event.animationName === hpBoxShakeVert`
- * のとき `consumedPlayerShakeId` / `consumedEnemyReflectId` を進める。
- * 敵側の `consumedEnemyReflectId` は `onAnimationEnd` の直接ハンドラで
- * `consumedEnemyDamageId` と一緒に進める実装。
+ * `enemyHpBox` には `.hit`（横シェイク + 赤フラッシュ）ではなく `.shakenVert`
+ * が付与される。同時に `isPlayerShaken`（`playerShakeEvents` 購読）も `true`
+ * になり、`playerHpBox` にも `.shakenVert` が付与されて両者の HP バーが連動して
+ * 縦揺れする。CSS では `@keyframes hpBoxShakeVert`（`translateY` の振動）を
+ * **敵は単独**で、**プレイヤーは `hpBoxReflectGlow`（橙の box-shadow グロー）と
+ * 併発**で再生する（`.enemyHpBox.shakenVert` と `.playerHpBox.shakenVert` の
+ * ルールを分け、橙グローが敵に乗らないようにしている）。これにより「攻撃が来た
+ * が跳ね返した」という反射の手応えを、(1) オレンジ色のダメージフロート、
+ * (2) 両 HP バーの縦揺れ＋プレイヤーバーの橙グロー、(3) プレイヤー HP は不変、
+ * で視覚化する。プレイヤー側の `onAnimationEnd` では最長の `hpBoxReflectGlow`
+ * 終了時に `consumedPlayerShakeId` を進める。敵側の `consumedEnemyReflectId` は
+ * 敵バーの `onAnimationEnd` 直接ハンドラで `consumedEnemyDamageId` と一緒に
+ * 進める実装。
  *
- * `playerHpBox` には被弾と対称に、ヒール時の緑フラッシュ演出も乗る。
+ * `playerHpBox` には被弾と対称に、ヒール時の緑グロー演出も乗る。
  * `playerHealEvents` 末尾の `id` を購読する `isPlayerHealed` の派生計算で
- * `.healed` クラスを付与し、CSS の `@keyframes hpBoxHealed`（shake なし、
- * `filter` のみで `hue-rotate(+20〜+25deg)` の緑寄せ + 明度上昇）が 0.3 秒
- * 1 ショット再生される（heal-card 要件 3-1〜3-4）。被弾と回復は同じ
- * `onAnimationEnd` ハンドラに乗るため、`event.animationName` が `hpBoxHit`
- * か `hpBoxHealed` かで分岐し、`consumedPlayerDamageId` /
- * `consumedPlayerHealId` の id 系列を独立に進める。CSS Modules による
- * キーフレーム名のハッシュ化に備え、`styles.hpBoxHit || 'hpBoxHit'` の
- * OR 併記で実名・生名どちらでも一致するようにしている。
+ * `.healed` クラスを付与し、CSS の `@keyframes hpBoxHealGlow`（shake なし、
+ * 緑の box-shadow グローのみ）が 0.5 秒 1 ショット再生される（heal-card
+ * 要件 3-1〜3-4）。被弾・回復・反射は同じ `onAnimationEnd` ハンドラに乗るため、
+ * `event.animationName` が `hpBoxDamageGlow` / `hpBoxHealGlow` /
+ * `hpBoxReflectGlow` のいずれか（= 各イベントの最長 0.5 秒グロー）かで分岐し、
+ * `consumedPlayerDamageId` / `consumedPlayerHealId` / `consumedPlayerShakeId` の
+ * id 系列を独立に進める。CSS Modules によるキーフレーム名のハッシュ化に備え、
+ * `styles.hpBoxHealGlow || 'hpBoxHealGlow'` の OR 併記で実名・生名どちらでも
+ * 一致するようにしている。
  *
  * `playerHpBox` には防御カード通過時の青フラッシュ演出も乗る
  * （`guard-card-effect` 要件 6-5）。`battleStore.guardShield` の値を購読し、
@@ -144,8 +153,9 @@ function CrossIcon() {
  * だけが視覚化される。`isShielded` の自動オフは `setTimeout` で行い、
  * `useEffect` の cleanup と組み合わせて連続発火時のタイマー破棄も担保する。
  * CSS の `@keyframes hpBoxShielded` は 0% → 30% で青い box-shadow が広がり、
- * 30% → 100% でフェードアウトする 1 ショットアニメで、`hpBoxHit`（赤）／
- * `hpBoxHealed`（緑）と同じ意匠系。
+ * 30% → 100% でフェードアウトする 1 ショットアニメ。プレイヤーバーの 4 演出
+ * （`hpBoxDamageGlow` 赤 / `hpBoxHealGlow` 緑 / `hpBoxReflectGlow` 橙 /
+ * `hpBoxShielded` 青）は同一意匠のグローで、色だけで意味を分ける。
  *
  * ガード残量の視覚表示は `playerHpBox` 内の **HP バー真上に並べた専用
  * `GuardBar`** が担う（`guard-bar-redesign` 仕様）。プレイヤー HUD は
@@ -428,11 +438,11 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               isPlayerShaken && styles.shakenVert,
             ].filter(Boolean).join(' ')}
             onAnimationEnd={(event) => {
-              if (event.animationName === styles.hpBoxHit || event.animationName === 'hpBoxHit') {
+              if (event.animationName === styles.hpBoxDamageGlow || event.animationName === 'hpBoxDamageGlow') {
                 setConsumedPlayerDamageId(lastPlayerDamageId);
-              } else if (event.animationName === styles.hpBoxHealed || event.animationName === 'hpBoxHealed') {
+              } else if (event.animationName === styles.hpBoxHealGlow || event.animationName === 'hpBoxHealGlow') {
                 setConsumedPlayerHealId(lastPlayerHealId);
-              } else if (event.animationName === styles.hpBoxShakeVert || event.animationName === 'hpBoxShakeVert') {
+              } else if (event.animationName === styles.hpBoxReflectGlow || event.animationName === 'hpBoxReflectGlow') {
                 setConsumedPlayerShakeId(lastPlayerShakeId);
               }
             }}
