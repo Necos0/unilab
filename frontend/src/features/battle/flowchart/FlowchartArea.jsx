@@ -12,6 +12,7 @@ import GoalNode from './GoalNode';
 import ConditionNode from './ConditionNode';
 import MergeNode from './MergeNode';
 import AnimatedProgressEdge from './AnimatedProgressEdge';
+import ZoomControls from './ZoomControls';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
@@ -237,6 +238,15 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoa
  *     しまい「拡大ボタンを押した意味がない」見た目になったため、位置と
  *     ズームを `setViewport` で直接制御する方式に切り替えた経緯がある
  *
+ * 拡大状態では上記の基準ズームを初期値としつつ、ユーザーが手動でズームを
+ * 変更できる：トラックパッドのピンチ（`zoomOnPinch={isExpanded}`）と、マウス
+ * 向けの `ZoomControls`（フロー領域右下の +/− ボタン）。`panOnScroll` の 2 本指
+ * スクロール（パン）とピンチ（`ctrlKey` 付き wheel）は React Flow が別イベントに
+ * 振り分けるため共存する。手動ズームは下記の refit が走らない限り保持される
+ * （refit はリサイズ・`isExpanded`/`nodes`/`edges` 変化時のみ基準ズームへ再計算
+ * するため、拡大が安定した後のピンチ・ボタン操作は残る）。縮小状態ではピンチ・
+ * ボタンとも無効（`zoomOnPinch` は false、`ZoomControls` は非表示）。
+ *
  * コンテナサイズの変化（CSS トランジションによる `flex-grow` 変化）は
  * `ResizeObserver` で検出し、その都度 refit ロジックを呼び直すことで、
  * アニメーション中もスロットのスケールが滑らかに追従する。`nodes` 自体の
@@ -330,7 +340,7 @@ function FlowchartArea({ stage }) {
         panOnDrag={false}
         panOnScroll={isExpanded}
         zoomOnScroll={false}
-        zoomOnPinch={false}
+        zoomOnPinch={isExpanded}
         zoomOnDoubleClick={false}
         minZoom={0.1}
         maxZoom={5}
@@ -345,6 +355,7 @@ function FlowchartArea({ stage }) {
           color="#1a1a24"
           size={1}
         />
+        <ZoomControls />
       </ReactFlow>
     </div>
   );
