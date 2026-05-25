@@ -262,7 +262,7 @@
         {},
         { "lockedCard": { "id": "monster", "power": 30 } },
         {
-          "condition": "enemyHp == 40",
+          "condition": "enemyHp === 40",
           "label": "敵のHPが40?",
           "true": [
             { "multiplier": 4 }
