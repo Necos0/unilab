@@ -96,6 +96,10 @@ import { simulateBattle } from '../engine/simulateBattle';
  *   - `toggleExpand()`          : 拡大／縮小を切り替える。`isTransitioning`
  *                                 中は no-op（連打・切替中の二重発火ガード）。
  *                                 切替後は 250ms 後に `isTransitioning` を戻す
+ *   - `collapseFlowchart()`     : 拡大状態を即座に縮小へ戻す（`isExpanded` /
+ *                                 `isTransitioning` を false に）。バトル離脱
+ *                                 （`BattleScreen` unmount）時に呼び、拡大状態が
+ *                                 次バトルへ持ち越されるのを防ぐ
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
  *                                 自動縮小→実行の順。'isExecuting'中・全スロット
  *                                 未埋まりは no-op。実行開始時に敵／プレイヤー HP を
@@ -643,6 +647,22 @@ const useBattleStore = create((set, get) => ({
       set(() => ({ isTransitioning: false }));
     }, TRANSITION_DURATION_MS);
   },
+
+  /**
+   * 拡大状態のフローチャートを即座に縮小状態へ戻す。
+   *
+   * `isExpanded` と `isTransitioning` をともに false にする。`toggleExpand`
+   * と違いトグルではなく縮小方向専用で、アニメーション猶予を取らずに即時
+   * リセットする。`BattleScreen` の unmount（マップへ戻る全経路：`BackToMapButton`
+   * / `BattleFailOverlay` / `VictoryClearOverlay`）時に呼び、拡大状態が次バトルへ
+   * 持ち越されて「別ステージに入ったら拡大表示のまま」になるのを防ぐ。
+   *
+   * リセットボタン（`initializeBattle`）では `isExpanded` を保持する要件
+   * （flowchart-zoom 6-1）があるため、リセットでなく離脱時に戻すことでその要件と
+   * 両立させる。`isTransitioning` も戻すのは、切替アニメ中に離脱してフラグが
+   * 立ったまま次バトルへ持ち越されるのを防ぐため。
+   */
+  collapseFlowchart: () => set({ isExpanded: false, isTransitioning: false }),
 
   /**
    * フローチャートの実行（ビジュアル進行のみ）を開始する。

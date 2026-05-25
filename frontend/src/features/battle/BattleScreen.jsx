@@ -218,7 +218,12 @@ function CrossIcon() {
  * 実行中（`isExecuting`）と勝利演出中（`victoryPhase` 非 null）と失敗
  * 演出中（`failPhase` 非 null）は `.transitioning` ／ `.executing` ／
  * `.victory` ／ `.failed` クラスを付与して pointer-events を無効化し、
- * ユーザー操作をブロックする。
+ * ユーザー操作をブロックする。`isExpanded` はバトルをまたいで保持される
+ * ストア状態のため、`BattleScreen` の unmount 時（マップへ戻る全経路）に
+ * cleanup で `collapseFlowchart()` を呼び、拡大状態が次バトルへ持ち越されて
+ * 「別ステージに入ったら拡大表示のまま」になるのを防ぐ。リセットボタン
+ * （`initializeBattle`）では拡大を保持する要件があるため、リセットでなく離脱
+ * 時に戻す（`battleStore.collapseFlowchart` 参照）。
  *
  * 勝利演出（`victory-clear` 仕様）の組み込み：
  *   - `EnemySprite` に渡す `state` は、`victoryPhase` 非 null かつ対象敵に
@@ -286,6 +291,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const stage = stagesData.stages[resolvedStageId];
 
   const initializeBattle = useBattleStore((s) => s.initializeBattle);
+  const collapseFlowchart = useBattleStore((s) => s.collapseFlowchart);
   const beginDrag = useBattleStore((s) => s.beginDrag);
   const endDrag = useBattleStore((s) => s.endDrag);
   const activeCard = useBattleStore(selectActiveCard);
@@ -346,6 +352,8 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   useEffect(() => {
     initializeBattle(stage);
   }, [initializeBattle, stage]);
+
+  useEffect(() => () => collapseFlowchart(), [collapseFlowchart]);
 
   const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
   const hasDeadAnim = Boolean(enemy?.animations?.dead);
