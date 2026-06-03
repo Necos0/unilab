@@ -49,12 +49,31 @@ import styles from './SlotNode.module.css';
  *     不一致カードは赤系 `.rejectHover` に切り替わる。ドロップ拒否の判定自体は
  *     `battleStore.computeDropTransition` のガードで行われるため、本コンポーネント
  *     は視覚フィードバックだけを担う
- *   - `data.multiplier` が指定されている倍率スロット（`multiplier-slot` 仕様）：
- *     **右上** に `<MultiplierIndicator value={multiplier} />` を常時描画して
- *     「x2」等の白テキストを表示する。acceptOnly（左上）と multiplier（右上）は
- *     左右に分離しているため、同一スロットに両方あっても衝突しない。倍率の効果
- *     （`card.power × multiplier`）適用は `battleStore.scheduleNodePhase` 側が
- *     担い、本コンポーネントは表示のみ
+ *   - `data.multiplier` が指定されている倍率スロット（`multiplier-slot` /
+ *     `loop-counter` 仕様）：**右上** に `<MultiplierIndicator value={displayMultiplier} />`
+ *     を常時描画して「x2」等の白テキストを表示する。acceptOnly（左上）と
+ *     multiplier（右上）は左右に分離しているため、同一スロットに両方あっても
+ *     衝突しない。倍率の効果（`card.power × multiplier`）適用は
+ *     `battleStore.scheduleNodePhase` 側が担い、本コンポーネントは表示のみ。
+ *     `data.multiplier` は **Sum 型** で、数値リテラル（既存）と `{counterRef}`
+ *     オブジェクト（loop-counter 新規）を取り、`displayMultiplier` が型に応じて
+ *     値を解決する：数値ならそのまま、オブジェクトなら zustand の
+ *     `counterValues[counterRef]` を購読して動的に決まる
+ *   - **counter スロット / カウンタ連動 multiplier の金枠**（`loop-counter` 仕様、
+ *     要件 5）：`isCounterSlot`（assignedCard が `id: 'counter'` の lockedCard）
+ *     と `isCounterLinkedMultiplier`（data.multiplier がオブジェクトかつ
+ *     counterRef を持つ）のいずれかが true なら `styles.counterPaired` クラスを
+ *     付与し、ペアであることを示す金枠を表示する。両者が同じ counterId を共有
+ *     することは IDで保証されており、視覚的にもプレイヤーに「この 2 つはセット」
+ *     が伝わる
+ *   - **counter 通過時の同期発光**（`loop-counter` 仕様、要件 7）：zustand の
+ *     `activeCounterId`（`scheduleNodePhase` が counter ノードフェーズ中だけ立てる
+ *     state）を購読し、自分の `counterId`（counter スロット側）または `counterRef`
+ *     （multiplier スロット側）と一致する間だけ `styles.counterFlash` クラスを
+ *     付与する。これにより counter が通過した瞬間、ペアの counter と multiplier
+ *     **両方が同時に金色フラッシュ** する。`scheduleEdgePhase` の冒頭で
+ *     `activeCounterId` が `null` に戻るため、発光はノードフェーズ期間中
+ *     （`NODE_PHASE_MS`）だけ続き、次のエッジに移った瞬間に消える同期挙動になる
  *
  * 空きスロットの中央には番号「(N)」を表示する。番号 `data.displayNumber` は
  * `FlowchartArea.slotsToNodes` が **lockedCard を持たない（プレイヤーが配置
@@ -136,7 +155,23 @@ function SlotNode({ id, data }) {
   });
   const showReject = isOver && !!acceptOnly && activeCardId !== null && activeCardId !== acceptOnly;
 
-  const multiplier = data?.multiplier;
+  const isCounterSlot = assignedCard?.id === 'counter' && assignedCard?.locked;
+  const isCounterLinkedMultiplier = 
+    typeof data?.multiplier === 'object' && 
+    data.multiplier !== null &&
+    typeof data.multiplier.counterRef === 'string';
+  const isCounterPaired = isCounterSlot || isCounterLinkedMultiplier;
+
+  const activeCounterId = useBattleStore((s) => s.activeCounterId);
+  const myCounterId = isCounterSlot ? assignedCard?.counterId : null;
+  const myCounterRef = isCounterLinkedMultiplier ? data.multiplier.counterRef : null;
+  const isCounterFlashing = (myCounterId !== null && activeCounterId === myCounterId) || (myCounterRef !== null && activeCounterId === myCounterRef);
+
+  const counterValue = useBattleStore((s) => isCounterLinkedMultiplier ? (s.counterValues[data.multiplier.counterRef] ?? 0) : undefined);
+  const displayMultiplier =
+    typeof data?.multiplier === 'number' ? data.multiplier :
+    isCounterLinkedMultiplier ? counterValue :
+    undefined;
 
   const displayNumber = data?.displayNumber;
 
@@ -151,6 +186,8 @@ function SlotNode({ id, data }) {
     isActive && styles.active,
     isTraversed && styles.traversed,
     isLockedCard && styles.lockedCard,
+    isCounterPaired && styles.counterPaired,
+    isCounterFlashing && styles.counterFlash,
   ]
     .filter(Boolean)
     .join(' ');
@@ -190,7 +227,7 @@ function SlotNode({ id, data }) {
         isConnectable={false}
       />
       {acceptOnly && <RestrictedSlotIcon type={acceptOnly} />}
-      {multiplier && <MultiplierIndicator value={multiplier} />}
+      {displayMultiplier !== undefined && <MultiplierIndicator value={displayMultiplier} />}
     </div>
   );
 }

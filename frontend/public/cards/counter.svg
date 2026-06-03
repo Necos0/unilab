@@ -1,13 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" preserveAspectRatio="xMidYMid meet">
   <!-- 外枠（暗い金）→ 中間枠（金）→ 内枠（明るい金）→ 中央（クリーム）の 4 層フレーム -->
-  <rect width="64" height="80" fill="#7a5a00"/>
-  <rect x="2" y="2" width="60" height="76" fill="#e8b500"/>
-  <rect x="5" y="5" width="54" height="70" fill="#ffd54a"/>
-  <rect x="8" y="8" width="48" height="64" fill="#fff5cc"/>
+  <rect width="64" height="80" fill="#7a5a00" shape-rendering="crispEdges"/>
+  <rect x="2" y="2" width="60" height="76" fill="#e8b500" shape-rendering="crispEdges"/>
+  <rect x="5" y="5" width="54" height="70" fill="#ffd54a" shape-rendering="crispEdges"/>
+  <rect x="8" y="8" width="48" height="64" fill="#fff5cc" shape-rendering="crispEdges"/>
 
-  <!-- 中央の「+1」プレースホルダー -->
-  <text x="32" y="44" font-family="'Press Start 2P', monospace" font-size="14" font-weight="bold" fill="#7a5a00" text-anchor="middle">+1</text>
-
-  <!-- 下部に小さく「COUNTER」ラベル -->
-  <text x="32" y="62" font-family="'Press Start 2P', monospace" font-size="5" fill="#7a5a00" text-anchor="middle">COUNTER</text>
+  <!-- 💪 絵文字（システムの emoji フォントで描画） -->
+  <text x="32" y="44" font-size="36" text-anchor="middle" dominant-baseline="central">💪</text>
 </svg>

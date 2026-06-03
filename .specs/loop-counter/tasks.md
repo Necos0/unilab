@@ -77,7 +77,7 @@
   - 依存：タスク7
   - 完了条件：SlotNode の `data.multiplier` がオブジェクト `{ counterRef: 'c1' }` として渡る（DevTools で React Flow のノード data を確認）。
 
-- [ ] **12. SlotNode: ペア判定と `counterValue` 解決、MultiplierIndicator への値渡し**
+- [x] **12. SlotNode: ペア判定と `counterValue` 解決、MultiplierIndicator への値渡し**  ✓ 完了
   - 内容：
     - `isCounterSlot = assignedCard?.id === 'counter' && assignedCard?.locked` を派生計算。
     - `isCounterLinkedMultiplier = typeof data?.multiplier === 'object' && typeof data.multiplier.counterRef === 'string'` を派生計算。
@@ -88,7 +88,7 @@
   - 依存：タスク8、タスク11
   - 完了条件：stage 4-3 の counter slot と末尾 multiplier slot に金枠が出る。counter ノード到達時に両方が同期して光る。multiplier の `x{N}` の N が counter 通過のたびに増える。既存ステージ（金枠条件に該当しない）では `.counterPaired` / `.counterFlash` クラスが付かない。
 
-- [ ] **13. SlotNode.module.css: `counterPaired` / `counterFlash` スタイル追加**
+- [x] **13. SlotNode.module.css: `counterPaired` / `counterFlash` スタイル追加**  ✓ 完了
   - 内容：
     - `.slot.counterPaired { border-color: #FFD54A; box-shadow: 0 0 6px rgba(255, 213, 74, 0.5); }`（具体値は実機で微調整）。
     - `.slot.counterFlash` クラスと `@keyframes counterFlash`（強い金色 box-shadow を 360ms ease-out で減衰）。
@@ -97,19 +97,19 @@
   - 依存：タスク12
   - 完了条件：DevTools で counter/multiplier ペアスロットの境界に金色が見え、counter ノード通過のフェーズで両者がパチンと 1 回光って減衰する。既存ステージのスロット外観は無変化。
 
-- [ ] **14. MultiplierIndicator: framer-motion による値変化アニメ**
+- [x] **14. MultiplierIndicator: framer-motion による値変化アニメ**  ✓ 完了
   - 内容：`motion.div` + `AnimatePresence` で `key={value}` 駆動の再マウントアニメに変える（`initial={{ scale: 1.6, opacity: 0.5 }}` → `animate={{ scale: 1.0, opacity: 1 }}`、duration 180ms 程度）。`x{value}` のテキスト出力は維持。
   - ファイル：`frontend/src/features/battle/flowchart/MultiplierIndicator.jsx`
   - 依存：タスク12
   - 完了条件：counter 通過で値が +1 されるたびに数字がパチンと拡大→等倍に戻るアニメが見える。既存の数値リテラル multiplier スロットでは初回マウント時に 1 回だけアニメするが、視覚的に違和感がなく許容可能。
 
-- [ ] **15. preloadBattleAssets: `counter.png` を読み込み対象に追加**
+- [x] **15. preloadBattleAssets: `counter.png` を読み込み対象に追加**  ✓ 完了（暫定 SVG プレースホルダー対応）
   - 内容：`preloadBattleAssets.js` の既存パターン（カード ID から `/cards/<id>.png` を構築してプリロード）に counter を加える。stage 4-3 のように locked counter を含むステージで戦闘開始時にチラつきが出ないようにする。
   - ファイル：`frontend/src/features/battle/preloadBattleAssets.js`
   - 依存：タスク1（`counter.png` の存在）
   - 完了条件：戦闘画面遷移時に `Network` パネルで `counter.png` が事前 fetch される。stage 4-3 の counter スロットに画像が即時表示される（遅延なし）。
 
-- [ ] **16. stages.json: stage 4-3 を新スキーマで書き換え**
+- [x] **16. stages.json: stage 4-3 を新スキーマで書き換え**  ✓ 完了
   - 内容：design.md「実装方針 7」の JSON を反映：`body` 末尾に `{ "lockedCard": { "id": "counter", "counterId": "c1" } }` を 6 番目として追加、ループ後の `{ "multiplier": 5 }` を `{ "multiplier": { "counterRef": "c1" } }` に置換。`enemyId` / `maxEnemyHp` / `cards` / `loop.mode` / `loop.condition` / `loop.label` / `loop.trueDir` / `loop.falseDir` は変更しない。
   - ファイル：`frontend/src/data/stages.json`
   - 依存：タスク2〜14（すべての実装が終わってから書き換えると、書き換えた瞬間にステージが動く）
