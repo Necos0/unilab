@@ -116,17 +116,13 @@
     "2-4": {
       "enemyId": "golem",
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "guard",  "power": 80 },
-        { "id": "heal",   "power": 100 },
+        { "id": "attack", "power": 30 },
         { "id": "reflect" }
       ],
       "slots": [
-        { "lockedCard": { "id": "monster", "power": 50 } },
         {},
         { "lockedCard": { "id": "monster", "power": 50 } },
-        {},
-        { "lockedCard": { "id": "monster", "power": 50 } }
+        {}
       ]
     },
     "3-1": {
@@ -194,7 +190,7 @@
             "falseDir": "right",
             "body": [
               {},
-              { "lockedCard": { "id": "monster", "power": 20 } },
+              { "lockedCard": { "id": "monster", "power": 30 } },
               {}
             ]
           }
