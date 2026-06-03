@@ -25,11 +25,19 @@ const LOOP_TOP_HEADROOM = 80;
  * ステージ定義のスロット配列を React Flow のノード配列に変換する。
  *
  * 各スロットの `acceptOnly`（`restricted-slot` 仕様）と `multiplier`
- * （`multiplier-slot` 仕様）の optional フィールドを React Flow node の `data`
- * に転記する。`SlotNode` 側はこれを受け取って種別アイコン（左上）・倍率
- * インジケータ（右上）の描画やドロップ拒否時の赤ハイライトに使う。どちらも
+ * （`multiplier-slot` / `loop-counter` 仕様）の optional フィールドを React Flow
+ * node の `data` に転記する。`SlotNode` 側はこれを受け取って種別アイコン（左上）・
+ * 倍率インジケータ（右上）の描画やドロップ拒否時の赤ハイライトに使う。どちらも
  * undefined のスロットは `data.xxx === undefined` で SlotNode 側が後方互換の
  * 通常スロットとして扱う（restricted-slot 要件 6-1、multiplier-slot 要件 5-1）。
+ *
+ * **`multiplier` の型透過**（`loop-counter` 仕様）：`slot.multiplier` は
+ * **数値リテラル**（`multiplier-slot` の従来形）と **`{ counterRef: 非空文字列 }`
+ * オブジェクト**（loop-counter の参照形）の Sum 型を取る。本関数は型を区別せず
+ * `data.multiplier` にそのまま渡すため、Sum 型の解決は `SlotNode` の責務になる
+ * （SlotNode 側で `typeof data.multiplier === 'number'` / `=== 'object'` で振り分け、
+ * 後者の場合は `useBattleStore` で `counterValues[counterRef]` を購読して動的に
+ * 倍率を解決する）。loop-counter 要件 2-2 と整合。
  *
  * 加えて、空きスロット中央に表示する番号 `displayNumber` を採番して `data` に
  * 渡す。**lockedCard を持たない（プレイヤーが配置できる）スロットだけ** を
@@ -43,11 +51,13 @@ const LOOP_TOP_HEADROOM = 80;
  * Args:
  *     slots (Array<{id, position, acceptOnly?, multiplier?, lockedCard?}>):
  *         ステージ定義に含まれるスロット配列。`acceptOnly` / `multiplier` /
- *         `lockedCard` は任意。
+ *         `lockedCard` は任意。`multiplier` は数値リテラルまたは
+ *         `{counterRef: 文字列}` オブジェクトを取る。
  *
  * Returns:
  *     Array<{id, type, position, data: {acceptOnly?, multiplier?, displayNumber}}>:
- *         React Flow に渡せるノード配列。`displayNumber` は lockedCard なし
+ *         React Flow に渡せるノード配列。`data.multiplier` の型は Sum 型のまま
+ *         運ばれ、SlotNode 側で解決される。`displayNumber` は lockedCard なし
  *         スロットの通し番号、lockedCard スロットは `null`。
  */
 function slotsToNodes(slots) {

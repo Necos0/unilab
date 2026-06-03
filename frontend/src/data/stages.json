@@ -221,13 +221,14 @@
               { "lockedCard": { "id": "monster", "power": 60 } },
               {},
               {},
-              {}
+              {},
+              { "lockedCard": { "id": "counter", "counterId": "c1" } }
             ]
           }
         },
         {},
         { "lockedCard": { "id": "monster", "power": 50 } },
-        { "multiplier": 5 }
+        { "multiplier": { "counterRef": "c1" } }
       ]
     },
     "5-1": {
