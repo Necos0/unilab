@@ -255,12 +255,21 @@ function expandHandCards(cards) {
  * ステージ定義から初期スロット割当マップを生成する。
  *
  * 各スロットに `lockedCard` が定義されていれば、そのスロットは
- * `{ instanceId: 'locked-<slotId>', id, power, locked: true }` の
- * ロック付き `CardInstance` で埋める。`lockedCard` を持たないスロットは
+ * `{ instanceId: 'locked-<slotId>', id, power, counterId, locked: true }`
+ * のロック付き `CardInstance` で埋める。`lockedCard` を持たないスロットは
  * 従来どおり `null`（空き）にする。`locked: true` フラグは `DraggableCard`
  * の `disabled` 判定および `computeDropTransition` のガードで参照され、
  * ユーザー操作からの drag-out / drop-onto を抑止する役割を持つ
  * （monster-attack 要件 2-2, 2-3）。
+ *
+ * `counterId` フィールド（`loop-counter` 仕様）：`lockedCard.id === 'counter'`
+ * のスロット（カウンタノード）では `slot.lockedCard.counterId` の値がそのまま
+ * `card.counterId` として伝播し、`scheduleNodePhase` が counter ノード到達時に
+ * `incrementCounter(card.counterId)` を呼ぶときの引数になる（要件 3-2 / 9-1）。
+ * counter 以外の lockedCard（`monster` 等）では `slot.lockedCard.counterId === undefined`
+ * となり `card.counterId = undefined` がそのまま運ばれるが、ランタイム側の
+ * `if (card.id === 'counter' && card.counterId)` ガードで自然に無視される
+ * （後方互換、要件 10-3）。
  *
  * `instanceId` は `locked-<slotId>` 規約で生成し、`expandHandCards` が
  * 使う `c-${index}` 体系と衝突しない安定 ID として機能する。リセット
@@ -271,11 +280,15 @@ function expandHandCards(cards) {
  * Args:
  *     stage (object): `stages.json` の 1 ステージ分。`slots` 配列を持ち、
  *         各スロットは `{id, position, lockedCard?}` の形。`lockedCard`
- *         は `{id: string, power: number}` の形で、未定義なら空きスロット。
+ *         は `{id: string, power?: number, counterId?: string}` の形で、
+ *         未定義なら空きスロット。counter スロットでは `id === 'counter'`
+ *         かつ `counterId` が非空文字列。
  *
  * Returns:
  *     Object<string, CardInstance | null>: スロット ID をキーに、ロック
- *         カードか `null` を値とするマップ。
+ *         カードか `null` を値とするマップ。ロックカード側は
+ *         `{instanceId, id, power, counterId, locked}` の形で、`power` /
+ *         `counterId` はカード種別に応じて未定義のことがある。
  */
 function buildSlotAssignmentsFromStage(stage) {
   const assignments = {};
@@ -285,6 +298,7 @@ function buildSlotAssignmentsFromStage(stage) {
         instanceId: `locked-${slot.id}`,
         id: slot.lockedCard.id,
         power: slot.lockedCard.power,
+        counterId: slot.lockedCard.counterId,
         locked: true,
       };
     } else {
@@ -296,42 +310,68 @@ function buildSlotAssignmentsFromStage(stage) {
 
 /**
  * ステージ定義からスロット静的メタ情報マップを生成する
- * （`restricted-slot` / `multiplier-slot` 仕様）。
+ * （`restricted-slot` / `multiplier-slot` / `loop-counter` 仕様）。
  *
- * `acceptOnly`（種別制限）または `multiplier`（効果倍率）が指定されている
- * スロットを `{ [slotId]: { acceptOnly?, multiplier? } }` の形のマップにまとめる。
- * 両方持つスロットは 1 エントリに両キーが入る。`slotAssignments`（実行中に
- * 動的に変化）と分けて管理することで、カード配置の状態更新時に毎回静的情報を
- * 運び直す必要がなくなる。`buildSlotAssignmentsFromStage` と並列の責務
- * （ステージ初期化時の派生計算）。
+ * `acceptOnly`（種別制限）または `multiplier`（効果倍率：数値リテラルまたは
+ * カウンタ参照）が指定されているスロットを
+ * `{ [slotId]: { acceptOnly?, multiplier?, counterRef? } }` の形のマップに
+ * まとめる。両方持つスロットは 1 エントリに両キーが入る。`slotAssignments`
+ * （実行中に動的に変化）と分けて管理することで、カード配置の状態更新時に
+ * 毎回静的情報を運び直す必要がなくなる。`buildSlotAssignmentsFromStage` と
+ * 並列の責務（ステージ初期化時の派生計算）。
+ *
+ * **multiplier の振り分け**（`loop-counter` 仕様）：`slot.multiplier` の型で
+ * 二分岐し、entry に積むキーを排他的に決める：
+ *   - `typeof slot.multiplier === 'number'` → `entry.multiplier = slot.multiplier`
+ *     （既存の数値リテラル経路、完全後方互換）
+ *   - `typeof slot.multiplier === 'object' && slot.multiplier !== null`
+ *     → `entry.counterRef = slot.multiplier.counterRef`（新規のカウンタ参照経路）
+ *   - undefined → 何もしない（entry に追加しない）
+ *
+ * `slot.multiplier !== null` の明示ガードは `typeof null === 'object'` という
+ * JavaScript の仕様の罠を避けるための防御策。ローダー（`stagesLoader.isValidMultiplier`
+ * → `validateCounterPairs`）で不正値は既にフィルタされているが、ランタイム側
+ * も型ベースで素直に判別できるよう明示する。
+ *
+ * **entry.multiplier と entry.counterRef は排他**：1 つの multiplier スロットは
+ * 「固定倍率」か「カウンタ連動」のどちらか一方のみ。これにより `scheduleNodePhase`
+ * 側の倍率解決が `typeof meta?.multiplier === 'number'` と
+ * `typeof meta?.counterRef === 'string'` の単純な分岐で済む。
  *
  * どちらのフィールドも持たないスロットはマップに登録しない（`entry` が空なら
  * skip）。参照側は `state.slotMetadata[slotId]?.acceptOnly` /
  * `state.slotMetadata[slotId]?.multiplier ?? 1` の optional chaining + フォール
  * バックで判定する。これにより「未指定スロットは従来通りの挙動（全カード受け
  * 入れ・倍率 1）」が分岐コストなしで成立する（restricted-slot 要件 6-1、
- * multiplier-slot 要件 2-7 / 5-1）。
+ * multiplier-slot 要件 2-7 / 5-1、loop-counter 要件 10-1 / 10-2）。
  *
- * `acceptOnly` と `multiplier` は独立フィールドで、ローダー（`stagesLoader`）
- * でも排他チェックを行わないため、ここでも各キーを個別に拾う。将来さらに
- * スロット制限フィールドが増えても、同じ entry オブジェクトにキーを足すだけで
- * 拡張できる構造。
+ * `acceptOnly` と `multiplier` / `counterRef` は独立フィールドで、ローダー
+ * （`stagesLoader`）でも排他チェックを行わないため、ここでも各キーを個別に拾う。
+ * 将来さらにスロット制限フィールドが増えても、同じ entry オブジェクトにキーを
+ * 足すだけで拡張できる構造。
  *
  * Args:
  *     stage (object): `stages.json` の 1 ステージ分。`slots` 配列を持ち、
  *         各スロットは `{id, position, lockedCard?, acceptOnly?, multiplier?}` の形。
+ *         `multiplier` は数値リテラル（2 以上の整数）または `{counterRef: 非空文字列}`
+ *         オブジェクトを取り得る。
  *
  * Returns:
- *     Object<string, {acceptOnly?: string, multiplier?: number}>: スロット ID を
- *         キーに、メタ情報オブジェクトを値とするマップ。該当スロットがなければ
- *         空オブジェクト。
+ *     Object<string, {acceptOnly?: string, multiplier?: number, counterRef?: string}>:
+ *         スロット ID をキーに、メタ情報オブジェクトを値とするマップ。
+ *         `multiplier` と `counterRef` は排他（同一エントリに両方は入らない）。
+ *         該当スロットがなければ空オブジェクト。
  */
 function buildSlotMetadataFromStage(stage) {
   const metadata = {};
   for (const slot of stage.slots ?? []) {
     const entry = {};
     if (slot.acceptOnly) entry.acceptOnly = slot.acceptOnly;
-    if (slot.multiplier) entry.multiplier = slot.multiplier;
+    if (typeof slot.multiplier === 'number') {
+      entry.multiplier = slot.multiplier;
+    } else if (typeof slot.multiplier === 'object' && slot.multiplier !== null) {
+      entry.counterRef = slot.multiplier.counterRef;
+    }
     if (Object.keys(entry).length > 0) {
       metadata[slot.id] = entry;
     }
@@ -523,6 +563,8 @@ const useBattleStore = create((set, get) => ({
   reflectActive: false,
   enemyReflectEvents: [],
   _enemyReflectCounter: 0,
+  counterValues: {},
+  activeCounterId: null,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -532,8 +574,9 @@ const useBattleStore = create((set, get) => ({
    * 演出キュー・勝利演出フェーズ（`victoryPhase`）・失敗演出フェーズ
    * （`failPhase`）・通過済みエッジ／ノード配列（`traversedEdgeIds` /
    * `traversedNodeIds`）・防御シールド残量（`guardShield`）・リフレクト
-   * 状態（`reflectActive`）・反射ダメージ演出キュー（`enemyReflectEvents`）を
-   * 初期化する。`isExpanded` には触れない
+   * 状態（`reflectActive`）・反射ダメージ演出キュー（`enemyReflectEvents`）・
+   * カウンタ値マップ（`counterValues`）・現在発光中のカウンタ ID
+   * （`activeCounterId`）を初期化する。`isExpanded` には触れない
    * （「拡大状態でリセットを押しても拡大は保たれる」挙動が成立する：
    * `flowchart-zoom` 要件 6-1）。`victoryPhase` / `failPhase` を `null` に戻し、
    * `traversedEdgeIds` / `traversedNodeIds` を空配列に戻すことで、CLEAR!
@@ -565,15 +608,32 @@ const useBattleStore = create((set, get) => ({
    * セットすると、後から発火したタイマーが新しい実行を妨害する可能性が
    * あるため、防御的に破棄しておく。
    *
+   * カウンタ初期化（`loop-counter` 仕様）：`stage.slots` を走査して
+   * `lockedCard.id === 'counter'` かつ `counterId` が非空文字列のスロットを
+   * 抽出し、それぞれの `counterId` を 0 で埋めた `counterValues` マップを構築する
+   * （要件 3-1）。型ガードによりローダー（`validateCounterPairs`）で縮退済みの
+   * counter（counterId を剥がされたもの）はキー集合に入らないため、ランタイム
+   * で「無効な counter」が誤ってカウントされることもない。counter スロットを
+   * 持たないステージでは `counterValues = {}` で初期化され、以降のカウンタ処理
+   * は完全にスキップされる（後方互換性、要件 10-2）。`activeCounterId` は
+   * 「いま発光中のカウンタ」を示す UI 連動用フィールドで、初期化時は常に
+   * `null`（要件 7）。
+   *
    * Args:
    *     stage (object): `stages.json` の 1 ステージ分。`cards` と `slots` を持つ。
-   *         任意で `maxEnemyHp`（敵 HP のステージ上書き）を持つ。
+   *         任意で `maxEnemyHp`（敵 HP のステージ上書き）を持つ。`slots[]` の
+   *         一部に counter スロット（`lockedCard.id === 'counter'`）があれば、
+   *         それらの `counterId` を 0 で埋めた `counterValues` が構築される。
    */
   initializeBattle: (stage) => {
     cancelExecutionTimers();
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
     const maxEnemyHp = stage.maxEnemyHp ?? enemy?.maxHp ?? 0;
     const maxPlayerHp = playerData.maxHp ?? 0;
+    const counterIds = (stage.slots ?? [])
+      .filter((s) => s.lockedCard?.id === 'counter' && typeof s.lockedCard.counterId === 'string')
+      .map((s) => s.lockedCard.counterId);
+    const counterValues = Object.fromEntries(counterIds.map((id) => [id, 0]));
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
       slotAssignments: buildSlotAssignmentsFromStage(stage),
@@ -595,6 +655,8 @@ const useBattleStore = create((set, get) => ({
       guardShield: 0,
       reflectActive: false,
       enemyReflectEvents: [],
+      counterValues,
+      activeCounterId: null,
     }));
   },
 
@@ -701,10 +763,22 @@ const useBattleStore = create((set, get) => ({
    * reflect-card-effect 要件 5-2）。
    *
    * 各ノードフェーズではスロット上のカード `id` を見て独立した `if` 分岐で
-   * 効果を発火する。発火前に `multiplier = get().slotMetadata[nodeId]?.multiplier
-   * ?? 1` を 1 回取得し、attack / heal / guard の `card.power` に掛ける
-   * （`multiplier-slot` 仕様）。`multiplier` 未指定スロットは `?? 1` で 1 倍
-   * （= 効果そのまま、後方互換）：
+   * 効果を発火する。発火前に `multiplier` を **三分岐** で 1 回取得する
+   * （`multiplier-slot` / `loop-counter` 仕様）：
+   *   1. `typeof meta?.multiplier === 'number'` → リテラル数値倍率（既存パス、
+   *      `multiplier-slot` 仕様）
+   *   2. `typeof meta?.counterRef === 'string'` → カウンタ連動倍率
+   *      （`get().counterValues[meta.counterRef] ?? 0`、`loop-counter` 仕様）。
+   *      参照先カウンタが未到達なら 0 倍（要件 4-2）。
+   *   3. それ以外 → 1 倍（= 効果そのまま、後方互換）
+   * リテラルとカウンタ参照は `slotMetadata` の段階で `multiplier` / `counterRef`
+   * の排他キーに振り分けられているため、ランタイム側は型ベースで素直に判別できる。
+   *   - `counter` カード（`loop-counter` 仕様）→ `incrementCounter(card.counterId)`
+   *     で対応カウンタ値を +1 し、`set({ activeCounterId: card.counterId })` で
+   *     「いま光っているカウンタ」を示す state を立てる（要件 3-2 / 7-2）。
+   *     `card.counterId` が undefined の場合（ローダーで縮退済みの counter）は
+   *     分岐ごとスキップして無害化する。**multiplier は適用しない**（power なし、
+   *     カウンタ自体に倍率の概念が無い）
    *   - `attack` カード → `applyEnemyDamage(card.power * multiplier)`（敵 HP を減らす）
    *   - `monster` カード → `reflectActive` で分岐：true なら
    *     `applyReflectDamage(card.power)`（敵 HP を power 減らし、オレンジフロート
@@ -728,9 +802,9 @@ const useBattleStore = create((set, get) => ({
    *     `card.power > 0` のガードを使わず `card.id === 'reflect'` の存在チェック
    *     だけで分岐する。**multiplier は適用しない**（power なし、multiplier-slot
    *     要件 2-6）
-   * いずれも `card.power > 0` でガードしている（reflect は例外）。`else if` では
-   * なく独立 `if` の並列構造にすることで、将来カード種別が追加されたときに
-   * 順序依存無く拡張できる。`multiplier` は `card.id` のみで分岐するため、locked
+   * いずれも `card.power > 0` でガードしている（reflect / counter は例外）。
+   * `else if` ではなく独立 `if` の並列構造にすることで、将来カード種別が追加された
+   * ときに順序依存無く拡張できる。`multiplier` は `card.id` のみで分岐するため、locked
    * カード（attack/heal/guard）にも自動適用される（locked attack 20 × 2 = 40、
    * multiplier-slot 要件 2-4）。
    *
@@ -741,6 +815,11 @@ const useBattleStore = create((set, get) => ({
    * （モンスター／空き／別カード）を通過した後のエッジで初めて消える、という
    * 「効果は次の 1 ノードのみに適用」の挙動が両方のバフで成立する
    * （guard-card-effect 要件 3、reflect-card-effect 要件 4-1）。
+   *
+   * さらにエッジフェーズ冒頭では `activeCounterId !== null` のとき `null` に戻す
+   * （`loop-counter` 仕様、要件 7-3）。これにより counter ノードの発光（`SlotNode` が
+   * `activeCounterId === myCounterId` で点灯）はノードフェーズ期間中
+   * （`NODE_PHASE_MS`）だけ続き、次のエッジに移った瞬間に消える同期挙動が得られる。
    *
    * 各フェーズの `setTimeout` 内では、`executionStep` の更新と同時に通過軌跡
    * （`traversedEdgeIds` / `traversedNodeIds`）にもエッジ／ノードの id を
@@ -855,6 +934,7 @@ const useBattleStore = create((set, get) => ({
           reflectActive: false,
           maxPlayerHp: get().maxPlayerHp,
           maxEnemyHp: get().maxEnemyHp,
+          counterValues: get().counterValues,
         },
         maxVisits: LOOP_MAX_VISITS,
       });
@@ -917,7 +997,14 @@ const useBattleStore = create((set, get) => ({
           }));
 
           const card = get().slotAssignments[nodeId];
-          const multiplier = get().slotMetadata[nodeId]?.multiplier ?? 1;
+          const meta = get().slotMetadata[nodeId];
+          const multiplier = 
+            typeof meta?.multiplier === 'number' ? meta.multiplier :
+            typeof meta?.counterRef === 'string' ? (get().counterValues[meta.counterRef] ?? 0) : 1;
+          if (card && card.id === 'counter' && card.counterId) {
+            get().incrementCounter(card.counterId);
+            set({ activeCounterId: card.counterId });
+          }
           if (card && card.id === 'attack' && card.power > 0) {
             get().applyEnemyDamage(card.power * multiplier);
           }
@@ -957,6 +1044,9 @@ const useBattleStore = create((set, get) => ({
       const scheduleEdgePhase = (edge, delay) => {
         const tid = setTimeout(() => {
           if (get().failPhase !== null) return;
+          if (get().activeCounterId !== null) {
+            set({ activeCounterId: null });
+          }
 
           set((s) => ({
             executionStep: { type: 'edge', id: edge.id },
@@ -1399,6 +1489,39 @@ const useBattleStore = create((set, get) => ({
    })),
 
    /**
+    * 指定された `counterId` のカウンタ値を +1 する（`loop-counter` 仕様）。
+    *
+    * `scheduleNodePhase` がループボディ内の counter ノード（`lockedCard.id ===
+    * 'counter'`）に到達したときに呼び出され、対応するカウンタ値を 1 ずつ増やす
+    * （要件 3-2）。`initializeBattle` で `counterValues` に登録済みの ID のみ
+    * 反映する：未登録の ID（typo・ローダー検証で剥がされた counter 等）が来た
+    * 場合は `s.counterValues[counterId] === undefined` で早期 return し、state を
+    * 一切変えずに無害化する。zustand は `set` から返された値が `=== s`（同一参照）
+    * のとき購読者に通知しないため、未登録 ID では再レンダリングも発火しない
+    * （要件 11-4 のクラッシュ防止と整合）。
+    *
+    * 不変更新パターン：`{ ...s.counterValues, [counterId]: 新値 }` で新しいオブジェクト
+    * を作って返す。同じキーが 2 度現れた場合、オブジェクトリテラルの「後勝ち」規則で
+    * 後者が採用されるため、スプレッドで全カウンタをコピーした直後に対象カウンタだけ
+    * を新値で上書きできる。`counterValues` 自体の参照が変わることで、`SlotNode` が
+    * 細粒度購読している `s.counterValues[meta.counterRef]` の値変化が React に伝わる
+    * （要件 8-1 / 8-3 のリアルタイム反映の土台）。
+    *
+    * Args:
+    *     counterId (string): カウンタの識別子。`stages.json` の `lockedCard.counterId`
+    *         および対応する `multiplier.counterRef` に同じ値が書かれている前提。
+    */
+   incrementCounter: (counterId) => set((s) => {
+    if (s.counterValues[counterId] === undefined) return s;
+    return {
+      counterValues: {
+        ...s.counterValues,
+        [counterId]: s.counterValues[counterId] + 1,
+      },
+    };
+   }),
+
+   /**
     * 勝利演出シーケンスを開始する。
     *
     * `enemies.json` から `enemyId` の `animations.dead` を引き、定義が
@@ -1434,9 +1557,19 @@ const useBattleStore = create((set, get) => ({
     * 向けのダメージ演出キューおよびヒール演出キューをすべて空にし、通過軌跡
     * （`traversedEdgeIds` / `traversedNodeIds`）と防御シールド（`guardShield`）、
     * リフレクト状態（`reflectActive`）、反射ダメージ演出キュー
-    * （`enemyReflectEvents`）もクリアする。これにより画面は「実行前の操作可能
-    * 状態（A 状態）」に戻る（`battle-fail-retry` 要件 5-1, 5-3, 5-4, 5-5、
-    * `guard-card-effect` 要件 4-3、`reflect-card-effect` 要件 5-3）。
+    * （`enemyReflectEvents`）もクリアする。さらに、カウンタ値マップ
+    * （`counterValues`）の全エントリを 0 に戻し、現在発光中のカウンタ ID
+    * （`activeCounterId`）も `null` に戻す（`loop-counter` 要件 3-3）。
+    * これにより画面は「実行前の操作可能状態（A 状態）」に戻る
+    * （`battle-fail-retry` 要件 5-1, 5-3, 5-4, 5-5、`guard-card-effect` 要件 4-3、
+    * `reflect-card-effect` 要件 5-3）。
+    *
+    * カウンタリセットは **キー集合を保持して値だけ 0 に戻す**：
+    * `Object.fromEntries(Object.keys(state.counterValues).map((id) => [id, 0]))`
+    * で `state.counterValues` の現在のキーをそのまま使うため、再挑戦時に集合が
+    * 変わることがない（counter スロットはステージ定義の一部なので、リトライで
+    * 増減しない）。これにより `initializeBattle` を呼び直さずに済み、既存の
+    * `slotAssignments` / `handCards` を保持する `retryFromFail` の設計と整合する。
     *
     * `initializeBattle` との最大の違いは、**`slotAssignments` と `handCards`
     * を意図的に触らないこと**（`battle-fail-retry` 要件 5-2）。これにより
@@ -1483,6 +1616,10 @@ const useBattleStore = create((set, get) => ({
       guardShield: 0,
       reflectActive: false,
       enemyReflectEvents: [],
+      counterValues: Object.fromEntries(
+        Object.keys(state.counterValues).map((id) => [id, 0])
+      ),
+      activeCounterId: null,
    }));
   },
 }));

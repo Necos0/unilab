@@ -52,15 +52,23 @@ const COND_WIDTH = 140;
  * `position` が未指定なら `SLOT_X_START + index * SLOT_X_STEP` を x 座標、
  * `SLOT_Y_DEFAULT` を y 座標として等間隔配置する。
  *
- * オプションフィールドの取り込み（`restricted-slot` / `multiplier-slot` 仕様）：
- * `lockedCard` / `acceptOnly` / `multiplier` の 3 つは **すべて独立した `if`
- * ブロック** で処理し、クロスフィールドの排他チェックは行わない。各ブロックは
- * 「自分のフィールド値が妥当か」だけを検証する：
- *   - `lockedCard`: 指定されていれば `expanded.lockedCard` にコピー
+ * オプションフィールドの取り込み（`restricted-slot` / `multiplier-slot` /
+ * `loop-counter` 仕様）：`lockedCard` / `acceptOnly` / `multiplier` の 3 つは
+ * **すべて独立した `if` ブロック** で処理し、クロスフィールドの排他チェックは
+ * 行わない。各ブロックは「自分のフィールド値が妥当か」だけを検証する：
+ *   - `lockedCard`: 指定されていればコピーする。ただし `lockedCard.id === 'counter'`
+ *     の場合は **`counterId` の必須性** を検証する（`loop-counter` 要件 1-1 / 1-3）。
+ *     `counterId` が非空文字列なら `expanded.lockedCard = raw.lockedCard` で counterId
+ *     込みでコピー、欠けていれば `console.warn` を出して `{ id: 'counter' }` に縮退し、
+ *     通常の lockedCard として展開を継続する（クラッシュさせない安全側フォールバック）。
+ *     `counter` 以外の `lockedCard.id`（既存の `monster` 等）はそのままコピーで
+ *     完全後方互換。
  *   - `acceptOnly`: `isValidAcceptOnly`（`'attack'`/`'guard'`/`'heal'`）を通れば
  *     コピー、不正値なら `console.warn` + 無視
- *   - `multiplier`: `isValidMultiplier`（整数 ≥ 2）を通ればコピー、不正値なら
- *     `console.warn` + 無視
+ *   - `multiplier`: `isValidMultiplier`（**2 以上の整数**または **`{ counterRef: 非空
+ *     文字列 }`**、`loop-counter` 要件 2-1）を通ればコピー、不正値なら `console.warn`
+ *     + 無視。リテラル数値とカウンタ参照オブジェクトは Sum 型として同じスロット
+ *     フィールドに同居し、ランタイム側で型分岐して解決する。
  *
  * `lockedCard` と `acceptOnly` を両方書いた場合の排他警告は **撤去** した。
  * 理由：locked スロットは初期化時にカードが埋まり `computeDropTransition` の
@@ -78,14 +86,17 @@ const COND_WIDTH = 140;
  * Args:
  *     slots (Array<object>): 短縮または完全形式のスロット配列。各要素は
  *         空オブジェクト `{}` から `{id, position, lockedCard, acceptOnly, multiplier}`
- *         まで任意の指定度を取れる。
+ *         まで任意の指定度を取れる。`lockedCard` は `{id, power?}` または
+ *         `{id: 'counter', counterId}` を取り、`multiplier` は数値リテラルまたは
+ *         `{counterRef}` を取る。
  *     stageId (string): 当該ステージの ID（`stages.json` のキー）。警告ログの
  *         デバッグコンテキストとして使う。
  *
  * Returns:
  *     Array<{id, position, lockedCard?, acceptOnly?, multiplier?}>:
  *         完全形式のスロット配列。`battleStore` / `FlowchartArea` がそのまま
- *         受け取れる形。
+ *         受け取れる形。`lockedCard` / `multiplier` の中身の型は Sum 型として
+ *         そのまま運ばれる。
  */
 function expandSlots(slots, stageId) {
   return slots.map((raw, index) => {
@@ -96,7 +107,16 @@ function expandSlots(slots, stageId) {
     };
     const expanded = { id, position };
     if (raw.lockedCard) {
-      expanded.lockedCard = raw.lockedCard;
+      if (raw.lockedCard.id === 'counter') {
+        if (typeof raw.lockedCard.counterId === 'string' && raw.lockedCard.counterId.length > 0) {
+          expanded.lockedCard = raw.lockedCard;
+        } else {
+          console.warn(`[stagesLoader] stage "${stageId}" slot "${id}": counter lockedCard requires a non-empty "counterId". Treating as plain lockedCard.`);
+          expanded.lockedCard = { id: 'counter' };
+        }
+      } else {
+        expanded.lockedCard = raw.lockedCard;
+      }
     }
     if (raw.acceptOnly) {
       if (isValidAcceptOnly(raw.acceptOnly)) {
@@ -109,7 +129,7 @@ function expandSlots(slots, stageId) {
       if (isValidMultiplier(raw.multiplier)) {
         expanded.multiplier = raw.multiplier;
       } else {
-        console.warn(`[stagesLoader] stage "${stageId}" slot "${id}": invalid multiplier "${raw.multiplier}". Must be integer >= 2. Ignoring.`);
+        console.warn(`[stagesLoader] stage "${stageId}" slot "${id}": invalid multiplier "${JSON.stringify(raw.multiplier)}". Must be integer >= 2 or { counterRef: "<id>" }. Ignoring.`);
       }
     }
     return expanded;
@@ -262,20 +282,35 @@ function isValidAcceptOnly(value) {
 /**
  * `multiplier` フィールドの値がサポートされた倍率かを判定する。
  *
- * `multiplier-slot` 仕様で許可される値は **2 以上の整数**。`Number.isInteger`
- * で小数（`1.5`）・文字列（`"2"`）・`null` / `undefined` / `boolean` / `NaN` /
- * `Infinity` をすべて拒否し、`>= 2` で `0` / `1` / 負数を弾く。`multiplier: 1`
- * は明示指定でも「倍率なし」と同義のため無効扱い（要件 1-5）。不正値はローダー
- * 側が `console.warn` を出して当該 multiplier を破棄する。
+ * 2 系統の Sum 型を受け入れる：
+ *   1. **数値リテラル**（`multiplier-slot` 仕様）：**2 以上の整数**。`Number.isInteger`
+ *      で小数（`1.5`）・文字列（`"2"`）・`null` / `undefined` / `boolean` / `NaN` /
+ *      `Infinity` をすべて拒否し、`>= 2` で `0` / `1` / 負数を弾く。`multiplier: 1`
+ *      は明示指定でも「倍率なし」と同義のため無効扱い（multiplier-slot 要件 1-5）。
+ *   2. **カウンタ参照オブジェクト**（`loop-counter` 仕様）：`{ counterRef: 非空文字列 }`。
+ *      `typeof value === 'object' && value !== null` でオブジェクト性を先に
+ *      ガードしてから、`counterRef` が文字列かつ `length > 0` であることを確認する。
+ *      これにより `null` / 配列（`[].counterRef === undefined`）/ `{ counterRef: 0 }` /
+ *      `{ counterRef: "" }` などの不正値を自然に拒否する。倍率の実体（数値）は
+ *      ランタイムで `counterValues[counterRef]` から動的に解決される（loop-counter
+ *      要件 2-2 / 2-3）。
+ *
+ * 不正値はローダー側（`expandSlots` / `buildBodySlot`）が `console.warn` を出して
+ * 当該 `multiplier` を破棄する。両系統の判定をひとつの関数に集約することで、線形
+ * ステージと flow / loop body の両ルートが同じスキーマ拡張を 1 か所の修正で享受できる。
  *
  * Args:
  *     value (any): スロット定義の `multiplier` フィールド値。
  *
  * Returns:
- *     boolean: 2 以上の整数なら `true`。
+ *     boolean: 2 以上の整数、または `{ counterRef: 非空文字列 }` 形式なら `true`。
  */
 function isValidMultiplier(value) {
-  return Number.isInteger(value) && value >= 2;
+  if (Number.isInteger(value) && value >= 2) return true;
+  if (typeof value === 'object' && value !== null) {
+    return typeof value.counterRef === 'string' && value.counterRef.length > 0;
+  }
+  return false;
 }
 
 /**
@@ -320,9 +355,22 @@ function buildEdge(ending, targetId) {
  * 分岐と `expandLoop` のループボディの両方から呼ばれ、スロット生成ロジックを
  * 1 箇所に集約する。
  *
+ * `lockedCard` の取り込み（`loop-counter` 仕様）：`raw.lockedCard.id === 'counter'`
+ * の場合は **`counterId` の必須性** を検証する（要件 1-1 / 1-3）。`counterId` が
+ * 非空文字列なら counterId 込みでコピー、欠けていれば `console.warn` を出して
+ * `{ id: 'counter' }` に縮退する（通常の lockedCard として展開を継続）。`counter`
+ * 以外の `lockedCard.id` は既存どおり単純コピー。flow ルートでは `stageId` を持たない
+ * ため警告は `slot "${slotId}"` のみで構成するが、`slot-N` 通し番号で十分に特定可能。
+ *
+ * `multiplier` の取り込み（`loop-counter` 仕様）：`isValidMultiplier` は **2 以上の
+ * 整数**または **`{ counterRef: 非空文字列 }`** の Sum 型を受け入れる（要件 2-1）。
+ * 中身の型はそのままスロットに運ばれ、ランタイム側で型分岐して解決される。
+ *
  * Args:
  *     ctx (object): 共有アキュムレータ。`slotCounter` / `slots` を持つ。
  *     raw (object): スロットの短縮定義（`{lockedCard?, acceptOnly?, multiplier?}`）。
+ *         `lockedCard` は `{id, power?}` または `{id: 'counter', counterId}`、
+ *         `multiplier` は数値リテラルまたは `{counterRef}` を受け付ける。
  *     position ({x: number, y: number}): スロットの配置座標。
  *
  * Returns:
@@ -333,7 +381,16 @@ function buildBodySlot(ctx, raw, position) {
   const slotId = `slot-${ctx.slotCounter}`;
   const slot = { id: slotId, position };
   if (raw.lockedCard) {
-    slot.lockedCard = raw.lockedCard;
+    if (raw.lockedCard.id === 'counter') {
+      if (typeof raw.lockedCard.counterId === 'string' && raw.lockedCard.counterId.length > 0) {
+        slot.lockedCard = raw.lockedCard;
+      } else {
+        console.warn(`[stagesLoader] slot "${slotId}": counter lockedCard requires a non-empty "counterId". Treating as plain lockedCard.`);
+        slot.lockedCard = { id: 'counter' };
+      }
+    } else {
+      slot.lockedCard = raw.lockedCard;
+    }
   }
   if (raw.acceptOnly) {
     if (isValidAcceptOnly(raw.acceptOnly)) {
@@ -346,7 +403,7 @@ function buildBodySlot(ctx, raw, position) {
     if (isValidMultiplier(raw.multiplier)) {
       slot.multiplier = raw.multiplier;
     } else {
-      console.warn(`[stagesLoader] slot "${slotId}": invalid multiplier "${raw.multiplier}". Must be integer >= 2. Ignoring.`);
+      console.warn(`[stagesLoader] slot "${slotId}": invalid multiplier "${JSON.stringify(raw.multiplier)}". Must be integer >= 2 or { counterRef: "<id>"}. Ignoring.`);
     }
   }
   ctx.slots.push(slot);
@@ -825,6 +882,69 @@ function expandConditions(conditions) {
 }
 
 /**
+ * ステージ単位で counter / counterRef のペア整合性を検証する
+ * （`loop-counter` 仕様）。
+ *
+ * `expandStage` の両ルート（flow / slots）の最終ステップで呼ばれ、`stage.slots` を
+ * 2 度走査して以下の不正状態を検出・無害化する：
+ *   1. **重複 counterId**（要件 11-2）：同じ `counterId` を持つ counter スロットが
+ *      複数存在する場合、最初に出現したものだけを有効とし、2 つ目以降は
+ *      `slot.lockedCard = { id: 'counter' }` に縮退（counterId を剥がして通常 lockedCard
+ *      扱い）して `console.warn` を出す。ランタイム側は剥がされた counter を「カウンタ
+ *      機能のない locked スロット」として処理するため、ステージは描画・実行が継続する。
+ *   2. **浮遊 counterRef**（要件 2-5 / 11-1）：`multiplier` がオブジェクト形式の場合に、
+ *      参照先 `counterRef` が同ステージ内のいずれの有効な `counterId` とも一致しない
+ *      場合、`delete slot.multiplier` で multiplier キーを削除して `console.warn`
+ *      を出す。`slot.multiplier === undefined` となるため、後段の
+ *      `buildSlotMetadataFromStage` が「倍率未指定 = 1 倍」と扱い、既存の未指定
+ *      スロットと同じ後方互換パスで実行される。
+ *
+ * **二段ループの順序が必須**：第 1 ループで「有効な counterId 集合」を確定してから、
+ * 第 2 ループで multiplier 側の参照を照合する。1 ループで同時にやると、後に出現する
+ * counter を先に出現する multiplier が参照できないため誤検出する。
+ *
+ * **既に縮退済みの counter の二重警告を防ぐ**：タスク 3 のフォールバックで counterId が
+ * 剥がされた `{ id: 'counter' }` は `typeof slot.lockedCard.counterId === 'string'` の
+ * 型ガードで第 1 ループからスキップされる。これにより、同一エラーで二重に警告が出ない。
+ *
+ * **mutation の安全性**：`stage.slots` の各要素は `expandSlots` / `expandFlow` で
+ * 新たに作られたオブジェクトなので、`slot.lockedCard = {...}` や `delete slot.multiplier`
+ * で原 JSON（`raw.lockedCard`）を汚染しない。
+ *
+ * Args:
+ *     stage (object): 完全形式に展開済みのステージ。`slots[]` を持ち、各スロットは
+ *         `{id, position, lockedCard?, acceptOnly?, multiplier?}` の形。本関数の副作用で
+ *         不正状態のスロットの `lockedCard` / `multiplier` が無害化されることがある。
+ *     stageId (string): 当該ステージの ID。警告ログに含めて該当箇所を特定しやすくする。
+ *
+ * Returns:
+ *     undefined: 戻り値は使わない。`stage` を in-place で書き換えるだけ。
+ */
+function validateCounterPairs(stage, stageId) {
+  const seenCounterIds = new Set();
+  for (const slot of stage.slots) {
+    if (slot.lockedCard?.id === 'counter' && typeof slot.lockedCard.counterId === 'string') {
+      const cid = slot.lockedCard.counterId;
+      if (seenCounterIds.has(cid)) {
+        console.warn(`[stagesLoader] stage "${stageId}" slot "${slot.id}": duplicate counterId "${cid}". Treating as plain lockedCard.`);
+        slot.lockedCard = { id: 'counter' };
+      } else {
+        seenCounterIds.add(cid);
+      }
+    }
+  }
+  for (const slot of stage.slots) {
+    if (typeof slot.multiplier === 'object' && slot.multiplier !== null) {
+      const ref = slot.multiplier.counterRef;
+      if (!seenCounterIds.has(ref)) {
+        console.warn(`[stagesLoader] stage "${stageId}" slot "${slot.id}": counterRef "${ref}" not found in stage. Ignoring multiplier.`);
+        delete slot.multiplier;
+      }
+    }
+  }
+}
+
+/**
  * 1 ステージ分の定義を完全形式に展開する。
  *
  * ステージ定義の形式によって 2 つのルートに分岐する：
@@ -844,6 +964,14 @@ function expandConditions(conditions) {
  * （`{ enemyId, cards, slots, conditions, start, goal, edges }`）なので、
  * 後段の `battleStore` / `FlowchartArea` は形式の違いを意識せず動作する。
  *
+ * **`validateCounterPairs` の呼び出し**（`loop-counter` 仕様）：両ルートとも、
+ * `stage` オブジェクトを組み立てた **直後** に `validateCounterPairs(stage, stageId)`
+ * を呼び、counter / counterRef のペア整合性（重複 counterId・浮遊 counterRef）を
+ * 検証する。検証で不整合があれば該当スロットの `lockedCard` / `multiplier` が
+ * in-place で無害化され、ランタイムには常に整合した state が渡される。flow ルート
+ * でも slots ルートでも同一の検証規則を適用するため、将来 slots ルートのステージで
+ * counter / counterRef を使っても同じガードが効く。
+ *
  * Args:
  *     raw (object): `stages.json` 内の 1 ステージ分。`enemyId` / `cards` は
  *         必須。`flow` を使う場合は `slots` / `conditions` / `edges` /
@@ -851,11 +979,12 @@ function expandConditions(conditions) {
  *         の `id` / `position` 省略可能、`lockedCard` / `acceptOnly` も任意）
  *         または完全形式どちらでも可。
  *     stageId (string): 当該ステージの ID（`stages.json` のキー）。`expandSlots`
- *         に渡して警告ログに含めるためのもの。線形ルートでのみ使用。
+ *         および `validateCounterPairs` に渡して警告ログに含めるためのもの。
  *
  * Returns:
  *     object: 完全形式の 1 ステージ定義。`battleStore.initializeBattle` /
- *         `FlowchartArea` が期待する形。
+ *         `FlowchartArea` が期待する形。`validateCounterPairs` の副作用で
+ *         不正な counter / counterRef は無害化済み。
  */
 function expandStage(raw, stageId) {
   if (raw.flow) {
@@ -865,15 +994,17 @@ function expandStage(raw, stageId) {
       );
     }
     const expanded = expandFlow(raw.flow);
-    return {
+    const stage = {
       enemyId: raw.enemyId,
       maxEnemyHp: raw.maxEnemyHp,
       cards: raw.cards ?? [],
       ...expanded,
     };
+    validateCounterPairs(stage, stageId);
+    return stage;
   }
   const slots = expandSlots(raw.slots ?? [], stageId);
-  return {
+  const stage = {
     enemyId: raw.enemyId,
     maxEnemyHp: raw.maxEnemyHp,
     cards: raw.cards ?? [],
@@ -884,6 +1015,8 @@ function expandStage(raw, stageId) {
     goal: expandGoal(raw.goal, slots.length),
     edges: raw.edges ?? buildLinearEdges(slots),
   };
+  validateCounterPairs(stage, stageId);
+  return stage;
 }
 
 const expandedStages = {};

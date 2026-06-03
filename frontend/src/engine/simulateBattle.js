@@ -150,13 +150,35 @@ function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments) 
  * 条件分岐やループ（閉路）も live と同じ経路で辿れる。アニメ遅延・演出は持たないので
  * 一瞬で完了する。
  *
+ * **カウンタ管理**（`loop-counter` 仕様）：`initialState.counterValues` をローカル
+ * コピー（`{ ...(initialState.counterValues ?? {}) }`）して内部で持ち、ノード走査中に
+ * 不変更新で書き換える。元の `initialState` および呼び出し元の zustand store は
+ * 一切汚染しないため、本関数は純関数性を保つ（要件 10 の sim/live 整合の前提）。
+ * 各ノードでは効果適用の **前** に counter 処理を行う：`card.id === 'counter'` かつ
+ * `counterId` を持ち、かつローカル `counterValues` に登録済みの場合のみ +1 する
+ * （三重ガードで未登録 ID・縮退済み counter を防御）。これにより live 側の
+ * `scheduleNodePhase` の counter 分岐と完全に同じタイミング・条件で値が変化する。
+ *
+ * **倍率の三分岐解決**（`multiplier-slot` / `loop-counter` 仕様）：
+ *   1. `typeof meta?.multiplier === 'number'` → リテラル倍率
+ *   2. `typeof meta?.counterRef === 'string'` → ローカル `counterValues[counterRef] ?? 0`
+ *      で動的解決（未到達カウンタは 0 倍）
+ *   3. それ以外 → 1 倍
+ * live 側（`battleStore.scheduleNodePhase`）と **同じ判定式** を共有することで、
+ * `scheduleComplete` の dev 整合チェック（`liveOutcome !== simOutcome` の warn）が
+ * 効果ルールのドリフトを早期検出できる。
+ *
  * Args:
  *     params (object):
  *         edgesBySource (object): source ノード id → エッジ配列。
  *         nodeMap (object): ノード id → `{type, expression?}`。
- *         slotAssignments (object): スロット id → カード（または null）。
- *         slotMetadata (object): スロット id → `{multiplier?}` 等。
+ *         slotAssignments (object): スロット id → カード（または null）。counter スロット
+ *             のカードは `{id: 'counter', counterId, locked: true}` の形を持つ。
+ *         slotMetadata (object): スロット id → `{multiplier?: number, counterRef?: string,
+ *             acceptOnly?}`。`multiplier` と `counterRef` は排他キー。
  *         initialState (object): 開始時の数値状態（満タンHP・シールド0・反射false）。
+ *             `counterValues: { [counterId]: 0 }` を任意で含む（未指定なら空オブジェクト
+ *             として扱う）。
  *         maxVisits (number): 1 ノードあたりの訪問回数上限（超過で runaway）。
  *
  * Returns:
@@ -164,6 +186,7 @@ function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments) 
  */
 export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMetadata, initialState, maxVisits }) {
   let state = initialState;
+  let counterValues = { ...(initialState.counterValues ?? {}) };
   const visits = {};
   let nodeId = 'start';
   while (true) {
@@ -172,7 +195,13 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
       return 'runaway';
     }
     const card = slotAssignments[nodeId];
-    const multiplier = slotMetadata[nodeId]?.multiplier ?? 1;
+    if (card?.id === 'counter' && card.counterId && counterValues[card.counterId] !== undefined) {
+      counterValues = { ...counterValues, [card.counterId]: counterValues[card.counterId] + 1 };
+    }
+    const meta = slotMetadata[nodeId];
+    const multiplier = 
+      typeof meta?.multiplier === 'number' ? meta.multiplier :
+      typeof meta?.counterRef === 'string' ? (counterValues[meta.counterRef] ?? 0) : 1;
     state = applyNodeEffect(state, card, multiplier);
     if (state.playerHp <= 0) {
       return 'lose';

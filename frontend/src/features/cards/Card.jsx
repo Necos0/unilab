@@ -3,17 +3,25 @@ import styles from './Card.module.css';
 /**
  * 個別のカードを描画するコンポーネント。
  *
- * `card.id` から `/cards/<id>.png` を解決してカード枠の画像を表示し、
+ * `card.id` から `/cards/<id>.<ext>` を解決してカード枠の画像を表示し、
  * 下段パネル領域に `card.power` を数値としてオーバーレイ合成する。これに
  * より、同じ画像を異なる威力値で使い回せる（`power` はステージ依存の
  * パラメータとして `stages.json` 側で定義される）。`monster` を含む全
  * カード ID で同じ描画フローを共有する。
  *
- * `card.power` は省略可能。`reflect` のような威力値の概念を持たない
- * カードでは `stages.json` 側で `power` を定義せず、`<span>{undefined}</span>`
- * を React が描画しない挙動を利用して、自然に数値が表示されない状態を
- * 実現する。`.power` は absolute 配置なので、`<span>` の中身が空でも
- * 他のレイアウトには影響しない。
+ * 拡張子の決定（`ext`）：原則すべてのカードで `.png` を読むが、`counter`
+ * カードのみ暫定で `.svg` を読む。これはデザイン班からピクセルアートの
+ * `counter.png` が届くまでの間、シンプルなプレースホルダー SVG
+ * （`public/cards/counter.svg`）でゲーム開発を継続するための一時的な
+ * 分岐である。本番アセット（`counter.png`）が用意できた段階で、この
+ * 三項演算を削除して `const src = `/cards/${card.id}.png`` の 1 行に
+ * 戻し、`counter.svg` をリポジトリから削除する。
+ *
+ * `card.power` は省略可能。`reflect` / `counter` のように威力値の概念を
+ * 持たないカードでは `stages.json` 側で `power` を定義せず、
+ * `<span>{undefined}</span>` を React が描画しない挙動を利用して、自然に
+ * 数値が表示されない状態を実現する。`.power` は absolute 配置なので、
+ * `<span>` の中身が空でも他のレイアウトには影響しない。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -25,7 +33,8 @@ import styles from './Card.module.css';
  *     JSX.Element: カードを表す要素。
  */
 function Card({ card }) {
-  const src = `/cards/${card.id}.png`;
+  const ext = card.id === 'counter' ? 'svg' : 'png';
+  const src = `/cards/${card.id}.${ext}`;
 
   return (
     <div className={styles.root}>
