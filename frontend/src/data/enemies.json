@@ -101,6 +101,23 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "starfish",
+      "displayName": "ヒトデ",
+      "maxHp": 20,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }

@@ -1,10 +1,17 @@
 {
-  "demoStageIds": ["3-1", "3-2", "4-1", "4-3", "5-1"],
+  "demoStageIds": [
+    "4-1",
+    "4-3",
+    "5-1"
+  ],
   "stages": {
     "1-1": {
       "enemyId": "slime",
       "cards": [
-        { "id": "attack", "power": 10 }
+        {
+          "id": "attack",
+          "power": 10
+        }
       ],
       "slots": [
         {}
@@ -13,55 +20,124 @@
     "1-2": {
       "enemyId": "wolf",
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "guard",  "power": 50 }
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "guard",
+          "power": 50
+        }
       ],
       "slots": [
         {},
-        { "lockedCard": { "id": "monster", "power": 100 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 100
+          }
+        },
         {}
       ]
     },
     "1-3": {
       "enemyId": "knight",
       "cards": [
-        { "id": "heal", "power": 50 },
-        { "id": "attack", "power": 20 }
+        {
+          "id": "heal",
+          "power": 50
+        },
+        {
+          "id": "attack",
+          "power": 20
+        }
       ],
       "slots": [
-        { "lockedCard": { "id": "monster", "power": 60 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 60
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 60 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 60
+          }
+        },
         {}
       ]
     },
     "1-4": {
       "enemyId": "golem",
       "cards": [
-        { "id": "attack", "power": 30 },
-        { "id": "reflect" }
+        {
+          "id": "attack",
+          "power": 30
+        },
+        {
+          "id": "reflect"
+        }
       ],
       "slots": [
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
         {}
       ]
     },
     "2-1": {
       "enemyId": "cactus",
       "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "guard", "power": 10 },
-        { "id": "heal",   "power": 100 }
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "guard",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 100
+        }
       ],
       "slots": [
-        { "lockedCard": { "id": "monster", "power": 80 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 80
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        { "lockedCard": { "id": "monster", "power": 30 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 30
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 20 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 20
+          }
+        },
         {},
         {}
       ]
@@ -70,76 +146,190 @@
       "enemyId": "cobra",
       "maxEnemyHp": 100,
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "guard", "power": 80 },
-        { "id": "heal",  "power": 100 },
-        { "id": "reflect" }
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "guard",
+          "power": 80
+        },
+        {
+          "id": "heal",
+          "power": 100
+        },
+        {
+          "id": "reflect"
+        }
       ],
       "slots": [
-        { "lockedCard": { "id": "monster", "power": 10 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 10
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 10 } },
-        { "lockedCard": { "id": "monster", "power": 80 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 10
+          }
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 80
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 80 } },
-        { "lockedCard": { "id": "monster", "power": 10 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 80
+          }
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 10
+          }
+        },
         {},
         {},
-        { "lockedCard": { "id": "monster", "power": 80 } }
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 80
+          }
+        }
       ]
     },
     "2-3": {
       "enemyId": "slime",
       "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "guard", "power": 20 },
-        { "id": "guard", "power": 30 },
-        { "id": "guard", "power": 40 },
-        { "id": "guard", "power": 60 },
-        { "id": "heal", "power": 40 },
-        { "id": "heal", "power": 100 }
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "guard",
+          "power": 20
+        },
+        {
+          "id": "guard",
+          "power": 30
+        },
+        {
+          "id": "guard",
+          "power": 40
+        },
+        {
+          "id": "guard",
+          "power": 60
+        },
+        {
+          "id": "heal",
+          "power": 40
+        },
+        {
+          "id": "heal",
+          "power": 100
+        }
       ],
       "slots": [
         {},
-        { "lockedCard": { "id": "monster", "power": 60 } },
-        { "acceptOnly": "heal" },
-        { "acceptOnly": "guard" },
-        { "lockedCard": { "id": "monster", "power": 150 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 60
+          }
+        },
+        {
+          "acceptOnly": "heal"
+        },
+        {
+          "acceptOnly": "guard"
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 150
+          }
+        },
         {},
-        { "multiplier": 2 },
-        { "lockedCard": { "id": "monster", "power": 110 } },
+        {
+          "multiplier": 2
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 110
+          }
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 90 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 90
+          }
+        },
         {}
       ]
     },
     "2-4": {
       "enemyId": "golem",
       "cards": [
-        { "id": "attack", "power": 30 },
-        { "id": "reflect" }
+        {
+          "id": "attack",
+          "power": 30
+        },
+        {
+          "id": "reflect"
+        }
       ],
       "slots": [
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
         {}
       ]
     },
     "3-1": {
-      "enemyId": "wolf",
+      "enemyId": "starfish",
       "maxEnemyHp": 30,
       "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "heal",   "power": 10 }
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 10
+        }
       ],
       "flow": [
-        { "lockedCard": { "id": "monster", "power": 50 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
         {},
         {
           "condition": "playerHp > 50",
           "label": "自分のHpが50より大きい",
           "true": [
-            { "lockedCard": { "id": "attack", "power": 20 } }
+            {
+              "lockedCard": {
+                "id": "attack",
+                "power": 20
+              }
+            }
           ],
           "false": []
         },
@@ -150,24 +340,50 @@
       "enemyId": "wolf",
       "maxEnemyHp": 50,
       "cards": [
-        { "id": "attack", "power":20 },
-        { "id":"attack", "power":15 },
-        { "id":"guard", "power":30 },
-        { "id":"reflect" }
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "attack",
+          "power": 15
+        },
+        {
+          "id": "guard",
+          "power": 30
+        },
+        {
+          "id": "reflect"
+        }
       ],
       "flow": [
         {},
-        { "lockedCard": { "id": "monster", "power": 15 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 15
+          }
+        },
         {
           "condition": "slot('slot-1') === 'attack'",
           "label": "(1)が攻撃カード",
           "true": [
             {},
-            { "lockedCard": { "id": "monster", "power": 20 } }
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 20
+              }
+            }
           ],
           "false": [
             {},
-            { "lockedCard": { "id": "monster", "power": 25 } },
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 25
+              }
+            },
             {}
           ]
         }
@@ -177,8 +393,14 @@
       "enemyId": "wolf",
       "maxEnemyHp": 60,
       "cards": [
-        { "id": "attack", "power": 15 },
-        { "id": "guard", "power": 10 }
+        {
+          "id": "attack",
+          "power": 15
+        },
+        {
+          "id": "guard",
+          "power": 10
+        }
       ],
       "flow": [
         {
@@ -190,7 +412,12 @@
             "falseDir": "right",
             "body": [
               {},
-              { "lockedCard": { "id": "monster", "power": 30 } },
+              {
+                "lockedCard": {
+                  "id": "monster",
+                  "power": 30
+                }
+              },
               {}
             ]
           }
@@ -201,12 +428,30 @@
       "enemyId": "wolf",
       "maxEnemyHp": 100,
       "cards": [
-        { "id": "attack", "power": 5 },
-        { "id": "attack", "power": 15 },
-        { "id": "guard", "power": 30 },
-        { "id": "heal", "power": 10 },
-        { "id": "heal", "power": 10 },
-        { "id": "heal", "power": 10 }
+        {
+          "id": "attack",
+          "power": 5
+        },
+        {
+          "id": "attack",
+          "power": 15
+        },
+        {
+          "id": "guard",
+          "power": 30
+        },
+        {
+          "id": "heal",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 10
+        }
       ],
       "flow": [
         {
@@ -218,54 +463,132 @@
             "falseDir": "up",
             "body": [
               {},
-              { "lockedCard": { "id": "monster", "power": 60 } },
+              {
+                "lockedCard": {
+                  "id": "monster",
+                  "power": 60
+                }
+              },
               {},
               {},
               {},
-              { "lockedCard": { "id": "counter", "counterId": "c1" } }
+              {
+                "lockedCard": {
+                  "id": "counter",
+                  "counterId": "c1"
+                }
+              }
             ]
           }
         },
         {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        { "multiplier": { "counterRef": "c1" } }
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
+        {
+          "multiplier": {
+            "counterRef": "c1"
+          }
+        }
       ]
     },
     "5-1": {
       "enemyId": "cobra",
       "maxEnemyHp": 100,
       "cards": [
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 5 },
-        { "id": "attack", "power": 5 },
-        { "id": "guard", "power": 10 },
-        { "id": "heal", "power": 10 },
-        { "id": "heal", "power": 30 },
-        { "id": "reflect" }
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "attack",
+          "power": 5
+        },
+        {
+          "id": "attack",
+          "power": 5
+        },
+        {
+          "id": "guard",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 10
+        },
+        {
+          "id": "heal",
+          "power": 30
+        },
+        {
+          "id": "reflect"
+        }
       ],
       "flow": [
         {},
         {},
-        { "lockedCard": { "id": "monster", "power": 20 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 20
+          }
+        },
         {},
         {},
-        { "lockedCard": { "id": "monster", "power": 15 } },
-        { "acceptOnly": "attack" },
-        { "lockedCard": { "id": "monster", "power": 95 } },
-        { "multiplier": 2 },
-        { "multiplier": 3 },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 15
+          }
+        },
+        {
+          "acceptOnly": "attack"
+        },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 95
+          }
+        },
+        {
+          "multiplier": 2
+        },
+        {
+          "multiplier": 3
+        },
         {},
-        { "lockedCard": { "id": "monster", "power": 30 } },
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 30
+          }
+        },
         {
           "condition": "enemyHp === 40",
           "label": "敵のHPが40?",
           "true": [
-            { "multiplier": 4 }
+            {
+              "multiplier": 4
+            }
           ],
           "false": [
-            { "lockedCard": { "id": "monster", "power": 100 } }
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 100
+              }
+            }
           ]
         }
       ]

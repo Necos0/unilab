@@ -1,0 +1,27 @@
+/* マップ座標エディタの開始／終了トグル。マップ左上（バトルデモ・大画面の
+   下、3 段目）に重ねる開発用ボタン。 */
+
+.button {
+  position: absolute;
+  top: 5.5rem;
+  left: 0.5rem;
+  z-index: 20;
+  padding: 0.5rem 0.85rem;
+  background: rgba(12, 12, 16, 0.85);
+  color: #f2f2f2;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s ease;
+}
+
+.button:hover {
+  background: rgba(40, 40, 52, 0.9);
+}
+
+.button[data-active='true'] {
+  background: #3c7549;
+  border-color: rgba(255, 255, 255, 0.45);
+}

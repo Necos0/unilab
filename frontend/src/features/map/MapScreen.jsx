@@ -12,7 +12,11 @@ import FullscreenToggleButton from './FullscreenToggleButton';
 import MapTravelButton from './MapTravelButton';
 import MapSelectOverlay from './MapSelectOverlay';
 import MapSwitchTransition from './MapSwitchTransition';
+import MapEditorLayer from './MapEditorLayer';
+import MapEditorPanel from './MapEditorPanel';
+import MapEditorToggleButton from './MapEditorToggleButton';
 import useMapStore from '../../stores/mapStore';
+import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
 import mapsData from '../../data/maps.json';
 
@@ -27,6 +31,7 @@ const DEFAULT_MAP_ID = 'map_1';
 const MAP_LABELS = {
   map_1: 'マップ 1（草原）',
   map_2: 'マップ 2（砂漠）',
+  map_3: 'マップ 3（海岸）',
 };
 
 /**
@@ -72,7 +77,17 @@ function MapScreen({ onStartBattle, onStartBattleDemo, demoStageIds }) {
   const currentMapId =
     useMapStore((state) => state.currentMapId) ?? DEFAULT_MAP_ID;
 
+  /*
+   * マップ座標エディタ（開発用）。編集中は表示マップを `draft` に差し替えて
+   * 道・背景をライブ更新し、ランドマーク／プレイヤーの代わりに座標ハンドル
+   * （`MapEditorLayer`）と操作パネル（`MapEditorPanel`）を出す。
+   */
+  const isEditing = useMapEditorStore((state) => state.isEditing);
+  const editorDraft = useMapEditorStore((state) => state.draft);
+  const stopEditing = useMapEditorStore((state) => state.stopEditing);
+
   const mapDef = mapsData.maps[currentMapId];
+  const renderMap = isEditing && editorDraft ? editorDraft : mapDef;
 
   const [isMapSelectOpen, setIsMapSelectOpen] = useState(false);
   /*
@@ -169,7 +184,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, demoStageIds }) {
     setPendingMapId(null);
   }, []);
 
-  const { viewBox } = mapDef;
+  const { viewBox } = renderMap;
 
   return (
     <section className={styles.root}>
@@ -179,26 +194,41 @@ function MapScreen({ onStartBattle, onStartBattleDemo, demoStageIds }) {
           viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
           preserveAspectRatio="xMidYMid meet"
         >
-          <MapBackground mapDef={mapDef} />
-          <MapPaths mapDef={mapDef} />
-          {mapDef.landmarks.map((landmark) => (
-            <Landmark
-              key={landmark.id}
-              landmark={landmark}
-              isMoving={isMoving}
-              currentLocation={currentLocation}
-              onClick={requestMove}
-              onStartBattle={onStartBattle}
-            />
-          ))}
-          <PlayerSprite />
-          <MapOverlay viewBox={viewBox} />
+          <MapBackground mapDef={renderMap} />
+          <MapPaths mapDef={renderMap} />
+          {isEditing && editorDraft ? (
+            <MapEditorLayer draft={editorDraft} />
+          ) : (
+            <>
+              {mapDef.landmarks.map((landmark) => (
+                <Landmark
+                  key={landmark.id}
+                  landmark={landmark}
+                  isMoving={isMoving}
+                  currentLocation={currentLocation}
+                  onClick={requestMove}
+                  onStartBattle={onStartBattle}
+                />
+              ))}
+              <PlayerSprite />
+              <MapOverlay viewBox={viewBox} />
+            </>
+          )}
           {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
         <FullscreenToggleButton />
-        <BattleDemoButton demoStageIds={demoStageIds} onSelectStage={onStartBattleDemo} />
-        <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
+        {!isEditing && (
+          <>
+            <BattleDemoButton
+              demoStageIds={demoStageIds}
+              onSelectStage={onStartBattleDemo}
+            />
+            <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
+          </>
+        )}
+        <MapEditorToggleButton mapId={currentMapId} mapDef={mapDef} />
+        {isEditing && <MapEditorPanel onClose={stopEditing} />}
         {isMapSelectOpen && (
           <MapSelectOverlay
             maps={mapList}

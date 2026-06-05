@@ -305,6 +305,147 @@
           ]
         }
       ]
+    },
+    "map_3": {
+      "image": "/maps/map_3.png",
+      "viewBox": {
+        "width": 1920,
+        "height": 1080
+      },
+      "startId": "coast_gate",
+      "junctions": [],
+      "landmarks": [
+        {
+          "id": "coast_gate",
+          "label": "海岸の門",
+          "position": {
+            "x": 146,
+            "y": 529
+          },
+          "stopPoint": {
+            "x": 162,
+            "y": 675
+          }
+        },
+        {
+          "id": "coral_pool",
+          "label": "珊瑚の潮だまり",
+          "position": {
+            "x": 539,
+            "y": 575
+          },
+          "stopPoint": {
+            "x": 582,
+            "y": 775
+          },
+          "stageId": "3-1",
+          "difficulty": 1
+        },
+        {
+          "id": "pirate_ship",
+          "label": "難破船",
+          "position": {
+            "x": 824,
+            "y": 301
+          },
+          "stopPoint": {
+            "x": 866,
+            "y": 530
+          },
+          "stageId": "3-2",
+          "difficulty": 2
+        },
+        {
+          "id": "reef_arch",
+          "label": "岩礁のアーチ",
+          "position": {
+            "x": 1012,
+            "y": 703
+          },
+          "stopPoint": {
+            "x": 1181,
+            "y": 663
+          },
+          "stageId": "3-3",
+          "difficulty": 3
+        },
+        {
+          "id": "lagoon",
+          "label": "霧のラグーン",
+          "position": {
+            "x": 1611,
+            "y": 443
+          },
+          "stopPoint": {
+            "x": 1697,
+            "y": 692
+          },
+          "stageId": "3-4",
+          "difficulty": 5
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-gate-coral",
+          "from": "coast_gate",
+          "to": "coral_pool",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 266,
+              "y": 764
+            },
+            {
+              "x": 443,
+              "y": 790
+            }
+          ]
+        },
+        {
+          "id": "e-coral-ship",
+          "from": "coral_pool",
+          "to": "pirate_ship",
+          "direction": "up",
+          "waypoints": [
+            {
+              "x": 693,
+              "y": 718
+            },
+            {
+              "x": 784,
+              "y": 576
+            }
+          ]
+        },
+        {
+          "id": "e-ship-reef",
+          "from": "pirate_ship",
+          "to": "reef_arch",
+          "direction": "down",
+          "waypoints": [
+            {
+              "x": 1057,
+              "y": 540
+            }
+          ]
+        },
+        {
+          "id": "e-reef-lagoon",
+          "from": "reef_arch",
+          "to": "lagoon",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 1342,
+              "y": 800
+            },
+            {
+              "x": 1560,
+              "y": 799
+            }
+          ]
+        }
+      ]
     }
   }
 }

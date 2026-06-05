@@ -1,0 +1,87 @@
+/* マップ座標エディタのハンドル群。すべて編集モード時のみ描画される。 */
+
+.layer {
+  pointer-events: auto;
+}
+
+.handle {
+  cursor: grab;
+}
+
+/* ランドマーク position（青い四角）。アイコン・クリック位置を表す。 */
+.position {
+  fill: rgba(60, 140, 255, 0.85);
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: grab;
+}
+
+/* ランドマーク stopPoint（緑の丸）。道上の停止点を表す。 */
+.stop {
+  fill: rgba(60, 220, 130, 0.9);
+  stroke: #06351e;
+  stroke-width: 3;
+  cursor: grab;
+}
+
+/* 分岐点 stopPoint（黄の菱形）。 */
+.junctionStop {
+  fill: rgba(255, 210, 70, 0.95);
+  stroke: #4a3700;
+  stroke-width: 3;
+  cursor: grab;
+}
+
+/* エッジ通過点（橙の丸）。 */
+.waypoint {
+  fill: rgba(255, 140, 50, 0.95);
+  stroke: #3a1d00;
+  stroke-width: 3;
+  cursor: grab;
+}
+
+/* position と stopPoint を結ぶ破線。対応関係を可視化する。 */
+.link {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 2;
+  stroke-dasharray: 8 8;
+  pointer-events: none;
+}
+
+/* ハンドルの上に出す ID／インデックスのラベル。 */
+.handleLabel {
+  fill: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 4;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 区間中点の挿入ハンドル（半透明の「＋」）。 */
+.insert {
+  cursor: cell;
+}
+
+.insertDot {
+  fill: rgba(0, 0, 0, 0.35);
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 2;
+}
+
+.insert:hover .insertDot {
+  fill: rgba(255, 140, 50, 0.8);
+}
+
+.insertPlus {
+  fill: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
