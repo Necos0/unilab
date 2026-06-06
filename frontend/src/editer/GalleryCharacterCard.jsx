@@ -3,35 +3,39 @@ import { getEnemyFramePath } from '../features/battle/enemy/enemySpritePath';
 import { useSpriteAnimation } from '../hooks/useSpriteAnimation';
 
 /**
- * キャラクター一覧画面で 1 体ぶんの idle アニメーションを表示するカード。
+ * キャラクター一覧画面で 1 体ぶんのアニメーションを表示するカード。
  *
- * `enemies.json` の 1 エントリを受け取り、その `idle` アニメーション定義に
- * 従って `useSpriteAnimation` でフレームを進め、`getEnemyFramePath` が組み
- * 立てる URL を `<img>` に流し込む。バトル用の `EnemySprite` と違い被弾
- * フラッシュ・フェードなどの戦闘演出には依存せず、純粋に idle を眺める
- * ための表示に徹する。画像はセル幅・高さに収まるよう `object-fit: contain`
- * で縮小表示し、原寸の大きいスプライトでも一覧レイアウトを崩さない。
- * `idle` 定義が無い敵は描画対象外として `null` を返す。本コンポーネントは
- * 開発者向けビューのため、ゲーム内テキストのふりがな規則は適用しない。
+ * `enemies.json` の 1 エントリと表示する状態 `state`（`idle` / `dead`）を
+ * 受け取り、その状態のアニメーション定義に従って `useSpriteAnimation` で
+ * フレームを進め、`getEnemyFramePath` が組み立てる URL を `<img>` に流し
+ * 込む。`state` が変わると `useSpriteAnimation` が設定変更を検知して先頭
+ * フレームから再生し直すため、やられ（dead, loop=false）も毎回頭から再生
+ * される。バトル用の `EnemySprite` と違い被弾フラッシュ・フェードなどの
+ * 戦闘演出には依存せず、純粋にアニメを眺めるための表示に徹する。画像は
+ * セル幅・高さに収まるよう `object-fit: contain` で縮小表示し、原寸の
+ * 大きいスプライトでも一覧レイアウトを崩さない。指定状態の定義が無い敵は
+ * 描画対象外として `null` を返す。本コンポーネントは開発者向けビューの
+ * ため、ゲーム内テキストのふりがな規則は適用しない。
  *
  * Args:
  *     props (object): React プロパティ。
  *         enemy (object): `enemies.json` の敵エントリ（`id` / `displayName`
- *             / `animations.idle` を含む）。
+ *             / `animations` を含む）。
+ *         state (string): 表示するアニメーション状態（`'idle'` / `'dead'`）。
  *
  * Returns:
- *     JSX.Element | null: キャラクターカード要素、または idle 未定義時 null。
+ *     JSX.Element | null: キャラクターカード要素、または該当状態未定義時 null。
  */
-function GalleryCharacterCard({ enemy }) {
-  const idle = enemy.animations?.idle;
+function GalleryCharacterCard({ enemy, state }) {
+  const animation = enemy.animations?.[state];
 
   const { frameIndex } = useSpriteAnimation({
-    frameCount: idle?.frameCount ?? 1,
-    frameDurationMs: idle?.frameDurationMs ?? 1000,
-    loop: idle?.loop ?? true,
+    frameCount: animation?.frameCount ?? 1,
+    frameDurationMs: animation?.frameDurationMs ?? 1000,
+    loop: animation?.loop ?? true,
   });
 
-  if (!idle) {
+  if (!animation) {
     return null;
   }
 
@@ -40,7 +44,7 @@ function GalleryCharacterCard({ enemy }) {
       <div className={styles.stage}>
         <img
           className={styles.sprite}
-          src={getEnemyFramePath(enemy.id, 'idle', frameIndex)}
+          src={getEnemyFramePath(enemy.id, state, frameIndex)}
           alt={enemy.displayName}
           draggable={false}
         />

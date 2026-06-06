@@ -26,6 +26,43 @@
   white-space: nowrap;
 }
 
+/* 通常／やられ を一括で切り替えるトグル。 */
+.stateToggle {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: #14141c;
+  border: 1px solid #34344a;
+  border-radius: 0.5rem;
+}
+
+.stateButton {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #b6bace;
+  background: transparent;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stateButton:hover {
+  color: #e7e9f2;
+  background: #242432;
+}
+
+.stateButtonActive {
+  color: #14141c;
+  background: #ffce6b;
+}
+
+.stateButtonActive:hover {
+  color: #14141c;
+  background: #ffce6b;
+}
+
 .backButton {
   margin-left: auto;
   padding: 0.45rem 0.9rem;
