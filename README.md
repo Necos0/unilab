@@ -181,6 +181,26 @@ unilab/
         ├── engine/               ← UI 非依存のゲームロジック(純関数、将来 Python 移植の仕様書代わり)
         │   ├── evaluateCondition.js   ← 条件式(文字列)を実行時状態で評価する純関数
         │   └── simulateBattle.js      ← 実行前に勝敗/無限ループ(runaway)を数値だけで判定する純関数
+        ├── editer/               ← スプライトシート分割エディタ(開発用ツール、他コードから独立)
+        │   ├── SpriteSheetEditor.jsx       ← エディタ画面ルート(状態集約・レイアウト)
+        │   ├── SpriteSheetEditor.module.css
+        │   ├── EditorEntryButton.jsx       ← マップ右下のエディタ起動ボタン
+        │   ├── EditorEntryButton.module.css
+        │   ├── ImageStage.jsx              ← 画像の拡大縮小・移動表示＋切り取り枠＋切り取り実行
+        │   ├── ImageStage.module.css
+        │   ├── FrameList.jsx               ← 切り取ったコマ一覧(ドラッグ並べ替え・削除)
+        │   ├── FrameList.module.css
+        │   ├── PreviewPlayer.jsx           ← コマ列の FPS 指定アニメ再生プレビュー
+        │   ├── PreviewPlayer.module.css
+        │   ├── SavePanel.jsx               ← キャラ名・状態指定→命名規則どおり ZIP 保存
+        │   ├── SavePanel.module.css
+        │   ├── cropRegion.js               ← 枠内を元画像の原寸ピクセルで切り出す(純関数)
+        │   ├── createZip.js                ← 外部ライブラリ無しの ZIP(store 方式)生成(純関数)
+        │   ├── dataUrlToBytes.js           ← dataURL をバイト列へ変換(純関数)
+        │   ├── downloadBlob.js             ← Blob をファイルとしてダウンロード
+        │   ├── buildSpriteFileName.js      ← 命名規則のファイル名を組み立てる(純関数)
+        │   ├── buildAnimationMeta.js       ← enemies.json 用アニメ設定を組み立てる(純関数)
+        │   └── sanitizeId.js               ← 入力名を snake_case の ID へ正規化(純関数)
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx

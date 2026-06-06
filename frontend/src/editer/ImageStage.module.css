@@ -1,0 +1,123 @@
+/* 画像の閲覧（拡大縮小・移動）と切り取り枠の重ね合わせを行う表示領域。 */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 0.5rem;
+}
+
+.hint {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: #9aa0b5;
+}
+
+/* 実際に画像を描く窓。はみ出しは隠し、内部の stage を transform で動かす。 */
+.viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(#2a2a35 0% 25%, #20202a 0% 50%) 50% / 24px 24px;
+  border: 1px solid #3a3a48;
+  border-radius: 0.4rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.viewport:active {
+  cursor: grabbing;
+}
+
+/* 画像ファイルをドラッグで重ねている間のハイライト。 */
+.dragOver {
+  border-color: #ffce6b;
+  box-shadow: inset 0 0 0 2px rgba(255, 206, 107, 0.7);
+}
+
+/* 元画像と同じ実ピクセルサイズを持つ層。transform-origin を左上に固定。 */
+.stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 切り取り枠。枠線の太さは表示倍率に応じて JS 側で調整する。 */
+.frameBox {
+  position: absolute;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: #ff3b6b;
+  background: rgba(255, 59, 107, 0.12);
+  cursor: move;
+}
+
+/* 切り取り枠の角・辺に出すリサイズハンドル。白地＋赤フチで枠上でも視認できる。
+   サイズ・フチ太さ・位置は表示倍率に合わせて JS 側で指定する。 */
+.resizeHandle {
+  position: absolute;
+  box-sizing: border-box;
+  background: #fff;
+  border-style: solid;
+  border-color: #ff3b6b;
+  border-radius: 2px;
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6a7088;
+  font-size: 0.95rem;
+}
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.coords {
+  font-size: 0.75rem;
+  color: #9aa0b5;
+  font-variant-numeric: tabular-nums;
+}
+
+.cropButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a1320;
+  background: #ffce6b;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.cropButton:hover:not(:disabled) {
+  transform: scale(1.04);
+  filter: brightness(1.08);
+}
+
+.cropButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
