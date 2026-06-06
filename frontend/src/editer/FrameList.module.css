@@ -48,6 +48,21 @@
   box-shadow: 0 0 0 2px rgba(255, 206, 107, 0.5);
 }
 
+/* 再生停止中はクリックで選べることを示すポインター。 */
+.selectable {
+  cursor: pointer;
+}
+
+.selectable:active {
+  cursor: pointer;
+}
+
+/* プレビューに表示中のコマを強調する。 */
+.selected {
+  border-color: #6bb8ff;
+  box-shadow: 0 0 0 2px rgba(107, 184, 255, 0.6);
+}
+
 .thumb {
   max-width: 100%;
   max-height: 100%;

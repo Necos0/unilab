@@ -38,6 +38,8 @@ function SpriteSheetEditor({ onExit }) {
   const [frameHeight, setFrameHeight] = useState(DEFAULT_FRAME_SIZE);
   const [frames, setFrames] = useState([]);
   const [fps, setFps] = useState(8);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
   const nextId = useRef(0);
 
   const loadImageFile = (file) => {
@@ -77,6 +79,16 @@ function SpriteSheetEditor({ onExit }) {
 
   const handleRemove = (id) => {
     setFrames((prev) => prev.filter((frame) => frame.id !== id));
+  };
+
+  /*
+   * 一覧のコマをクリックしてプレビューに表示する。再生中は自動送りと競合する
+   * ため何もせず、一時停止中だけそのコマへジャンプする。
+   */
+  const handleSelectFrame = (index) => {
+    if (!isPlaying) {
+      setPreviewIndex(index);
+    }
   };
 
   const handleFrameSizeChange = (setter) => (event) => {
@@ -152,12 +164,23 @@ function SpriteSheetEditor({ onExit }) {
               frames={frames}
               onReorder={handleReorder}
               onRemove={handleRemove}
+              onSelect={handleSelectFrame}
+              selectedIndex={previewIndex}
+              isSelectable={!isPlaying}
             />
           </div>
         </div>
 
         <aside className={styles.right}>
-          <PreviewPlayer frames={frames} fps={fps} onFpsChange={setFps} />
+          <PreviewPlayer
+            frames={frames}
+            fps={fps}
+            onFpsChange={setFps}
+            index={previewIndex}
+            onIndexChange={setPreviewIndex}
+            isPlaying={isPlaying}
+            onPlayingChange={setIsPlaying}
+          />
           <SavePanel frames={frames} />
         </aside>
       </div>
