@@ -20,15 +20,16 @@
     {
       "id": "wolf",
       "displayName": "ウルフ",
+      "scale": 0.5,
       "maxHp": 20,
       "animations": {
         "idle": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
+          "frameCount": 3,
+          "frameDurationMs": 300,
           "loop": true
         },
         "dead": {
-          "frameCount": 6,
+          "frameCount": 5,
           "frameDurationMs": 250,
           "loop": false
         }
