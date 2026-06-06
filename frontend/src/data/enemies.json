@@ -120,6 +120,23 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "dragon",
+      "displayName": "ドラゴン",
+      "maxHp": 100,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }
