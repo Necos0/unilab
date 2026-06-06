@@ -1,0 +1,37 @@
+/* マップ画面右下、スプライトシートエディタ起動ボタンのひとつ上に重ねる
+   キャラクター一覧起動ボタン。エディタ入口と区別できるよう寒色のアクセント
+   にし、控えめながら押せると分かるコントラストを持たせる。ホバーで
+   青系グロー＋わずかに拡大する。 */
+.button {
+  position: absolute;
+  bottom: 3.35rem;
+  right: 0.75rem;
+  z-index: 10;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #cfe6ff;
+  background: rgba(16, 20, 28, 0.72);
+  border: 1px solid rgba(120, 190, 255, 0.55);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.button:hover {
+  transform: scale(1.05);
+  background: rgba(26, 34, 46, 0.85);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(100, 180, 255, 0.55);
+}
+
+.button:active {
+  transform: scale(1.01);
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(140, 200, 255, 0.85);
+  outline-offset: 2px;
+}

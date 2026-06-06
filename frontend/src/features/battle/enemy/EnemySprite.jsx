@@ -14,7 +14,11 @@ import useBattleStore from '../../../stores/battleStore';
  * 対象状態のフレーム群はマウント時に `new Image()` で事前読み込み
  * することで、フレーム切り替え時のチラつきを防ぐ。
  * `enemyId` または `state` が定義に存在しない場合は `null` を返し、
- * 親レイアウトを崩さない。画像は原寸で表示する。
+ * 親レイアウトを崩さない。画像は原寸で表示するが、`enemies.json` の
+ * `scale`（省略時 1）が指定された敵は `zoom` で拡縮する。`transform: scale()`
+ * は見た目だけを縮小しレイアウト上の占有サイズが原寸のまま残るため、
+ * `overflow: hidden` の敵エリアで HP バーが押し出されてしまう。`zoom` は
+ * 占有ボックスごと縮むので、縮小しても HP バーが正しく収まる。
  *
  * 攻撃ヒット演出として `battleStore.enemyDamageEvents` 末尾の id を購読し、
  * 新しいダメージイベントが入ったタイミングで `<img>` に `.flashing`
@@ -84,11 +88,13 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   }
 
   const src = getEnemyFramePath(enemyId, state, frameIndex);
+  const scale = enemy.scale ?? 1;
 
   return (
     <div className={styles.root}>
       <img
         className={`${styles.sprite} ${isFlashing ? styles.flashing : ''} ${isFading ? styles.fading : ''} ${isDimmed ? styles.dimmed : ''}`}
+        style={scale !== 1 ? { zoom: scale } : undefined}
         onAnimationEnd={() => setConsumedDamageId(lastDamageId)}
         src={src}
         alt={enemy.displayName}

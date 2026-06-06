@@ -16,6 +16,7 @@ import MapEditorLayer from './MapEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
 import MapEditorToggleButton from './MapEditorToggleButton';
 import EditorEntryButton from '../../editer/EditorEntryButton';
+import GalleryEntryButton from '../../editer/GalleryEntryButton';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
@@ -64,6 +65,8 @@ const MAP_LABELS = {
  *             として転送される。
  *         onOpenEditor (function): 右下の「スプライトシートエディタ」ボタン
  *             押下時に呼ぶ関数（引数なし）。App 側でエディタ画面へ切り替える。
+ *         onOpenGallery (function): 右下の「キャラクター一覧」ボタン押下時に
+ *             呼ぶ関数（引数なし）。App 側でキャラクター一覧画面へ切り替える。
  *         demoStageIds (Array<string>): バトルデモドロップダウンに並べる
  *             ステージ ID 配列。`stagesLoader.js` 経由で `stages.json` の
  *             `demoStageIds` から流れてくる。
@@ -71,7 +74,7 @@ const MAP_LABELS = {
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, demoStageIds }) {
+function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, demoStageIds }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -228,6 +231,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, demoStageId
               onSelectStage={onStartBattleDemo}
             />
             <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
+            <GalleryEntryButton onClick={onOpenGallery} />
             <EditorEntryButton onClick={onOpenEditor} />
           </>
         )}

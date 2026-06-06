@@ -1,0 +1,53 @@
+/* キャラクター一覧画面全体。ヘッダ＋スクロールするカードグリッド。 */
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100svh;
+  background: #14141c;
+  color: #e7e9f2;
+  overflow: hidden;
+}
+
+.header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #1a1a24;
+  border-bottom: 1px solid #34344a;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.backButton {
+  margin-left: auto;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e7e9f2;
+  background: #34344a;
+  border: 1px solid #50506a;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.backButton:hover {
+  background: #40405a;
+}
+
+.grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}

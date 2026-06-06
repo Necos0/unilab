@@ -38,9 +38,10 @@
       "id": "knight",
       "displayName": "ナイト",
       "maxHp": 20,
+      "scale": 0.55,
       "animations": {
         "idle": {
-          "frameCount": 6,
+          "frameCount": 5,
           "frameDurationMs": 250,
           "loop": true
         },

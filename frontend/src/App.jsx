@@ -3,13 +3,14 @@ import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
+import CharacterGallery from './editer/CharacterGallery.jsx';
 import useProgressStore from './stores/progressStore.js';
 import stagesData from './data/stagesLoader.js';
 
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'map' | 'battle' | 'editor'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'map' | 'battle' | 'editor' | 'gallery'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はマップ
  * 画面（`MapScreen`）を表示し、ランドマーク詳細パネルの「たたかう」ボタン、
  * またはマップ右上のデバッグ用「バトルデモ」ボタンが押されると、対応する
@@ -19,6 +20,9 @@ import stagesData from './data/stagesLoader.js';
  * また、マップ画面右下の「スプライトシートエディタ」ボタン（`onOpenEditor`）
  * を押すと開発用のスプライトシート分割エディタ（`SpriteSheetEditor`）へ
  * 切り替わり、エディタの「マップへ戻る」（`handleExitToMap`）でマップへ戻る。
+ * 同じくマップ右下のエディタボタン上に並ぶ「キャラクター一覧」ボタン
+ * （`onOpenGallery`）からは、全キャラクターの idle を閲覧する `CharacterGallery`
+ * へ切り替わり、こちらも「マップへ戻る」でマップへ戻る。
  *
  * マップ → 戦闘の遷移は `BattleTransition` の黒フェードオーバーレイを挟み、
  * フェードイン中にバトル画面で使う画像（敵スプライト・カード・フローチャート
@@ -71,6 +75,10 @@ function App() {
     setScreen('editor');
   }, []);
 
+  const handleOpenGallery = useCallback(() => {
+    setScreen('gallery');
+  }, []);
+
   const handleClearedExitToMap = useCallback((clearedStageId) => {
     useProgressStore.getState().markStageCleared(clearedStageId);
     setScreen('map');
@@ -87,12 +95,15 @@ function App() {
     );
   } else if (screen === 'editor') {
     currentScreen = <SpriteSheetEditor onExit={handleExitToMap} />;
+  } else if (screen === 'gallery') {
+    currentScreen = <CharacterGallery onExit={handleExitToMap} />;
   } else {
     currentScreen = (
       <MapScreen
         onStartBattle={handleStartBattle}
         onStartBattleDemo={handleStartBattle}
         onOpenEditor={handleOpenEditor}
+        onOpenGallery={handleOpenGallery}
         demoStageIds={stagesData.demoStageIds}
       />
     );
