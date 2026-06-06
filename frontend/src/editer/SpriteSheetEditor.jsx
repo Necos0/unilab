@@ -158,7 +158,7 @@ function SpriteSheetEditor({ onExit }) {
 
         <aside className={styles.right}>
           <PreviewPlayer frames={frames} fps={fps} onFpsChange={setFps} />
-          <SavePanel frames={frames} fps={fps} />
+          <SavePanel frames={frames} />
         </aside>
       </div>
     </section>

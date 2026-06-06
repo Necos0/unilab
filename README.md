@@ -199,7 +199,6 @@ unilab/
         │   ├── dataUrlToBytes.js           ← dataURL をバイト列へ変換(純関数)
         │   ├── downloadBlob.js             ← Blob をファイルとしてダウンロード
         │   ├── buildSpriteFileName.js      ← 命名規則のファイル名を組み立てる(純関数)
-        │   ├── buildAnimationMeta.js       ← enemies.json 用アニメ設定を組み立てる(純関数)
         │   └── sanitizeId.js               ← 入力名を snake_case の ID へ正規化(純関数)
         └── features/             ← 機能単位で分割
             ├── battle/           ← 戦闘画面
