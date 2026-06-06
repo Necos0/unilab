@@ -13,3 +13,6 @@ Thumbs.db
 # Personal Claude Code settings
 .claude/CLAUDE.md
 .claude/personal/
+
+# 画像生成プロンプト（個人用メモ）
+image-prompts.md
