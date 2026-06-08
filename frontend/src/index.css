@@ -52,11 +52,25 @@
 
 body {
   margin: 0;
+  /*
+   * ゲーム画面（マップ・戦闘）はすべて #0b0b10 のダーク背景。
+   * Surface など一部端末で svh/dvh と実ビューポート高さがズレ、画面要素が
+   * 全面を覆いきれず下に隙間が出ることがある。その隙間がページ既定の白で
+   * 露出すると目立つため、背後のレイヤーをダークに揃えて白浮きを防ぐ。
+   */
+  background: #0b0b10;
 }
 
 #root {
   width: 100%;
-  min-height: 100svh;
+  /*
+   * dvh（動的ビューポート高さ）を使い、ツールバーの開閉で実表示高さが
+   * 変わっても #root が常に現在のビューポート全体を満たすようにする。
+   * svh だと「最小高さ」に固定され、ツールバーが引っ込んだぶん下に
+   * 白い余白が生じていた（Surface/Edge で顕著）。
+   */
+  min-height: 100dvh;
+  background: #0b0b10;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
