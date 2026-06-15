@@ -76,12 +76,12 @@
       "maxHp": 20,
       "animations": {
         "idle": {
-          "frameCount": 5,
+          "frameCount": 6,
           "frameDurationMs": 250,
           "loop": true
         },
         "dead": {
-          "frameCount": 5,
+          "frameCount": 4,
           "frameDurationMs": 250,
           "loop": false
         }
@@ -125,6 +125,40 @@
       "id": "dragon",
       "displayName": "ドラゴン",
       "maxHp": 100,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "crab",
+      "displayName": "カニ",
+      "maxHp": 25,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 8,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "lizard",
+      "displayName": "トカゲ",
+      "maxHp": 25,
       "animations": {
         "idle": {
           "frameCount": 5,

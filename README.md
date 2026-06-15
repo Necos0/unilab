@@ -155,7 +155,11 @@ unilab/
     │           ├── knight/       ← idle / dead
     │           ├── golem/        ← idle / dead
     │           ├── cactus/       ← idle / dead
-    │           └── cobra/        ← idle / dead
+    │           ├── cobra/        ← idle / dead
+    │           ├── crab/         ← idle / dead
+    │           ├── dragon/       ← idle / dead
+    │           ├── lizard/       ← idle / dead
+    │           └── starfish/     ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
