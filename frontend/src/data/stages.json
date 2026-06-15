@@ -422,8 +422,32 @@
         }
       ]
     },
+    "4-2": {
+      "enemyId": "lizard",
+      "maxEnemyHp": 70,
+      "cards": [
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "guard",
+          "power": 20
+        }
+      ],
+      "flow": [
+        {},
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 30
+          }
+        },
+        {}
+      ]
+    },
     "4-3": {
-      "enemyId": "wolf",
+      "enemyId": "phoenix",
       "maxEnemyHp": 100,
       "cards": [
         {
@@ -490,6 +514,50 @@
           "multiplier": {
             "counterRef": "c1"
           }
+        }
+      ]
+    },
+    "4-4": {
+      "enemyId": "dragon",
+      "maxEnemyHp": 150,
+      "cards": [
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "guard",
+          "power": 30
+        },
+        {
+          "id": "heal",
+          "power": 30
+        }
+      ],
+      "flow": [
+        {},
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 50
+          }
+        },
+        {
+          "condition": "enemyHp <= 50",
+          "label": "敵のHPが50以下?",
+          "true": [
+            {
+              "multiplier": 2
+            }
+          ],
+          "false": [
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 40
+              }
+            }
+          ]
         }
       ]
     },

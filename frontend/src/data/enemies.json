@@ -122,26 +122,10 @@
       }
     },
     {
-      "id": "dragon",
-      "displayName": "ドラゴン",
-      "maxHp": 100,
-      "animations": {
-        "idle": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
-          "loop": true
-        },
-        "dead": {
-          "frameCount": 4,
-          "frameDurationMs": 250,
-          "loop": false
-        }
-      }
-    },
-    {
       "id": "crab",
       "displayName": "カニ",
       "maxHp": 25,
+      "scale": 0.5,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -159,6 +143,42 @@
       "id": "lizard",
       "displayName": "トカゲ",
       "maxHp": 25,
+      "scale": 0.5,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "phoenix",
+      "displayName": "フェニックス",
+      "maxHp": 80,
+      "animations": {
+        "idle": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 7,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "dragon",
+      "displayName": "ドラゴン",
+      "maxHp": 100,
+      "scale": 0.55,
       "animations": {
         "idle": {
           "frameCount": 5,

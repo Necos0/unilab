@@ -18,8 +18,23 @@
   pointer-events: none;
 }
 
+/*
+ * ロック中の暗幕。巻物画像 `landmark_scroll.png` をそのまま読み込み、
+ * CSS フィルタでフラットなグレーのシルエットに加工する。これにより
+ * 矩形ではなく巻物のアルファ形状（巻かれた両端・透明な四隅）に
+ * ぴったり沿った灰色になる。
+ * 元の「灰色の長方形」は黒の半透明（rgba(0,0,0,0.45)）で巻物を暗くした
+ * ものなので、その見え方をそのまま巻物形で再現する：
+ *   - brightness(0) : 不透明ピクセルの RGB を 0（黒）にする（アルファは保持）
+ *   - opacity(0.45) : フィルタ内で半透明化して 0.45 の黒幕にする（要素の
+ *                     opacity は 1 のまま残し、解放演出 dimFadeOut の
+ *                     opacity 1→0 を綺麗に効かせる）
+ * 画像読み込みなので image-rendering: pixelated でドット感を保つ。
+ */
 .dim {
-  fill: rgba(0, 0, 0, 0.45);
+  filter: brightness(0) opacity(0.45);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /*

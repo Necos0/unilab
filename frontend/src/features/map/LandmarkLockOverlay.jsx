@@ -3,6 +3,7 @@ import styles from './LandmarkLockOverlay.module.css';
 const SCROLL_HALF_WIDTH = 115.2;
 const SCROLL_HALF_HEIGHT = 35;
 
+const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
 const PADLOCK_IMAGE_HREF = '/icons/landmark_padlock.png';
 const PADLOCK_SIZE = 78.4;
 const PADLOCK_HALF = PADLOCK_SIZE / 2;
@@ -11,7 +12,10 @@ const PADLOCK_HALF = PADLOCK_SIZE / 2;
  * `LandmarkScroll` 上に重ねて表示する、南京錠のロックオーバーレイ。
  *
  * 視覚要素は 3 層で構成する：
- *   1. 半透明黒の背景矩形（Scroll 全面）— 「ロックされて暗くなった」感
+ *   1. 灰色の背景シルエット（巻物画像 `landmark_scroll.png` を CSS フィルタ
+ *      でフラットなグレーに加工し、巻物のアルファ形状にぴったり重ねる）—
+ *      「ロックされて灰色になった」感。矩形ではなく巻物形なので、巻かれた
+ *      両端や四隅の透明部分まで形が一致する
  *   2. 解放演出用の黄色いバーストリング（解放時のみアニメで外側に拡がる）
  *   3. 中央の南京錠 — ピクセルアート画像 `/icons/landmark_padlock.png` を
  *      `<image>` で読み込む（`PADLOCK_SIZE`×`PADLOCK_SIZE` SVG 単位、原点中心配置）
@@ -42,14 +46,14 @@ function LandmarkLockOverlay({ isFading = false }) {
       className={styles.overlay}
       data-fading={isFading ? 'true' : 'false'}
     >
-      <rect
+      <image
+        href={SCROLL_IMAGE_HREF}
         x={-SCROLL_HALF_WIDTH}
         y={-SCROLL_HALF_HEIGHT}
         width={SCROLL_HALF_WIDTH * 2}
         height={SCROLL_HALF_HEIGHT * 2}
-        rx={4}
-        ry={4}
         className={styles.dim}
+        preserveAspectRatio="none"
       />
       <ellipse
         cx={0}

@@ -8,9 +8,10 @@ import { useSpriteAnimation } from '../hooks/useSpriteAnimation';
  * `enemies.json` の 1 エントリと表示する状態 `state`（`idle` / `dead`）を
  * 受け取り、その状態のアニメーション定義に従って `useSpriteAnimation` で
  * フレームを進め、`getEnemyFramePath` が組み立てる URL を `<img>` に流し
- * 込む。`state` が変わると `useSpriteAnimation` が設定変更を検知して先頭
- * フレームから再生し直すため、やられ（dead, loop=false）も毎回頭から再生
- * される。バトル用の `EnemySprite` と違い被弾フラッシュ・フェードなどの
+ * 込む。一覧はアニメを眺めるためのビューなので、`enemies.json` の `loop`
+ * 設定（やられ dead は `loop=false`）に関わらず常にループ再生する。`state`
+ * が変わると `useSpriteAnimation` が設定変更を検知して先頭フレームから再生
+ * し直す。バトル用の `EnemySprite` と違い被弾フラッシュ・フェードなどの
  * 戦闘演出には依存せず、純粋にアニメを眺めるための表示に徹する。画像は
  * セル幅・高さに収まるよう `object-fit: contain` で縮小表示し、原寸の
  * 大きいスプライトでも一覧レイアウトを崩さない。指定状態の定義が無い敵は
@@ -29,10 +30,12 @@ import { useSpriteAnimation } from '../hooks/useSpriteAnimation';
 function GalleryCharacterCard({ enemy, state }) {
   const animation = enemy.animations?.[state];
 
+  // 一覧はアニメを眺めるためのビューなので、状態に関わらず常にループ再生
+  // する（やられ dead は enemies.json では loop=false だが、ここでは繰り返す）。
   const { frameIndex } = useSpriteAnimation({
     frameCount: animation?.frameCount ?? 1,
     frameDurationMs: animation?.frameDurationMs ?? 1000,
-    loop: animation?.loop ?? true,
+    loop: true,
   });
 
   if (!animation) {

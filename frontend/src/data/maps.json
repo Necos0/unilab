@@ -522,12 +522,12 @@
           "id": "dragon",
           "label": "ドラゴン",
           "position": {
-            "x": 1577,
-            "y": 150
+            "x": 1559,
+            "y": 276
           },
           "stopPoint": {
-            "x": 1516,
-            "y": 337
+            "x": 1499,
+            "y": 403
           },
           "stageId": "4-4",
           "difficulty": 5

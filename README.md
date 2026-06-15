@@ -159,6 +159,7 @@ unilab/
     │           ├── crab/         ← idle / dead
     │           ├── dragon/       ← idle / dead
     │           ├── lizard/       ← idle / dead
+    │           ├── phoenix/      ← idle / dead
     │           └── starfish/     ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
