@@ -446,6 +446,183 @@
           ]
         }
       ]
+    },
+    "map_4": {
+      "image": "/maps/map_4.png",
+      "viewBox": {
+        "width": 1920,
+        "height": 1080
+      },
+      "startId": "volcano_gate",
+      "junctions": [
+        {
+          "id": "j-volcano-fork",
+          "stopPoint": {
+            "x": 900,
+            "y": 718
+          }
+        }
+      ],
+      "landmarks": [
+        {
+          "id": "volcano_gate",
+          "label": "火山の門",
+          "position": {
+            "x": 159,
+            "y": 786
+          },
+          "stopPoint": {
+            "x": 206,
+            "y": 922
+          }
+        },
+        {
+          "id": "fire_crab",
+          "label": "火山ガニ",
+          "position": {
+            "x": 555,
+            "y": 544
+          },
+          "stopPoint": {
+            "x": 646,
+            "y": 646
+          },
+          "stageId": "4-1",
+          "difficulty": 1
+        },
+        {
+          "id": "fire_lizard",
+          "label": "火のトカゲ",
+          "position": {
+            "x": 1047,
+            "y": 349
+          },
+          "stopPoint": {
+            "x": 1033,
+            "y": 449
+          },
+          "stageId": "4-2",
+          "difficulty": 2
+        },
+        {
+          "id": "phoenix",
+          "label": "フェニックス",
+          "position": {
+            "x": 1174,
+            "y": 694
+          },
+          "stopPoint": {
+            "x": 1162,
+            "y": 927
+          },
+          "stageId": "4-3",
+          "difficulty": 3
+        },
+        {
+          "id": "dragon",
+          "label": "ドラゴン",
+          "position": {
+            "x": 1577,
+            "y": 150
+          },
+          "stopPoint": {
+            "x": 1516,
+            "y": 337
+          },
+          "stageId": "4-4",
+          "difficulty": 5
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-gate-crab",
+          "from": "volcano_gate",
+          "to": "fire_crab",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 346,
+              "y": 906
+            },
+            {
+              "x": 437,
+              "y": 828
+            },
+            {
+              "x": 477,
+              "y": 746
+            },
+            {
+              "x": 615,
+              "y": 693
+            }
+          ]
+        },
+        {
+          "id": "e-crab-fork",
+          "from": "fire_crab",
+          "to": "j-volcano-fork",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 779,
+              "y": 663
+            }
+          ]
+        },
+        {
+          "id": "e-fork-lizard",
+          "from": "j-volcano-fork",
+          "to": "fire_lizard",
+          "direction": "up",
+          "waypoints": [
+            {
+              "x": 957,
+              "y": 660
+            },
+            {
+              "x": 961,
+              "y": 597
+            },
+            {
+              "x": 1038,
+              "y": 533
+            }
+          ]
+        },
+        {
+          "id": "e-fork-phoenix",
+          "from": "j-volcano-fork",
+          "to": "phoenix",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 891,
+              "y": 795
+            },
+            {
+              "x": 1019,
+              "y": 878
+            }
+          ]
+        },
+        {
+          "id": "e-phoenix-dragon",
+          "from": "phoenix",
+          "to": "dragon",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 1361,
+              "y": 861
+            },
+            {
+              "x": 1426,
+              "y": 813
+            }
+          ]
+        }
+      ]
     }
   }
 }

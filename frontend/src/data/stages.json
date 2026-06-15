@@ -1,7 +1,5 @@
 {
   "demoStageIds": [
-    "4-1",
-    "4-3",
     "5-1"
   ],
   "stages": {
@@ -390,7 +388,7 @@
       ]
     },
     "4-1": {
-      "enemyId": "wolf",
+      "enemyId": "crab",
       "maxEnemyHp": 60,
       "cards": [
         {
