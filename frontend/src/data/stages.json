@@ -223,6 +223,23 @@
         }
       ]
     },
+    "3-3": {
+      "enemyId": "lagiacrus",
+      "cards": [
+        { "id": "heal", "power": 50 },
+        { "id": "attack", "power": 20 }
+      ],
+      "slots": [
+        {
+          "lockedCard": { "id": "monster", "power": 60 }
+        },
+        {},
+        {
+          "lockedCard": { "id": "monster", "power": 60 }
+        },
+        {}
+      ]
+    },
     "3-4": {
       "enemyId":"cobra",
       "maxEnemyHp":50,
