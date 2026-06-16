@@ -387,6 +387,102 @@
         }
       ]
     },
+    "3-3": {
+      "enemyId": "cobra",
+      "maxEnemyHp": 70,
+      "cards": [
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "attack",
+          "power": 10
+        },
+        {
+          "id": "guard",
+          "power": 20
+        },
+        {
+          "id": "heal",
+          "power": 20
+        }
+      ],
+      "flow": [
+        {},
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 30
+          }
+        },
+        {
+          "condition": "playerHp > 50",
+          "label": "自分のHpが50より大きい",
+          "true": [
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 25
+              }
+            }
+          ],
+          "false": [
+            {}
+          ]
+        },
+        {}
+      ]
+    },
+    "3-4": {
+      "enemyId": "lagiacrus",
+      "maxEnemyHp": 90,
+      "cards": [
+        {
+          "id": "attack",
+          "power": 20
+        },
+        {
+          "id": "attack",
+          "power": 15
+        },
+        {
+          "id": "guard",
+          "power": 30
+        },
+        {
+          "id": "heal",
+          "power": 20
+        }
+      ],
+      "flow": [
+        {},
+        {
+          "lockedCard": {
+            "id": "monster",
+            "power": 40
+          }
+        },
+        {
+          "condition": "enemyHp <= 45",
+          "label": "敵のHPが45以下?",
+          "true": [
+            {
+              "multiplier": 2
+            }
+          ],
+          "false": [
+            {
+              "lockedCard": {
+                "id": "monster",
+                "power": 30
+              }
+            },
+            {}
+          ]
+        }
+      ]
+    },
     "4-1": {
       "enemyId": "crab",
       "maxEnemyHp": 60,
