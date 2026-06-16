@@ -20,7 +20,6 @@
     {
       "id": "wolf",
       "displayName": "ウルフ",
-      "scale": 0.5,
       "maxHp": 20,
       "animations": {
         "idle": {
@@ -39,7 +38,6 @@
       "id": "knight",
       "displayName": "ナイト",
       "maxHp": 20,
-      "scale": 0.55,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -125,7 +123,6 @@
       "id": "crab",
       "displayName": "カニ",
       "maxHp": 25,
-      "scale": 0.5,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -143,7 +140,6 @@
       "id": "lizard",
       "displayName": "トカゲ",
       "maxHp": 25,
-      "scale": 0.5,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -178,7 +174,6 @@
       "id": "dragon",
       "displayName": "ドラゴン",
       "maxHp": 100,
-      "scale": 0.55,
       "animations": {
         "idle": {
           "frameCount": 5,

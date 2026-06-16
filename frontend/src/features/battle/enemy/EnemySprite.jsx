@@ -16,17 +16,14 @@ import useBattleStore from '../../../stores/battleStore';
  * することで、フレーム切り替え時のチラつきを防ぐ。
  * `enemyId` または `state` が定義に存在しない場合は `null` を返し、
  * 親レイアウトを崩さない。スプライトは `<img>` を内包する表示枠
- * （`.root`）に収め、`enemies.json` の `scale`（省略時 1）をデザイン上の
- * 最大スケールとして `useResponsiveSpriteZoom` に渡す。同フックが表示枠の
- * 実寸と画像の原寸から `min(scale, 枠に収まる倍率)` を計算し、`<img>` の
- * `zoom` に適用する。これにより、大きい画面では `scale`（敵同士の相対
- * サイズ）がそのまま効き、小さい画面では枠に収まるよう自動縮小される。
+ * （`.root`）に収め、`useResponsiveSpriteZoom` が表示枠の実寸と画像の
+ * 原寸から「枠に収まる最大倍率」を計算して `<img>` の `zoom` に適用する。
+ * これにより敵ごとの固定スケール値を持たなくても、どの画面サイズでも
+ * スプライトが表示枠いっぱいの最大サイズで、かつ常に枠内に収まる。
  * `zoom` を使うのは、`transform: scale()` だとレイアウト上の占有サイズが
  * 原寸のまま残り、`overflow: hidden` の敵エリアで HP バーが押し出されて
- * しまうため。`zoom` は占有ボックスごと縮むので、縮小しても HP バーが
- * 正しく収まる。固定 `scale` のままだと小さい画面でスプライトが枠より
- * 大きくなり、下に縦並びした HP バーが押し出されて見えなくなる不具合が
- * あったため、画面サイズに応じてズームを自動調整する。
+ * しまうため。`zoom` は占有ボックスごと拡縮するので、HP バーが常に
+ * 正しく収まる。
  *
  * 攻撃ヒット演出として `battleStore.enemyDamageEvents` 末尾の id を購読し、
  * 新しいダメージイベントが入ったタイミングで `<img>` に `.flashing`
@@ -82,9 +79,7 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   const isFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
   const failPhase = useBattleStore((s) => s.failPhase);
   const isDimmed = failPhase === 'shown';
-  const { containerRef, onImageLoad, zoom } = useResponsiveSpriteZoom(
-    enemy?.scale ?? 1,
-  );
+  const { containerRef, onImageLoad, zoom } = useResponsiveSpriteZoom();
 
   useEffect(() => {
     if (!animation) return;
