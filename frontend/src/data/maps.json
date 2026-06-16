@@ -405,7 +405,7 @@
           "id": "e-coral-ship",
           "from": "coral_pool",
           "to": "pirate_ship",
-          "direction": "up",
+          "direction": "right",
           "waypoints": [
             {
               "x": 693,
@@ -421,7 +421,7 @@
           "id": "e-ship-reef",
           "from": "pirate_ship",
           "to": "reef_arch",
-          "direction": "down",
+          "direction": "right",
           "waypoints": [
             {
               "x": 1057,
