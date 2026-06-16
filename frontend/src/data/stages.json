@@ -224,7 +224,7 @@
       ]
     },
     "3-3": {
-      "enemyId": "lagiacrus",
+      "enemyId": "knight",
       "cards": [
         { "id": "heal", "power": 50 },
         { "id": "attack", "power": 20 }
@@ -241,8 +241,8 @@
       ]
     },
     "3-4": {
-      "enemyId":"cobra",
-      "maxEnemyHp":50,
+      "enemyId": "lagiacrus",
+      "maxEnemyHp": 50,
       "cards":[
         { "id": "attack", "power": 20 },
         { "id": "attack", "power": 20 },
