@@ -1,7 +1,19 @@
+/*
+ * スプライトの表示枠。敵エリア（flex column）の中で flex:1 で残りの縦幅を
+ * すべて占め、HP バーには HP ボックス分の高さを残す。この枠の実寸を
+ * useResponsiveSpriteZoom が測り、画像の原寸と突き合わせてズームを決める。
+ * overflow: hidden により、ズーム確定前の一瞬や端数で画像が枠からはみ出して
+ * も HP バー側へ食い込まない。min-height/min-width: 0 は flex アイテムが
+ * 中身で押し広げられるのを防ぐため。
+ */
 .root {
-  display: inline-flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .sprite {
