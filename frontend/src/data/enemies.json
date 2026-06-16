@@ -171,6 +171,23 @@
       }
     },
     {
+      "id": "lagiacrus",
+      "displayName": "ラギアクルス",
+      "maxHp": 90,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 7,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
       "id": "dragon",
       "displayName": "ドラゴン",
       "maxHp": 100,
