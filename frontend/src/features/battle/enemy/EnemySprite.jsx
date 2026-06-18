@@ -25,6 +25,12 @@ import useBattleStore from '../../../stores/battleStore';
  * しまうため。`zoom` は占有ボックスごと拡縮するので、HP バーが常に
  * 正しく収まる。
  *
+ * **表示枠 `.root` には `align-self: stretch` が必須**（`EnemySprite.module.css`
+ * を参照）。これを外すと、フローチャート拡大→縮小の遷移中に zoom と表示枠幅の
+ * 負のフィードバックループが起動し、スプライトが極小（数 px）まで縮んで戻らなく
+ * なる。詳しい連鎖メカニズムは `useResponsiveSpriteZoom` の docstring と README
+ * の「開発者向けノート」を参照。
+ *
  * 攻撃ヒット演出として `battleStore.enemyDamageEvents` 末尾の id を購読し、
  * 新しいダメージイベントが入ったタイミングで `<img>` に `.flashing`
  * クラスを 1 ショット付与する。CSS の `@keyframes enemyFlash` が

@@ -368,3 +368,60 @@ unilab/
 2. 一致していれば `Range.getBoundingClientRect()` でテキスト範囲も中心一致を確認
 3. 両方一致しているのに視覚ズレが残るなら **glyph 位置由来**。`em` 単位の `padding-left` で補正
 4. 一致していないなら CSS の中央配置設定（`justify-content` / `align-items` / `width: 100%`）を見直す
+
+### `zoom` CSS プロパティとフレックスレイアウトの負のフィードバックループ
+
+このプロジェクトでは敵スプライト（`EnemySprite`）の表示サイズを `<img>` の `zoom` CSS プロパティで動的に決めている。`transform: scale()` ではなく `zoom` を選んだ理由は **占有レイアウトボックスごと拡縮する** ため、`overflow: hidden` の敵エリアで HP バーが押し出されない、という意図的な選択。ただし、この性質が **負のフィードバックループ** の温床になり得るため、表示枠のサイズをコンテンツに依存させない設計が必須。
+
+#### 症状
+
+- フローチャートの拡大ボタンを押して敵エリアを折りたたみ、もう一度押して戻すと、**敵スプライトが極小（数 px）まで縮んで戻らなくなる**
+- ステージ・敵種別に関係なく再現する（短い slots ステージでも turn 入り flow ステージでも発生）
+- DevTools で `<img>` を見ると `style="zoom: 0.126..."` のような極小値が当たっており、`.root` 親要素自体も `width: 29px` 程度まで縮んでいる
+
+#### 原因
+
+`useResponsiveSpriteZoom` は表示枠（`.root`）の `clientWidth` / `clientHeight` を ResizeObserver で測り、画像の `naturalWidth` / `naturalHeight` と突き合わせて zoom を計算する。問題は **表示枠の幅をコンテンツ（img）に依存させてしまった場合** に起こる連鎖：
+
+1. 親（`.enemyArea`）が `align-items: center` で、表示枠（`.root`）に明示的な width 指定がないと、`.root` の幅は内部 `<img>` のコンテンツ幅（`naturalWidth × zoom`）で決まる。
+2. フローチャート拡大ボタンを押すと、`.enemyArea` の `flex-grow` が CSS トランジションで 45 → 0 → 45 と推移する（拡大→縮小）。この遷移中、`.enemyArea` の高さが一瞬 0 → 中間値 → 元の値と動く。
+3. 中間値が img の `naturalHeight` を下回る瞬間（例：高さ 100px、natural height 150px）、`zoom = min(width比, 100/150) = 0.67` となり、初めて zoom が 1 未満になる。
+4. `<img>` に `zoom: 0.67` が当たる → img のレイアウト幅が `naturalWidth × 0.67` に縮む。
+5. 表示枠 `.root` の幅も img のコンテンツ幅に追従して縮む。
+6. 次の ResizeObserver 発火で `containerSize.width` が小さい値になり、`zoom = min(縮んだ幅比, ...)` でさらに小さい値になる。
+7. **以下、ループが収束するまで連鎖**。最終的に zoom = 0.126 程度・コンテナ幅 29px 付近で安定し、敵が極小表示のまま戻らなくなる。
+
+#### 対処
+
+表示枠の幅を **コンテンツ非依存** にする。具体的には `.root` に `align-self: stretch` を指定し、親の `align-items: center` を上書きしてクロス軸（横方向）を親の全幅に固定する：
+
+```css
+.root {
+  flex: 1 1 0;
+  align-self: stretch;  /* 必須：これを外すと負のフィードバックループ起動 */
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+```
+
+#### 実例
+
+- `frontend/src/features/battle/enemy/EnemySprite.module.css`：`.root` に `align-self: stretch` を明示
+- `frontend/src/hooks/useResponsiveSpriteZoom.js`：docstring で表示枠側の前提条件を明示
+- `frontend/src/features/battle/enemy/EnemySprite.jsx`：docstring で同前提を明示
+
+#### デバッグ手順（「敵スプライトが極小になっている」と感じたら）
+
+1. DevTools で `<img class="...sprite...">` を選択
+2. Console で `$0.style.zoom` を実行 → 1 未満の値が入っていれば zoom 縮小が起きている
+3. `$0.parentElement.getBoundingClientRect()` で `.root` の実幅を確認 → 親 `.enemyArea` の全幅と一致していなければ `align-self: stretch` が外れている疑い
+4. `useResponsiveSpriteZoom.js` に一時的に `console.log('container=', containerSize, 'natural=', naturalSize, 'zoom=', zoom)` を仕込んで、ResizeObserver の発火タイミングごとの値を観察
+5. container の width が右肩下がりに減っていく挙動が見えたら **負のフィードバックループ確定**
+
+#### 教訓（一般化）
+
+`zoom` CSS プロパティを使う場合に限らず、**「コンテナサイズをコンテンツが決める ＋ そのコンテンツのサイズをコンテナサイズが決める」という双方向依存** はフィードバックループの典型パターン。`useResponsiveSpriteZoom` のように「コンテナ実寸を測ってコンテンツの拡縮率を決める」設計を入れるときは、コンテナの寸法が **常にコンテンツとは独立に決まる**（明示 width、`align-self: stretch`、固定 px 等）ことを保証する。

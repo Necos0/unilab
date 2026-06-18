@@ -5,9 +5,20 @@
  * overflow: hidden により、ズーム確定前の一瞬や端数で画像が枠からはみ出して
  * も HP バー側へ食い込まない。min-height/min-width: 0 は flex アイテムが
  * 中身で押し広げられるのを防ぐため。
+ *
+ * align-self: stretch は必須。親 .enemyArea の align-items: center を
+ * この子だけ上書きし、クロス軸（横方向）を親の全幅に固定する。これを外すと、
+ * 横幅が img のコンテンツ幅（natural × zoom）で決まってしまい、フローチャート
+ * 拡大→縮小の遷移中に container.height が一瞬 img の naturalHeight を下回って
+ * zoom が 1 未満になった瞬間に「zoom 縮小 → img 縮小 → コンテナ縮小 → さらに
+ * zoom 縮小」のフィードバックループが起動し、敵スプライトが極小（数 px）まで
+ * 縮んで戻らなくなる。zoom は layout に影響する CSS プロパティ（transform:
+ * scale と違い占有ボックスごと拡縮）なので、コンテナ幅をコンテンツに依存させない
+ * ことが重要。README の「開発者向けノート」にも記載。
  */
 .root {
   flex: 1 1 0;
+  align-self: stretch;
   min-width: 0;
   min-height: 0;
   display: flex;

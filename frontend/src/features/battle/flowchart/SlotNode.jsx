@@ -97,11 +97,20 @@ import styles from './SlotNode.module.css';
  * acceptOnly / 右上 multiplier）とは重ならない。
  *
  * `Handle` はエッジの接続点として必要なため配置するが、ユーザーが手動で
- * エッジを引く用途ではないため CSS で視覚的に非表示にしている。Left（target）/
- * Top（target、`id="top"`）/ Right（source）に加え、前置ループのボディ末尾から
- * 合流ノードへ戻る戻りエッジの出口として Top（source、`id="loop-out"`）を持つ
- * （`flowchart-loop` 仕様）。`loop-out` を参照しないスロットでは未使用ハンドルと
- * して無害に存在するだけ。
+ * エッジを引く用途ではないため CSS で視覚的に非表示にしている。基本構成は
+ * Left（target）/ Top（target、`id="top"`）/ Right（source）。これに加えて以下の
+ * 拡張ハンドルを持つ：
+ *   - Top（source、`id="loop-out"`、`flowchart-loop` 仕様）：前置ループのボディ
+ *     末尾から合流ノードへ戻る戻りエッジの出口。
+ *   - Right（target、`id="right-in"`、`flowchart-turn` 仕様）：折り返し後の行 2 で
+ *     左向きエッジを受ける入口（直前スロットから左方向に伸びるエッジの target 側）。
+ *   - Left（source、`id="left-out"`、`flowchart-turn` 仕様）：折り返し後の行 2 で
+ *     左向きエッジを出す出口（次スロットへ左方向に伸びるエッジの source 側）。
+ *   - Bottom（source、`id="down-out"`、`flowchart-turn` 仕様）：折り返し直後の
+ *     垂直下エッジの出口（pre-turn 最終スロットから post-turn 最初のスロットへ
+ *     下方向に伸びるエッジの source 側）。
+ * いずれの拡張ハンドルも、参照しないステージでは未使用ハンドルとして無害に存在する
+ * だけ。`isConnectable={false}` でユーザー操作からの手動接続を防ぐ。
  *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
@@ -207,6 +216,13 @@ function SlotNode({ id, data }) {
         className={styles.handle}
         isConnectable={false}
       />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="right-in"
+        className={styles.handle}
+        isConnectable={false}
+      />
       {assignedCard && (
         <DraggableCard card={assignedCard} source={id} variant="fill" />
       )}
@@ -223,6 +239,20 @@ function SlotNode({ id, data }) {
         type="source"
         position={Position.Top}
         id="loop-out"
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left-out"
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="down-out"
         className={styles.handle}
         isConnectable={false}
       />
