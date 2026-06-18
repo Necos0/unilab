@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 620" width="740">
+  <defs>
+    <marker id="arr-flow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#444"/>
+    </marker>
+    <style>
+      .nbox { fill: #f5f5fa; stroke: #333; stroke-width: 1.5; }
+      .nturn { fill: #fff5cc; stroke: #c5a017; stroke-width: 1.5; }
+      .nctx { fill: #e3f2fd; stroke: #1976d2; stroke-width: 1.5; }
+      .nend { fill: #e8f5e9; stroke: #388e3c; stroke-width: 1.5; }
+      .lab { font-family: monospace; font-size: 12px; fill: #222; }
+      .lab-b { font-family: monospace; font-size: 12px; fill: #222; font-weight: bold; }
+      .lab-s { font-family: monospace; font-size: 10px; fill: #555; }
+      .lab-y { font-family: monospace; font-size: 10px; fill: #b8860b; }
+      .ed { fill: none; stroke: #444; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect class="nbox" x="240" y="10" width="260" height="36" rx="6"/>
+  <text class="lab" x="370" y="33" text-anchor="middle">stages.json (flow に turn 要素)</text>
+  <line class="ed" x1="370" y1="46" x2="370" y2="74" marker-end="url(#arr-flow)"/>
+
+  <rect class="nbox" x="120" y="76" width="500" height="36" rx="6"/>
+  <text class="lab" x="370" y="99" text-anchor="middle">expandStage → expandFlow → processSubFlow (isTopLevel: true)</text>
+  <line class="ed" x1="370" y1="112" x2="370" y2="142" marker-end="url(#arr-flow)"/>
+  <text class="lab-s" x="370" y="132" text-anchor="middle">各 item を走査</text>
+
+  <polygon class="nbox" points="370,144 480,188 370,232 260,188"/>
+  <text class="lab" x="370" y="194" text-anchor="middle">isTurn(item) ?</text>
+
+  <text class="lab-s" x="220" y="184" text-anchor="middle">No</text>
+  <line class="ed" x1="260" y1="188" x2="170" y2="188"/>
+  <line class="ed" x1="170" y1="188" x2="170" y2="248" marker-end="url(#arr-flow)"/>
+  <rect class="nbox" x="60" y="250" width="220" height="50" rx="6"/>
+  <text class="lab" x="170" y="270" text-anchor="middle">通常スロット /</text>
+  <text class="lab" x="170" y="288" text-anchor="middle">loop / condition</text>
+
+  <text class="lab-s" x="520" y="184" text-anchor="middle">Yes</text>
+  <line class="ed" x1="480" y1="188" x2="570" y2="188"/>
+  <line class="ed" x1="570" y1="188" x2="570" y2="248" marker-end="url(#arr-flow)"/>
+  <rect class="nturn" x="450" y="250" width="240" height="68" rx="6"/>
+  <text class="lab-b" x="570" y="271" text-anchor="middle">turn ハンドラ</text>
+  <text class="lab-y" x="570" y="289" text-anchor="middle">3 層バリデーション</text>
+  <text class="lab-y" x="570" y="305" text-anchor="middle">(top-level / 個数 / 直前要素)</text>
+
+  <line class="ed" x1="170" y1="300" x2="170" y2="358"/>
+  <line class="ed" x1="570" y1="318" x2="570" y2="358"/>
+  <line class="ed" x1="170" y1="358" x2="570" y2="358"/>
+  <line class="ed" x1="370" y1="358" x2="370" y2="378" marker-end="url(#arr-flow)"/>
+
+  <rect class="nturn" x="170" y="380" width="400" height="60" rx="6"/>
+  <text class="lab-y" x="370" y="402" text-anchor="middle">valid: yLevel += LOOP_ROW_GAP,</text>
+  <text class="lab-y" x="370" y="418" text-anchor="middle">direction = 'left', column = lastSlotColumn,</text>
+  <text class="lab-y" x="370" y="434" text-anchor="middle">ctx.afterTurn = true</text>
+
+  <line class="ed" x1="370" y1="440" x2="370" y2="460" marker-end="url(#arr-flow)"/>
+
+  <rect class="nctx" x="250" y="462" width="240" height="36" rx="6"/>
+  <text class="lab" x="370" y="485" text-anchor="middle">ctx: slots / edges 蓄積</text>
+
+  <line class="ed" x1="370" y1="498" x2="370" y2="516" marker-end="url(#arr-flow)"/>
+
+  <rect class="nbox" x="200" y="518" width="340" height="36" rx="6"/>
+  <text class="lab" x="370" y="541" text-anchor="middle">resolveGoalPlacement (direction 参照)</text>
+
+  <line class="ed" x1="370" y1="554" x2="370" y2="568" marker-end="url(#arr-flow)"/>
+
+  <rect class="nend" x="270" y="570" width="200" height="36" rx="6"/>
+  <text class="lab" x="370" y="593" text-anchor="middle">完全形式 stage</text>
+</svg>

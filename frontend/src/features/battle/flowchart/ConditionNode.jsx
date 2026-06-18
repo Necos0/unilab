@@ -46,19 +46,29 @@ function directionToPosition(dir, fallback) {
  * 自体は `battleStore` 側の `selectNextEdge` で行い、本コンポーネントは
  * **視覚要素とハンドルの提供** に責務を限定する。
  *
- * Handle 構成（4 つ）：
+ * Handle 構成（5 つ）：
  *   - Left（target、デフォルト id）：標準的な「左から入ってくるエッジ」用。
- *     線形フローの延長として条件ノードに到達する基本ケース。
+ *     rightward 文脈で線形フローの延長として条件ノードに到達する基本ケース。
  *   - Top（target、`id="top"`）：将来「上からエッジが入ってくる」レイアウト
  *     用の予備ハンドル。エッジ側で `targetHandle: 'top'` を指定したときに
  *     接続される（要件 1-5 の拡張性確保）。
+ *   - **Right（target、`id="right-in"`、`flowchart-turn` 第 2 弾仕様）**：
+ *     leftward 文脈で「右から入ってくるエッジ」（直前 slot の `left-out`、
+ *     直前 merge の `left-out`、または直前 cond の `'true'` 出口で trueDir='left'
+ *     の場合）を受ける。turn を含まないステージや rightward 文脈では未使用ハンドル
+ *     として無害に存在する。`SlotNode` / `GoalNode` / `MergeNode` の `right-in`
+ *     と同じ命名規約・同じ意味（左向きエッジを受ける右辺）。
  *   - source（`id="true"`）：条件評価結果が `true`（脱出 / Yes）のとき進む経路。
  *     配置する辺は `data.trueDir`（`'right'` / `'left'` / `'up'` / `'down'`）で
  *     決まり、未指定なら既定 Right（菱形の右頂点）。エッジ側で `sourceHandle: 'true'`。
+ *     leftward 文脈ではローダーが `trueDir: 'left'` を既定値として渡すため、自動的に
+ *     左辺へ配置され「はい」ラベルも左辺基準で出る（`flowchart-turn` 要件 10-1）。
  *   - source（`id="false"`）：条件評価結果が `false`（継続 / No）のとき進む経路。
  *     配置する辺は `data.falseDir` で決まり、未指定なら既定 Bottom（菱形の下頂点）。
  *     エッジ側で `sourceHandle: 'false'`。向きを変えても **id は不変** なので
- *     分岐ロジック（`battleStore.selectNextEdge`）には一切影響しない。
+ *     分岐ロジック（`battleStore.selectNextEdge`）には一切影響しない。leftward 文脈
+ *     でも `falseDir` は方向不問の `'down'` が既定（false 分岐は常に行 3 = 下段に
+ *     並ぶため、`flowchart-turn` 要件 10-2）。
  *
  * 視覚演出は既存 `SlotNode` と同じパターンで以下を提供：
  *   - `executionStep` が自身に一致 → `.active` クラスで点滅発光
@@ -126,6 +136,13 @@ function ConditionNode({ id, data }) {
       <Handle
         type="target"
         position={Position.Left}
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="right-in"
         className={styles.handle}
         isConnectable={false}
       />

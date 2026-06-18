@@ -16,9 +16,10 @@ import styles from './MergeNode.module.css';
  * （`battleStore.scheduleNodePhase` で `slotAssignments[mergeId]` が
  * undefined のため、既存の効果分岐ガードで自動的にスキップされる）。
  *
- * Handle 構成（4 つ）：
- *   - Left（target、デフォルト id）：True 経路の終端ノードから水平直線で
- *     入ってくる。ループ構文では start（または直前の終端）からの入力もここで受ける
+ * Handle 構成（6 つ）：
+ *   - Left（target、デフォルト id）：rightward 文脈で True 経路の終端ノードから
+ *     水平直線で入ってくる。ループ構文では start（または直前の終端）からの入力も
+ *     ここで受ける
  *   - Top（target、`id="top"`）：ループ構文の **戻りエッジ** がここに入る。前置では
  *     ボディ末尾の `loop-out` から、後置では cond の `false` から、上側を回る
  *     smoothstep でこの上辺に進入する（`flowchart-loop` 仕様）。分岐専用の merge
@@ -31,9 +32,18 @@ import styles from './MergeNode.module.css';
  *     ノード直下で上向きに進入」という自然な経路になる。当初は Top に
  *     置いていたが、source（下段）が target（上段）より下にある状況で
  *     smoothstep が「一度 target を上方に越えて上から進入する」不自然な
- *     経路を生成してしまうため Bottom に変更した
- *   - Right（source、デフォルト id）：合流先（次の通常スロット または goal）
- *     へ水平直線で出ていく
+ *     経路を生成してしまうため Bottom に変更した。本ハンドルは **方向不問** で、
+ *     leftward 文脈の cond でも false 分岐は依然として下段に並ぶため共通利用される
+ *   - Right（source、デフォルト id）：rightward 文脈で合流先（次の通常スロット
+ *     または goal）へ水平直線で出ていく
+ *   - **Right（target、`id="right-in"`、`flowchart-turn` 仕様）**：leftward 文脈で
+ *     True 経路の終端から左向き水平直線で入ってくる。`SlotNode` / `GoalNode` の
+ *     `right-in` と同じ命名規約・同じ意味（左向きエッジを受ける右辺）。turn を含まない
+ *     ステージや rightward 文脈では未使用ハンドルとして無害に存在
+ *   - **Left（source、`id="left-out"`、`flowchart-turn` 仕様）**：leftward 文脈で
+ *     合流先（次の通常スロット または goal）へ **左向き** 水平直線で出ていく。
+ *     `SlotNode` の `left-out` と同じ命名規約・同じ意味（左向きエッジを出す左辺）。
+ *     turn を含まないステージや rightward 文脈では未使用ハンドル
  *
  * 視覚演出は既存 `SlotNode` / `ConditionNode` と同じパターン：
  *   - `executionStep` が自身に一致 → `.active` クラスで点滅発光
@@ -88,8 +98,22 @@ function MergeNode({ id }) {
         isConnectable={false}
       />
       <Handle
+        type="target"
+        position={Position.Right}
+        id="right-in"
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
         type="source"
         position={Position.Right}
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left-out"
         className={styles.handle}
         isConnectable={false}
       />

@@ -261,6 +261,27 @@ function isLoop(item) {
 }
 
 /**
+ * `flow` 配列の要素が折り返し（turn）構文かどうかを判定する（`flowchart-turn` 仕様）。
+ *
+ * `turn` キーにオブジェクトがセットされていれば turn 要素とみなす。`isCondition` /
+ * `isLoop` と同様に `typeof` で厳密に判定し、`turn: true` や `turn: "down"` のような
+ * 誤記を「turn」と誤分類しないようガードしている。turn は視覚ノードを生成せず、
+ * `processSubFlow` 側で行 2 への折り返し（yLevel ジャンプ + direction 反転 + column 巻き
+ * 戻し）として処理される（要件 1-1）。将来 `{"turn": {"direction": ...}}` のように
+ * オブジェクト内に追加プロパティが入る拡張に備えて、値の型は object に固定する
+ * （要件 5-1）。
+ *
+ * Args:
+ *     item (object): `flow` 配列の 1 要素。
+ *
+ * Returns:
+ *     boolean: turn 要素なら `true`。
+ */
+function isTurn(item) {
+  return typeof item?.turn === 'object' && item.turn !== null;
+}
+
+/**
  * `acceptOnly` フィールドの値がサポートされた種別かを判定する。
  *
  * `restricted-slot` 仕様で許可される値は `'attack'` / `'guard'` / `'heal'` の
@@ -452,6 +473,93 @@ function buildBodySlot(ctx, raw, position) {
  *   親と同じ `yLevel`（メイン経路の延長として右に並ぶ）、`false` 経路は
  *   `yLevel + 160`（下にずらして並行に描く）。入れ子の分岐（`true` 配列の
  *   中にさらに condition 要素）も同じ再帰呼び出しで自然に対応できる。
+ *   再帰呼び出しでは `isTopLevel: false`、`direction: currentDirection` を
+ *   明示的に伝播し、turn が分岐内で誤って効かないようにする（`flowchart-turn`
+ *   要件 6）。
+ *
+ * 折り返し対応（`flowchart-turn` 仕様）：
+ *   `direction` パラメータ（`'right'` / `'left'`）と `isTopLevel`（boolean）を
+ *   受け取り、引数の `yLevel` / `direction` をローカル変数 `currentYLevel` /
+ *   `currentDirection` に複製してから走査する。これにより turn ハンドラが
+ *   「行を変える（`currentYLevel` を書き換え）」「方向を反転する（`currentDirection`
+ *   を `'left'` に書き換え）」操作を 1 イテレーション内で完結させられる。通常
+ *   スロット展開時の column 更新は `column += currentDirection === 'right' ? 1 : -1`
+ *   で方向対応する。`direction` が `'right'`（既定）のときは従来の `column += 1`
+ *   と同一挙動。
+ *
+ *   turn 要素のハンドリング：if/else チェーンの先頭 `isTurn(item)` で検出する。
+ *   3 層バリデーションを順に通す：(1) `!isTopLevel` なら warn + skip（要件 6、loop
+ *   body / condition 内に書かれた turn を弾く）、(2) `ctx.turnCount >= 1` なら
+ *   warn + skip（要件 5-4、複数 turn は今回スコープ外）、(3) `endings[0]?.nodeId
+ *   === 'start'` なら warn + skip（要件 2-4 の安全側、flow 先頭 turn を弾く）。
+ *   3 層を通過したら行 2 の y を **動的に計算**：`Math.max(SLOT_Y_DEFAULT,
+ *   ...ctx.slots.map(...), ...ctx.conditions.map(...))` で配置済み全ノードの max
+ *   y を求め、`currentYLevel = maxY + LOOP_ROW_GAP` で行 2 にジャンプする
+ *   （要件 2-5、行 1 に condition の false 分岐があると max_y = 280 → 行 2 = 440 に
+ *   ずれる）。`lastSlotColumn = column - (currentDirection === 'right' ? 1 : -1)`
+ *   で直前スロットの column を逆算し、`column = lastSlotColumn` で post-turn の
+ *   最初のスロットを直前と同じ x に置く。`currentDirection = 'left'` で以降の
+ *   column 増減を反転、`ctx.turnCount += 1` / `ctx.afterTurn = true` の状態を
+ *   立て、`continue` で次の item へ進む（turn 自体はノードを生成しない）。
+ *
+ *   通常スロット展開時のエッジ生成は 3 分岐：(a) `ctx.afterTurn` が true →
+ *   `sourceHandle: 'down-out'` / `targetHandle: 'top'` で垂直下エッジを生成し、
+ *   `ctx.afterTurn` を false にリセット（一回消費）。(b) `currentDirection ===
+ *   'left'`（turn 後の通常エッジ）→ `sourceHandle: ending.sourceHandle ?? 'left-out'`
+ *   / `targetHandle: 'right-in'` の **一律パターン** で左向きエッジを生成。
+ *   `ending.sourceHandle` を `??` で保持することで、cond の true / false 出口
+ *   （`'true'` / `'false'`）が `'left-out'` で誤って上書きされる事故を防ぐ
+ *   （cond には `'left-out'` source ハンドルが存在しないため、上書きすると
+ *   React Flow がエッジを描画できない）。cond の `'false'` 出口（Position.Bottom）→
+ *   slot の `'right-in'`（Position.Right）の組み合わせでも、`AnimatedProgressEdge.
+ *   shouldUseStep` が `sourceHandleId === 'false'` を検知して smoothstep を選び、
+ *   cond の bottom から下→左へ slot の右辺へ進入する自然な L 字を描く（rightward
+ *   の cond.bottom → slot.left の完全 mirror）。(c) それ以外（既定の右向き）→
+ *   ハンドル指定なしの `buildEdge(ending, slotId)` で既存挙動を維持。これにより
+ *   turn を含まないステージは (c) のみを通り、本機能導入前と完全に同一の出力に
+ *   なる（要件 7）。
+ *
+ *   condition 入口エッジ生成も同じ一律パターン：(b) `currentDirection === 'left'`
+ *   なら `sourceHandle: ending.sourceHandle ?? 'left-out'` / `targetHandle: 'right-in'`
+ *   で左向き直線、それ以外は従来どおりハンドル指定なし。cond → cond 連鎖
+ *   （first cond の true / false 出口から second cond への直接接続）でも
+ *   `ending.sourceHandle` が `??` で正しく保持される。cond の `right-in` ターゲット
+ *   ハンドルは `ConditionNode.jsx` に追加済み（`flowchart-turn` 第 2 弾仕様）。
+ *
+ *   leftward 文脈での edge 生成の規約は「source は ending を保持（未設定なら
+ *   `'left-out'`）、target は接続先に応じて選ぶ」の一律パターン。具体的には：
+ *     - 通常スロットへ: target は `'right-in'`
+ *     - condition へ: target は `'right-in'`
+ *     - merge へ（true 分岐から）: target は `'right-in'`
+ *     - merge へ（false 分岐から）: target は方向不問の `'bottom'`
+ *   source 側は **すべての箇所で同じパターン**：`ending.sourceHandle ?? 'left-out'`。
+ *   これにより `cond.true` / `cond.false` 出口の sourceHandle が誤って上書きされず、
+ *   通常スロット / merge から出るときも自動的に `'left-out'` が選ばれる。例外なし。
+ *   新規ノード種別を追加したときも同じパターンが使え、設計の予測可能性と一貫性が
+ *   確保される。
+ *
+ *   merge エッジ生成で leftward source 対応が特に重要：false body の最終 slot
+ *   は merge の **右側** に配置されるため、default Right source（東側）で出ると
+ *   エッジが右に出てから戻ってきて cond → slot エッジと視覚的に絡む。`'left-out'`
+ *   で出ることで slot の左辺から merge の下辺（または右辺）へ自然な L 字 / 直線を
+ *   描く。これは leftward の column 減少と false 分岐の下方拡張による「slot が
+ *   merge の右側」という配置の必然的な帰結。
+ *
+ *   leftward 文脈での condition 展開（`flowchart-turn` 第 2 弾、要件 9〜16）：
+ *   condition ブランチも `currentDirection` を見て 6 か所が direction-aware に
+ *   切り替わる：(1) `trueDir` 既定値（leftward なら `'left'`、rightward なら
+ *   `undefined` で ConditionNode 側 `'right'` フォールバック）、(2) 入口エッジ
+ *   （leftward なら `left-out` / `right-in`、rightward は無指定）、(3) column
+ *   増減（`column += currentDirection === 'right' ? 1 : -1`）、(4) mergeColumn
+ *   集約（leftward は `Math.min(...)`、rightward は `Math.max(...)`、要件 9-4 /
+ *   14-4）、(5) merge x の anchor offset（leftward は `+SLOT_X_STEP / 2`、
+ *   rightward は `-SLOT_X_STEP / 2` で次スロット側にミラー配置、要件 13-1）、
+ *   (6) true → merge エッジ（leftward なら merge 側 `right-in` で受ける、要件
+ *   11-5）。`falseDir` 既定値は方向不問で `undefined`（ConditionNode 側で
+ *   `'down'` フォールバック、要件 10-2）。false → merge エッジも方向不問で
+ *   merge 側 `'bottom'` で受ける（false 分岐は常に行 3 = 下段なので、要件 11-6）。
+ *   すべての変更が `currentDirection === 'left'` 分岐の中に局所化されており、
+ *   rightward 文脈の既存ステージは else 側を通って完全同一の出力になる（要件 16）。
  *
  * 合流ノードの自動挿入（`merge-node` 仕様）：
  *   True / False の再帰展開後、両経路の `endColumn` の最大値を `mergeColumn`
@@ -481,24 +589,78 @@ function buildBodySlot(ctx, raw, position) {
  *     items (Array<object>): 走査対象のサブフロー配列。空配列も受け付ける
  *         （空のときは何もループせず `prevNodeId` を `endings` として返す）。
  *     options (object): 再帰呼び出しの状態。
- *         startColumn (number): このサブフローの開始 column。
+ *         startColumn (number): このサブフローの開始 column。turn 後は符号付きで
+ *             負の値もとり得る（`flowchart-turn` 仕様、左方向展開）。
  *         yLevel (number): このサブフローの y 座標。
  *         prevNodeId (string): 直前の終端ノード id。
  *         prevSourceHandle (string | undefined): 直前の終端が条件分岐から
  *             の分岐エッジである場合の `sourceHandle`（`'true'` / `'false'`）。
  *         ctx (object): 共有のアキュムレータ。`slotCounter` / `condCounter` /
- *             `slots[]` / `conditions[]` / `edges[]` を持つ。
+ *             `slots[]` / `conditions[]` / `edges[]` / `turnCount` / `afterTurn`
+ *             を持つ。後者 2 つは `flowchart-turn` 仕様の状態フラグ。
+ *         isTopLevel (boolean, optional): `expandFlow` から呼ばれた最上位のサブ
+ *             フローなら `true`、condition の true/false 分岐や loop 内の再帰
+ *             呼び出しなら `false`（既定 `false`）。turn 要素のバリデーションで
+ *             使う（top-level 以外で turn が出現したら warn + skip、要件 6）。
+ *         direction (string, optional): 走査の方向。`'right'`（既定、x が増える
+ *             方向）または `'left'`（turn 後、x が減る方向）。再帰呼び出しでは
+ *             親の `currentDirection` をそのまま伝播する。
  *
  * Returns:
- *     {endings: Array<{nodeId, sourceHandle?}>, endColumn: number}:
- *         このサブフロー処理後の終端ノード配列と、使い終わった column 値。
+ *     {endings: Array<{nodeId, sourceHandle?}>, endColumn: number,
+ *      direction: string, yLevel: number}:
+ *         このサブフロー処理後の終端ノード配列、使い終わった column 値、
+ *         処理終了時点の方向（turn が走ったあとなら `'left'`）と、最終的な
+ *         y 座標（turn が走ったあとなら行 2 の y）。後者 2 つは `expandFlow` 側で
+ *         `resolveGoalPlacement` に渡し、goal の配置とハンドル指定を決めるのに使う
+ *         （`flowchart-turn` 仕様）。
  */
-function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHandle, ctx }) {
+function processSubFlow(items, { 
+  startColumn, 
+  yLevel, 
+  prevNodeId, 
+  prevSourceHandle, 
+  ctx,
+  isTopLevel = false,
+  direction = 'right',
+}) {
   let column = startColumn;
+  let currentYLevel = yLevel;
+  let currentDirection = direction;
   let endings = [{ nodeId: prevNodeId, sourceHandle: prevSourceHandle }];
 
   for (const item of items) {
-    if (isLoop(item)) {
+    if (isTurn(item)) {
+      // バリデーション1：top-level でない場合は warn + skip
+      if (!isTopLevel) {
+        console.warn('[stagesLoader] turn must be at flow top level (not inside loop body or condition branch). Ignoring.');
+        continue;
+      }
+      // バリデーション2：既に turn を1個処理済みの場合は warn + skip
+      if (ctx.turnCount >= 1) {
+        console.warn('[stagesLoader] multiple turns in flow are not yet supported. Ignoring extra turn(s).');
+        continue;
+      }
+      // バリデーション3：turn より前にスロットが無い場合は warn + skip
+      if (endings[0]?.nodeId === 'start'){
+        console.warn('[stagesLoader] turn must follow at least one slot/loop/condition. Ignoring.');
+        continue;
+      }
+      // 行2のy座標を動的計算
+      const maxY = Math.max(
+        SLOT_Y_DEFAULT,
+        ...ctx.slots.map((s) => s.position.y),
+        ...ctx.conditions.map((c) => c.position.y),
+      );
+      // 折り返し実施
+      const lastSlotColumn = column - (currentDirection === 'right' ? 1 : -1);
+      currentYLevel = maxY + LOOP_ROW_GAP;
+      currentDirection = 'left';
+      column = lastSlotColumn;
+      ctx.turnCount += 1;
+      ctx.afterTurn = true;
+      continue;
+    } else if (isLoop(item)) {
       const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx });
       endings = loopResult.endings;
       column = loopResult.column;
@@ -507,51 +669,76 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
       const condId = `cond-${ctx.condCounter}`;
       ctx.conditions.push({
         id: condId,
-        position: { x: 80 + column * 200, y: yLevel },
+        position: { x: 80 + column * 200, y: currentYLevel },
         expression: item.condition,
         label: item.label,
-        trueDir: item.trueDir,
+        // leftward なら trueDir を left に指定
+        trueDir: item.trueDir ?? (currentDirection === 'left' ? 'left' : undefined),
         falseDir: item.falseDir,
       });
       for (const ending of endings) {
-        ctx.edges.push(buildEdge(ending, condId));
+        if (currentDirection === 'left') {
+          // source は 'left-out'（未設定時）または 'true / false'(cond), target は 'right-in'
+          const sourceHandle = ending.sourceHandle ?? 'left-out';
+          ctx.edges.push(buildEdge({ ...ending, sourceHandle, targetHandle: 'right-in' }, condId));
+        } else {
+          ctx.edges.push(buildEdge(ending, condId));
+        }
       }
-      column += 1;
+      column += currentDirection === 'right' ? 1 : -1;
 
       const trueItems = item.true ?? [];
       const trueResult = processSubFlow(trueItems, {
         startColumn: column,
-        yLevel,
+        yLevel: currentYLevel,
         prevNodeId: condId,
         prevSourceHandle: 'true',
         ctx,
+        isTopLevel: false,
+        direction: currentDirection,
       });
 
       const falseItems = item.false ?? [];
       const falseResult = processSubFlow(falseItems, {
         startColumn: column,
-        yLevel: yLevel + 160,
+        yLevel: currentYLevel + 160,
         prevNodeId: condId,
         prevSourceHandle: 'false',
         ctx,
+        isTopLevel: false,
+        direction: currentDirection,
       });
 
-      const mergeColumn = Math.max(trueResult.endColumn, falseResult.endColumn);
+      const mergeColumn = currentDirection === 'right'
+        ? Math.max(trueResult.endColumn, falseResult.endColumn)
+        : Math.min(trueResult.endColumn, falseResult.endColumn);
       ctx.mergeCounter += 1;
       const mergeId = `merge-${ctx.mergeCounter}`;
+      const mergeAnchorOffset = currentDirection === 'right' ? -SLOT_X_STEP / 2 : SLOT_X_STEP / 2;
       ctx.mergeNodes.push({
         id: mergeId,
         position: {
-          x: SLOT_X_START + mergeColumn * SLOT_X_STEP - SLOT_X_STEP / 2 + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
-          y: yLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+          x: SLOT_X_START + mergeColumn * SLOT_X_STEP + mergeAnchorOffset + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+          y: currentYLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
         },
       });
 
       for (const ending of trueResult.endings) {
-        ctx.edges.push(buildEdge(ending, mergeId));
+        if (currentDirection === 'left') {
+          const sourceHandle = ending.sourceHandle ?? 'left-out';
+          ctx.edges.push(buildEdge({ ...ending, sourceHandle, targetHandle: 'right-in' }, mergeId));
+        } else {
+          ctx.edges.push(buildEdge(ending, mergeId));
+        }
       }
+      // false → merge エッジは方向不問で bottom で受け取る
       for (const ending of falseResult.endings) {
-        ctx.edges.push(buildEdge({ ...ending, targetHandle: 'bottom' }, mergeId));
+        if (currentDirection === 'left') {
+          const sourceHandle = ending.sourceHandle ?? 'left-out';
+          ctx.edges.push(buildEdge({ ...ending, sourceHandle, targetHandle: 'bottom' }, mergeId));
+        } else {
+          ctx.edges.push(buildEdge({ ...ending, targetHandle: 'bottom' }, mergeId));
+        }
       }
 
       endings = [{ nodeId: mergeId, sourceHandle: undefined }];
@@ -559,17 +746,26 @@ function processSubFlow(items, { startColumn, yLevel, prevNodeId, prevSourceHand
     } else {
       const slotId = buildBodySlot(ctx, item, {
         x: SLOT_X_START + column * SLOT_X_STEP,
-        y: yLevel,
+        y: currentYLevel,
       });
       for (const ending of endings) {
-        ctx.edges.push(buildEdge(ending, slotId));
+        if (ctx.afterTurn) {
+          ctx.edges.push(buildEdge({ ...ending, sourceHandle: 'down-out', targetHandle: 'top' }, slotId));
+        } else if (currentDirection === 'left') {
+          // source は 'left-out'（未設定時）または 'true'(cond), target は 'right-in'
+          const sourceHandle = ending.sourceHandle ?? 'left-out';
+          ctx.edges.push(buildEdge({ ...ending, sourceHandle, targetHandle: 'right-in' }, slotId));
+        } else {
+          ctx.edges.push(buildEdge(ending, slotId));
+        }
       }
+      ctx.afterTurn = false;
       endings = [{ nodeId: slotId, sourceHandle: undefined }];
-      column += 1;
+      column += currentDirection === 'right' ? 1 : -1;
     }
   }
 
-  return { endings, endColumn: column };
+  return { endings, endColumn: column, direction: currentDirection, yLevel: currentYLevel };
 }
 
 /**
@@ -739,21 +935,37 @@ function goalPositionFromCond(condPosition, dir) {
 /**
  * goal の配置座標と goal 側の接続ハンドルを、最終終端から解決する（純関数）。
  *
- * 最終終端が条件ノードの true / false 出口なら、その出口方向（`trueDir` / `falseDir`、
- * 未指定なら right / down）に応じて `goalPositionFromCond` で配置し、goal の入口
- * ハンドルを `GOAL_ENTRY_HANDLE`（down→`'top'` / up→`'bottom'` / left→`'right'` /
- * right→既定の Left）に決める。縦方向 exit で cond の直下 / 直上へ垂直なエッジを作る
- * ための仕組み。終端が条件ノードでない場合（線形ステージ、既存の分岐ステージは
- * 最終終端が merge）は、従来どおりメイン経路の最終 column の次に置き、ハンドルは
- * 既定（Left）。
+ * 3 経路の判定順序：
+ *   1. **最終終端が条件ノードの true / false 出口**（`flowchart-loop` 仕様）：
+ *      その出口方向（`trueDir` / `falseDir`、未指定なら right / down）に応じて
+ *      `goalPositionFromCond` で配置し、goal の入口ハンドルを `GOAL_ENTRY_HANDLE`
+ *      （down→`'top'` / up→`'bottom'` / left→`'right'` / right→既定の Left）に
+ *      決める。縦方向 exit で cond の直下 / 直上へ垂直なエッジを作るための仕組み。
+ *   2. **`result.direction === 'left'`**（`flowchart-turn` 仕様）：折り返し後に
+ *      左方向に進んできた最終終端の場合、goal を行 2 の左端
+ *      （x = `SLOT_X_START + result.endColumn * SLOT_X_STEP`、
+ *      y = `result.yLevel`）に置き、`targetHandle: 'right-in'`（goal の右辺入口）と
+ *      `sourceHandle: 'left-out'`（最終スロットの左辺出口）を返す。`expandFlow` 側で
+ *      最終エッジに両ハンドルを付与することで、左向きエッジが正しく描画される。
+ *   3. **それ以外**（従来の右向き線形 / 分岐ステージで最終終端が merge のケース）：
+ *      従来どおりメイン経路の最終 column の次に置き、ハンドルは既定（Left）。
+ *
+ * cond 出口判定を最優先する理由：将来 turn と cond の組み合わせ（turn 後に cond
+ * が来るケース）が出てきた場合、cond の出口方向の方がプレイヤーに与える視覚情報量
+ * が多いため。今回スコープでは cond が turn 後に来るケースはないので実害なし。
  *
  * Args:
- *     result ({endings: Array, endColumn: number}): `processSubFlow` の戻り値。
+ *     result ({endings: Array, endColumn: number, direction: string,
+ *             yLevel: number}): `processSubFlow` の戻り値。`direction` と
+ *         `yLevel` は `flowchart-turn` 仕様の左向き判定で使う。
  *     ctx (object): 共有アキュムレータ。`conditions` を参照する。
  *
  * Returns:
- *     {position: {x: number, y: number}, targetHandle: string | undefined}:
- *         goal の左上座標と、goal 側の接続ハンドル id（既定接続は undefined）。
+ *     {position: {x: number, y: number}, targetHandle: string | undefined,
+ *      sourceHandle?: string}:
+ *         goal の左上座標、goal 側の接続ハンドル id（既定接続は undefined）、
+ *         および `flowchart-turn` 左向きケースで最終エッジに付ける `sourceHandle`
+ *         （それ以外は undefined）。
  */
 function resolveGoalPlacement(result, ctx) {
   const lastEnding = result.endings[0];
@@ -769,6 +981,16 @@ function resolveGoalPlacement(result, ctx) {
       };
     }
   }
+  if (result.direction === 'left') {
+    return {
+      position: {
+        x: SLOT_X_START + result.endColumn * SLOT_X_STEP, 
+        y: result.yLevel,
+      },
+      targetHandle: 'right-in',
+      sourceHandle: 'left-out',
+    };
+  }
   return {
     position: { x: SLOT_X_START + result.endColumn * SLOT_X_STEP, y: 120 },
     targetHandle: undefined,
@@ -782,16 +1004,39 @@ function resolveGoalPlacement(result, ctx) {
  * 関数を呼び出して `{ slots, conditions, edges, start, goal }` の完全形式
  * オブジェクトを得る。`flow` 配列を `processSubFlow` で再帰的に展開し、
  * 最後にメイン経路の終端を `goal` に繋ぐエッジを追加する。`start` は固定
- * 座標（`x: -120, y: 120`）、`goal` は `computeGoalPosition` で配置する（最終
+ * 座標（`x: -120, y: 120`）、`goal` は `resolveGoalPlacement` で配置する（最終
  * 終端が条件ノードの出口ならその出口方向へ 1 ステップ、そうでなければ従来どおり
  * メイン経路の最終 column の次）。
  *
  * 不正な入力（`flow` が配列でない場合）は `console.warn` で警告ログを出し、
  * 空のステージ相当の戻り値を返してアプリのクラッシュを防ぐ。
  *
+ * `ctx` 初期化（`flowchart-turn` 仕様）：`processSubFlow` が共有するアキュムレータ
+ * `ctx` に、既存の `slotCounter` / `condCounter` / `mergeCounter` / `slots[]` /
+ * `conditions[]` / `mergeNodes[]` / `edges[]` に加えて `turnCount: 0`（同一 flow
+ * 内で turn が出現した回数を数え、2 個目以降を warn + skip するため、要件 5-4）と
+ * `afterTurn: false`（turn 直後の 1 エッジに `down-out` / `top` ハンドルを付与する
+ * 一時フラグ、タスク 2 で実装）を持たせる。turn を含まないステージでは両フィールドは
+ * 初期値のままで他フィールドに影響を与えない。
+ *
+ * `processSubFlow` の最初の呼び出しでは `isTopLevel: true` / `direction: 'right'` を
+ * 明示的に渡す（既定値ではなく明示することで「ここが最上位」という設計意図がコードで
+ * 伝わる）。`isTopLevel` は turn のバリデーション（top-level 以外なら warn + skip、
+ * 要件 6）で使われ、`direction` は通常スロットの x 座標増減と turn 後の左方向展開の
+ * 判定で使われる。
+ *
+ * 最終 goal エッジ生成（`flowchart-turn` 仕様）：`resolveGoalPlacement` が返す
+ * `goalPlacement.sourceHandle`（左向きケースで `'left-out'`、それ以外は undefined）を
+ * `buildEdge` に渡すとき、`goalPlacement.sourceHandle ?? ending.sourceHandle` の
+ * フォールバックで決定する。これにより、既存パス（cond 出口の `true` / `false` を
+ * sourceHandle として持つ ending）は `goalPlacement.sourceHandle === undefined` の
+ * ためそのまま `ending.sourceHandle` を採用し、turn 由来の左向きケースのみ
+ * `goalPlacement.sourceHandle === 'left-out'` を優先採用する。既存ステージへの
+ * 非破壊性を担保する（要件 7）。
+ *
  * Args:
  *     flow (Array<object>): `stage.flow` 配列。階層構造で通常スロット要素と
- *         条件分岐要素を並べる。
+ *         条件分岐要素、ループ要素、turn 要素を並べる。
  *
  * Returns:
  *     {slots, conditions, edges, start, goal}: 完全形式のステージ要素。
@@ -806,6 +1051,8 @@ function expandFlow(flow) {
     conditions: [],
     mergeNodes: [],
     edges: [],
+    turnCount: 0,
+    afterTurn: false,
   };
 
   if (!Array.isArray(flow)) {
@@ -826,11 +1073,17 @@ function expandFlow(flow) {
     prevNodeId: 'start',
     prevSourceHandle: undefined,
     ctx,
+    isTopLevel: true,
+    direction: 'right',
   });
 
   const goalPlacement = resolveGoalPlacement(result, ctx);
   for (const ending of result.endings) {
-    ctx.edges.push(buildEdge({ ...ending, targetHandle: goalPlacement.targetHandle }, 'goal'));
+    ctx.edges.push(buildEdge({ 
+      ...ending, 
+      sourceHandle: goalPlacement.sourceHandle ?? ending.sourceHandle,
+      targetHandle: goalPlacement.targetHandle,
+    }, 'goal'));
   }
 
   return {

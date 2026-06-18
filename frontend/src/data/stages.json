@@ -20,9 +20,7 @@
       ],
       "slots": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 100 }
-        },
+        { "lockedCard": { "id": "monster", "power": 100 } },
         {}
       ]
     },
@@ -33,13 +31,9 @@
         { "id": "attack", "power": 20 }
       ],
       "slots": [
-        {
-          "lockedCard": { "id": "monster", "power": 60 }
-        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 60 }
-        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
         {}
       ]
     },
@@ -51,9 +45,7 @@
       ],
       "slots": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
         {}
       ]
     },
@@ -65,21 +57,14 @@
         { "id": "guard", "power": 10 },
         { "id": "heal", "power": 100 }
       ],
-      "slots": [
-        {
-          "lockedCard": { "id": "monster", "power": 80 }
-        },
+      "flow": [
+        { "lockedCard": { "id": "monster", "power": 80 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
-        {
-          "lockedCard": { "id": "monster", "power": 30 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "lockedCard": { "id": "monster", "power": 30 } },
+        { "turn": {} },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 20 }
-        },
+        { "lockedCard": { "id": "monster", "power": 20 } },
         {},
         {}
       ]
@@ -93,29 +78,18 @@
         { "id": "heal", "power": 100 },
         { "id": "reflect" }
       ],
-      "slots": [
-        {
-          "lockedCard": { "id": "monster", "power": 10 }
-        },
+      "flow": [
+        { "lockedCard": { "id": "monster", "power": 10 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 10 }
-        },
-        {
-          "lockedCard": { "id": "monster", "power": 80 }
-        },
+        { "lockedCard": { "id": "monster", "power": 10 } },
+        { "lockedCard": { "id": "monster", "power": 80 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 80 }
-        },
-        {
-          "lockedCard": { "id": "monster", "power": 10 }
-        },
+        { "turn": {} },
+        { "lockedCard": { "id": "monster", "power": 80 } },
+        { "lockedCard": { "id": "monster", "power": 10 } },
         {},
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 80 }
-        }
+        { "lockedCard": { "id": "monster", "power": 80 } }
       ]
     },
     "2-3": {
@@ -129,25 +103,18 @@
         { "id": "heal", "power": 40 },
         { "id": "heal", "power": 100 }
       ],
-      "slots": [
+      "flow": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 60 }
-        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
         { "acceptOnly": "heal" },
         { "acceptOnly": "guard" },
-        {
-          "lockedCard": { "id": "monster", "power": 150 }
-        },
+        { "lockedCard": { "id": "monster", "power": 150 } },
         {},
+        { "turn": {} },
         { "multiplier": 2 },
-        {
-          "lockedCard": { "id": "monster", "power": 110 }
-        },
+        { "lockedCard": { "id": "monster", "power": 110 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 90 }
-        },
+        { "lockedCard": { "id": "monster", "power": 90 } },
         {}
       ]
     },
@@ -159,9 +126,7 @@
       ],
       "slots": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
         {}
       ]
     },
@@ -173,17 +138,13 @@
         { "id": "heal", "power": 10 }
       ],
       "flow": [
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
         {},
         {
           "condition": "playerHp > 50",
           "label": "自分のHPが50より大きい",
           "true": [
-            {
-              "lockedCard": { "id": "attack", "power": 20 }
-            }
+            { "lockedCard": { "id": "attack", "power": 20 } }
           ],
           "false": []
         },
@@ -201,23 +162,17 @@
       ],
       "flow": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 15 }
-        },
+        { "lockedCard": { "id": "monster", "power": 15 } },
         {
           "condition": "slot('slot-1') === 'attack'",
           "label": "(1)が攻撃カード",
           "true": [
             {},
-            {
-              "lockedCard": { "id": "monster", "power": 20 }
-            }
+            { "lockedCard": { "id": "monster", "power": 20 } }
           ],
           "false": [
             {},
-            {
-              "lockedCard": { "id": "monster", "power": 25 }
-            },
+            { "lockedCard": { "id": "monster", "power": 25 } },
             {}
           ]
         }
@@ -230,13 +185,9 @@
         { "id": "attack", "power": 20 }
       ],
       "slots": [
-        {
-          "lockedCard": { "id": "monster", "power": 60 }
-        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 60 }
-        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
         {}
       ]
     },
@@ -254,53 +205,40 @@
       ],
       "flow":[
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 80 }
-        },
+        { "lockedCard": { "id": "monster", "power": 80 } },
         {},
         {
           "condition": "playerHp === 40 && enemyHp === 30",
           "label": "自分のHPが40で敵のHPも30",
           "true":[],
           "false":[
-            {
-              "lockedCard": { "id": "monster", "power": 100}
-            }
+            { "lockedCard": { "id": "monster", "power": 100} }
           ]
         },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
         {},
         {
           "condition": "enemyHp === 20",
           "label": "敵のHPが20",
           "true":[],
           "false":[
-            {
-              "lockedCard": { "id": "monster", "power": 100 }
-            }
+            { "lockedCard": { "id": "monster", "power": 100 } }
           ]
         },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 5 }
-        },
+        { "turn": {} },
+        { "lockedCard": { "id": "monster", "power": 5 } },
         {
           "condition": "playerHp === 10",
           "label": "自分のHPが10",
           "true": [],
           "false": [
-            {
-              "lockedCard": { "id": "monster", "power": 100 }
-            }
+            { "lockedCard": { "id": "monster", "power": 100 } }
           ]
         },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 10 }
-        },
+        { "lockedCard": { "id": "monster", "power": 10 } },
         {}
       ]
     },
@@ -321,9 +259,7 @@
             "falseDir": "right",
             "body": [
               {},
-              {
-                "lockedCard": { "id": "monster", "power": 30 }
-              },
+              { "lockedCard": { "id": "monster", "power": 30 } },
               {}
             ]
           }
@@ -339,9 +275,7 @@
       ],
       "flow": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 30 }
-        },
+        { "lockedCard": { "id": "monster", "power": 30 } },
         {}
       ]
     },
@@ -366,25 +300,18 @@
             "falseDir": "up",
             "body": [
               {},
-              {
-                "lockedCard": { "id": "monster", "power": 60 }
-              },
+              { "lockedCard": { "id": "monster", "power": 60 } },
               {},
               {},
               {},
-              {
-                "lockedCard": { "id": "counter", "counterId": "c1" }
-              }
+              { "lockedCard": { "id": "counter", "counterId": "c1" } }
             ]
           }
         },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
-        {
-          "multiplier": { "counterRef": "c1" }
-        }
+        { "turn": {} },
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "multiplier": { "counterRef": "c1" } }
       ]
     },
     "4-4": {
@@ -397,9 +324,7 @@
       ],
       "flow": [
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 50 }
-        },
+        { "lockedCard": { "id": "monster", "power": 50 } },
         {
           "condition": "enemyHp <= 50",
           "label": "敵のHPが50以下?",
@@ -407,9 +332,7 @@
             { "multiplier": 2 }
           ],
           "false": [
-            {
-              "lockedCard": { "id": "monster", "power": 40 }
-            }
+            { "lockedCard": { "id": "monster", "power": 40 } }
           ]
         }
       ]
@@ -431,24 +354,17 @@
       "flow": [
         {},
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 20 }
-        },
+        { "lockedCard": { "id": "monster", "power": 20 } },
         {},
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 15 }
-        },
+        { "lockedCard": { "id": "monster", "power": 15 } },
         { "acceptOnly": "attack" },
-        {
-          "lockedCard": { "id": "monster", "power": 95 }
-        },
+        { "turn": {} },
+        { "lockedCard": { "id": "monster", "power": 95 } },
         { "multiplier": 2 },
         { "multiplier": 3 },
         {},
-        {
-          "lockedCard": { "id": "monster", "power": 30 }
-        },
+        { "lockedCard": { "id": "monster", "power": 30 } },
         {
           "condition": "enemyHp === 40",
           "label": "敵のHPが40?",
@@ -456,9 +372,7 @@
             { "multiplier": 4 }
           ],
           "false": [
-            {
-              "lockedCard": { "id": "monster", "power": 100 }
-            }
+            { "lockedCard": { "id": "monster", "power": 100 } }
           ]
         }
       ]

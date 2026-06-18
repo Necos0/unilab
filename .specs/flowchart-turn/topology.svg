@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 360" width="740">
+  <defs>
+    <marker id="arr-topo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#444"/>
+    </marker>
+    <marker id="arr-topo-gold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b8860b"/>
+    </marker>
+    <style>
+      .slot { fill: #f5f5fa; stroke: #333; stroke-width: 1.5; }
+      .term { fill: #fff8dc; stroke: #c5a017; stroke-width: 1.5; }
+      .ed { fill: none; stroke: #444; stroke-width: 1.5; }
+      .ed-g { fill: none; stroke: #b8860b; stroke-width: 2; }
+      .lab { font-family: monospace; font-size: 14px; fill: #222; font-weight: bold; }
+      .lab-s { font-family: monospace; font-size: 11px; fill: #b8860b; }
+      .lab-row { font-family: sans-serif; font-size: 11px; fill: #888; font-style: italic; }
+      .row-bg { fill: none; stroke: #ccc; stroke-width: 1; stroke-dasharray: 4 3; }
+    </style>
+  </defs>
+
+  <rect class="row-bg" x="20" y="60" width="700" height="80" rx="6"/>
+  <text class="lab-row" x="30" y="55">行 1 (y = SLOT_Y_DEFAULT = 120)</text>
+
+  <rect class="row-bg" x="20" y="210" width="700" height="80" rx="6"/>
+  <text class="lab-row" x="30" y="205">行 2 (y = SLOT_Y_DEFAULT + LOOP_ROW_GAP = 280)</text>
+
+  <ellipse class="term" cx="80" cy="100" rx="38" ry="22"/>
+  <text class="lab" x="80" y="106" text-anchor="middle">start</text>
+
+  <rect class="slot" x="200" y="70" width="100" height="60" rx="4"/>
+  <text class="lab" x="250" y="107" text-anchor="middle">(1)</text>
+
+  <rect class="slot" x="400" y="70" width="100" height="60" rx="4"/>
+  <text class="lab" x="450" y="107" text-anchor="middle">(2)</text>
+
+  <rect class="slot" x="400" y="220" width="100" height="60" rx="4"/>
+  <text class="lab" x="450" y="257" text-anchor="middle">(3)</text>
+
+  <rect class="slot" x="200" y="220" width="100" height="60" rx="4"/>
+  <text class="lab" x="250" y="257" text-anchor="middle">(4)</text>
+
+  <ellipse class="term" cx="80" cy="250" rx="38" ry="22"/>
+  <text class="lab" x="80" y="256" text-anchor="middle">goal</text>
+
+  <line class="ed" x1="118" y1="100" x2="195" y2="100" marker-end="url(#arr-topo)"/>
+  <line class="ed" x1="300" y1="100" x2="395" y2="100" marker-end="url(#arr-topo)"/>
+
+  <line class="ed-g" x1="450" y1="130" x2="450" y2="216" marker-end="url(#arr-topo-gold)"/>
+  <text class="lab-s" x="465" y="170">down-out → top</text>
+  <text class="lab-s" x="465" y="184">(垂直下)</text>
+
+  <line class="ed-g" x1="400" y1="250" x2="305" y2="250" marker-end="url(#arr-topo-gold)"/>
+  <line class="ed-g" x1="200" y1="250" x2="121" y2="250" marker-end="url(#arr-topo-gold)"/>
+
+  <text class="lab-s" x="370" y="310" text-anchor="middle">left-out → right-in（左向きエッジ）</text>
+</svg>
