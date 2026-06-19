@@ -160,7 +160,11 @@ unilab/
     │           ├── dragon/       ← idle / dead
     │           ├── lizard/       ← idle / dead
     │           ├── phoenix/      ← idle / dead
-    │           └── starfish/     ← idle / dead
+    │           ├── lagiacrus/    ← idle / dead
+    │           ├── starfish/     ← idle / dead
+    │           ├── scorpion/     ← idle / dead
+    │           ├── shark/        ← idle / dead
+    │           └── squid/        ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx

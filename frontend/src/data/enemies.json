@@ -203,6 +203,57 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "scorpion",
+      "displayName": "サソリ",
+      "maxHp": 100,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "shark",
+      "displayName": "サメ",
+      "maxHp": 20,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "squid",
+      "displayName": "イカ",
+      "maxHp": 50,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }

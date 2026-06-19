@@ -70,7 +70,7 @@
       ]
     },
     "2-2": {
-      "enemyId": "cobra",
+      "enemyId": "scorpion",
       "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 20 },
@@ -152,7 +152,7 @@
       ]
     },
     "3-2": {
-      "enemyId": "wolf",
+      "enemyId": "squid",
       "maxEnemyHp": 50,
       "cards": [
         { "id": "attack", "power": 20 },
@@ -179,7 +179,7 @@
       ]
     },
     "3-3": {
-      "enemyId": "knight",
+      "enemyId": "shark",
       "cards": [
         { "id": "heal", "power": 50 },
         { "id": "attack", "power": 20 }
