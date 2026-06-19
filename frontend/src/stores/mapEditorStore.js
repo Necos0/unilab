@@ -19,6 +19,13 @@ import { create } from 'zustand';
  *   - `setWaypoint(edgeId, i, x, y)`: エッジ `i` 番目の通過点を更新する
  *   - `insertWaypoint(edgeId, i, x, y)` : エッジに通過点を `i` 番目として挿入する
  *   - `removeWaypoint(edgeId, i)`   : エッジ `i` 番目の通過点を削除する
+ *   - `toggleTraceMode()`           : 境界線トレース（クリックで頂点追加）を切り替える
+ *   - `setActiveBorder(name)`       : なぞる対象の境界線（up/right/down/left）を選ぶ
+ *   - `setRegionCenter(x, y)`       : 4 本の境界線が共有する中心点を移動する
+ *   - `addBorderPoint(x, y)`        : アクティブな境界線に頂点を末尾追加する
+ *   - `setBorderPoint(name, i, x, y)`: 境界線 `name` の `i` 番目の頂点を移動する
+ *   - `removeBorderPoint(name, i)`  : 境界線 `name` の `i` 番目の頂点を削除する
+ *   - `removeLastBorderPoint()`     : アクティブな境界線の末尾頂点を取り消す
  */
 
 /**
@@ -42,25 +49,51 @@ const useMapEditorStore = create((set, get) => ({
   mapId: null,
   draft: null,
   original: null,
+  traceMode: false,
+  activeBorder: null,
 
   /**
    * 編集を開始する。
+   *
+   * `regionCenter` / `regionBorders` が未定義のマップでも境界線トレースを
+   * 始められるよう、複製時に既定値（中心 = viewBox 中央、空の 4 本）で
+   * 補完する。トレース関連の一時状態も初期化する。
    *
    * Args:
    *     mapId (string): 編集対象マップのキー（例: `"map_3"`）。
    *     mapDef (object): `maps.json` の 1 マップ分。複製して編集する。
    */
-  startEditing: (mapId, mapDef) =>
+  startEditing: (mapId, mapDef) => {
+    const draft = clone(mapDef);
+    if (!draft.regionCenter) {
+      draft.regionCenter = {
+        x: Math.round(draft.viewBox.width / 2),
+        y: Math.round(draft.viewBox.height / 2),
+      };
+    }
+    if (!draft.regionBorders) {
+      draft.regionBorders = { up: [], right: [], down: [], left: [] };
+    }
     set({
       isEditing: true,
       mapId,
-      draft: clone(mapDef),
-      original: clone(mapDef),
-    }),
+      draft,
+      original: clone(draft),
+      traceMode: false,
+      activeBorder: null,
+    });
+  },
 
   /** 編集を終了し、複製を破棄する。 */
   stopEditing: () =>
-    set({ isEditing: false, mapId: null, draft: null, original: null }),
+    set({
+      isEditing: false,
+      mapId: null,
+      draft: null,
+      original: null,
+      traceMode: false,
+      activeBorder: null,
+    }),
 
   /** 複製を編集開始時の状態へ戻す。 */
   resetDraft: () => {
@@ -184,6 +217,112 @@ const useMapEditorStore = create((set, get) => ({
       const edge = draft.edges.find((e) => e.id === edgeId);
       if (edge && edge.waypoints) {
         edge.waypoints.splice(index, 1);
+      }
+      return { draft };
+    }),
+
+  /** 境界線トレース（クリックで頂点追加）モードのオン／オフを切り替える。 */
+  toggleTraceMode: () => set((state) => ({ traceMode: !state.traceMode })),
+
+  /**
+   * なぞる対象の境界線を切り替え、トレースモードに入る。
+   *
+   * Args:
+   *     name (string): 境界線名（`up`/`right`/`down`/`left`）。
+   */
+  setActiveBorder: (name) => set({ activeBorder: name, traceMode: true }),
+
+  /**
+   * 4 本の境界線が共有する中心点を移動する（ドラッグ微調整）。
+   *
+   * Args:
+   *     x (number): 新しい X 座標（整数に丸める）。
+   *     y (number): 新しい Y 座標（整数に丸める）。
+   */
+  setRegionCenter: (x, y) =>
+    set((state) => {
+      if (!state.draft) {
+        return {};
+      }
+      const draft = clone(state.draft);
+      draft.regionCenter = { x: Math.round(x), y: Math.round(y) };
+      return { draft };
+    }),
+
+  /**
+   * アクティブな境界線に頂点を末尾追加する。
+   *
+   * アクティブな境界線が無い場合は何もしない（選択漏れを無害化する）。
+   *
+   * Args:
+   *     x (number): X 座標（整数に丸める）。
+   *     y (number): Y 座標（整数に丸める）。
+   */
+  addBorderPoint: (x, y) =>
+    set((state) => {
+      if (!state.draft || !state.activeBorder) {
+        return {};
+      }
+      const draft = clone(state.draft);
+      draft.regionBorders[state.activeBorder].push({
+        x: Math.round(x),
+        y: Math.round(y),
+      });
+      return { draft };
+    }),
+
+  /**
+   * 境界線 `name` の `index` 番目の頂点を移動する（ドラッグ微調整）。
+   *
+   * Args:
+   *     name (string): 境界線名。
+   *     index (number): 頂点の 0 始まりインデックス。
+   *     x (number): 新しい X 座標（整数に丸める）。
+   *     y (number): 新しい Y 座標（整数に丸める）。
+   */
+  setBorderPoint: (name, index, x, y) =>
+    set((state) => {
+      if (!state.draft) {
+        return {};
+      }
+      const draft = clone(state.draft);
+      const arm = draft.regionBorders[name];
+      if (arm && arm[index]) {
+        arm[index] = { x: Math.round(x), y: Math.round(y) };
+      }
+      return { draft };
+    }),
+
+  /**
+   * 境界線 `name` の `index` 番目の頂点を削除する。
+   *
+   * Args:
+   *     name (string): 境界線名。
+   *     index (number): 削除する頂点の 0 始まりインデックス。
+   */
+  removeBorderPoint: (name, index) =>
+    set((state) => {
+      if (!state.draft) {
+        return {};
+      }
+      const draft = clone(state.draft);
+      const arm = draft.regionBorders[name];
+      if (arm) {
+        arm.splice(index, 1);
+      }
+      return { draft };
+    }),
+
+  /** アクティブな境界線の末尾頂点を取り消す（直前のクリックの取り消し）。 */
+  removeLastBorderPoint: () =>
+    set((state) => {
+      if (!state.draft || !state.activeBorder) {
+        return {};
+      }
+      const draft = clone(state.draft);
+      const arm = draft.regionBorders[state.activeBorder];
+      if (arm && arm.length > 0) {
+        arm.pop();
       }
       return { draft };
     }),

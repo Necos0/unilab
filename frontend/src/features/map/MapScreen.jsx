@@ -13,6 +13,7 @@ import MapTravelButton from './MapTravelButton';
 import MapSelectOverlay from './MapSelectOverlay';
 import MapSwitchTransition from './MapSwitchTransition';
 import MapEditorLayer from './MapEditorLayer';
+import MapRegionEditorLayer from './MapRegionEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
 import MapEditorToggleButton from './MapEditorToggleButton';
 import EditorEntryButton from '../../editer/EditorEntryButton';
@@ -31,6 +32,7 @@ const DEFAULT_MAP_ID = 'map_1';
  * たらここに 1 行足す。
  */
 const MAP_LABELS = {
+  map_0: 'マップ 0（全体マップ）',
   map_1: 'マップ 1（草原）',
   map_2: 'マップ 2（砂漠）',
   map_3: 'マップ 3（海岸）',
@@ -204,7 +206,10 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
           <MapBackground mapDef={renderMap} />
           <MapPaths mapDef={renderMap} />
           {isEditing && editorDraft ? (
-            <MapEditorLayer draft={editorDraft} />
+            <>
+              <MapEditorLayer draft={editorDraft} />
+              <MapRegionEditorLayer draft={editorDraft} />
+            </>
           ) : (
             <>
               {mapDef.landmarks.map((landmark) => (

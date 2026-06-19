@@ -1,0 +1,68 @@
+/* 境界線トレースのレイヤー。編集モード時のみ描画される。 */
+
+.layer {
+  pointer-events: auto;
+}
+
+/* 自動生成される領域ポリゴンのプレビュー。色は inline style（領域色）。 */
+.region {
+  fill-opacity: 0.22;
+  pointer-events: none;
+}
+
+/* トレース中に全面でクリックを拾う透明矩形。 */
+.capture {
+  fill: transparent;
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+/* 境界線の折れ線（中心 → 端）。 */
+.border {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.border[data-active='true'] {
+  stroke: #ffd24a;
+  stroke-width: 5;
+}
+
+/* 境界線の頂点ハンドル。 */
+.vertex {
+  fill: rgba(255, 255, 255, 0.9);
+  stroke: #1c1c22;
+  stroke-width: 3;
+  cursor: grab;
+}
+
+.vertex[data-active='true'] {
+  fill: #fff;
+  stroke: #b5832a;
+  stroke-width: 4;
+}
+
+/* 4 本が共有する中心点ハンドル。 */
+.center {
+  fill: #ff5ed0;
+  stroke: #fff;
+  stroke-width: 3;
+  cursor: grab;
+}
+
+/* 境界線名のラベル。 */
+.label {
+  fill: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 5;
+  pointer-events: none;
+  user-select: none;
+}

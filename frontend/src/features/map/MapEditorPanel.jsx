@@ -2,6 +2,17 @@ import { useRef, useState } from 'react';
 import styles from './MapEditorPanel.module.css';
 import useMapEditorStore from '../../stores/mapEditorStore';
 
+/*
+ * 境界線ボタンの定義。`name` は `regionBorders` のキー、`label` は UI 表示名。
+ * 4 本（上・右・下・左）を中心点から地図の辺まで伸ばして全体マップを 4 分割する。
+ */
+const BORDER_DEFS = [
+  { name: 'up', label: '上境界' },
+  { name: 'right', label: '右境界' },
+  { name: 'down', label: '下境界' },
+  { name: 'left', label: '左境界' },
+];
+
 /**
  * 座標を整数へ丸めたマップ定義の JSON 文字列を組み立てる。
  *
@@ -36,6 +47,12 @@ function buildMapJson(mapId, draft) {
       round(wp);
     }
   }
+  round(rounded.regionCenter);
+  for (const arm of Object.values(rounded.regionBorders ?? {})) {
+    for (const point of arm) {
+      round(point);
+    }
+  }
   return `"${mapId}": ${JSON.stringify(rounded, null, 2)},`;
 }
 
@@ -62,6 +79,11 @@ function MapEditorPanel({ onClose }) {
   const mapId = useMapEditorStore((s) => s.mapId);
   const draft = useMapEditorStore((s) => s.draft);
   const resetDraft = useMapEditorStore((s) => s.resetDraft);
+  const traceMode = useMapEditorStore((s) => s.traceMode);
+  const activeBorder = useMapEditorStore((s) => s.activeBorder);
+  const toggleTraceMode = useMapEditorStore((s) => s.toggleTraceMode);
+  const setActiveBorder = useMapEditorStore((s) => s.setActiveBorder);
+  const removeLastBorderPoint = useMapEditorStore((s) => s.removeLastBorderPoint);
   const [copied, setCopied] = useState(false);
 
   /*
@@ -177,6 +199,50 @@ function MapEditorPanel({ onClose }) {
         ハンドルをドラッグで移動／「＋」で通過点を挿入／通過点をダブル
         クリックで削除。
       </p>
+
+      <div className={styles.regions}>
+        <div className={styles.regionsHeader}>
+          <span className={styles.regionsTitle}>境界線トレース</span>
+          <button
+            type="button"
+            className={styles.trace}
+            data-active={traceMode ? 'true' : 'false'}
+            onClick={toggleTraceMode}
+          >
+            {traceMode ? 'トレース中' : 'トレース停止中'}
+          </button>
+        </div>
+        <div className={styles.regionAdd}>
+          {BORDER_DEFS.map((def) => {
+            const count = (draft.regionBorders?.[def.name] ?? []).length;
+            return (
+              <button
+                key={def.name}
+                type="button"
+                className={styles.regionAddButton}
+                data-active={def.name === activeBorder ? 'true' : 'false'}
+                onClick={() => setActiveBorder(def.name)}
+              >
+                {def.label}（{count}点）
+              </button>
+            );
+          })}
+        </div>
+        <p className={styles.hint}>
+          境界線を選ぶ→中心点（桃）から地図の端へ向けて画像をクリックして
+          なぞる。頂点はドラッグで微調整、ダブルクリックで削除。中心点も
+          ドラッグで動かせる。4 本すべて引くと領域の塗りが現れ、全面が
+          すき間なく 4 分割される。
+        </p>
+        <button
+          type="button"
+          className={styles.regionUndo}
+          onClick={removeLastBorderPoint}
+          disabled={!activeBorder}
+        >
+          1つ戻す
+        </button>
+      </div>
 
       <div className={styles.actions}>
         <button type="button" className={styles.copy} onClick={handleCopy}>
