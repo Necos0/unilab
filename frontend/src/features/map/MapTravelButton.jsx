@@ -3,8 +3,10 @@ import styles from './MapTravelButton.module.css';
 /**
  * マップ画面の右上にオーバーレイ表示するマップ移動ボタン。
  *
- * クリックで `MapSelectOverlay`（マップ一覧のモーダル）を開くトリガー。本ボタン
- * 自体は遷移ロジックを持たず、`onClick` props として受けたハンドラを呼ぶだけ。
+ * クリックで全体マップ（オーバーワールド `map_0`）へ移動するトリガー。本ボタン
+ * 自体は遷移ロジックを持たず、`onClick` props として受けたハンドラを呼ぶだけ
+ * （実際の遷移は `MapScreen` の `travelToMap` が黒フェードを挟んで行う）。
+ * 全体マップ側では各領域の巻物から各バイオームマップへ移動する。
  * アイコン画像は `/icons/map_travel.png`（`frontend/public/icons/map_travel.png`）
  * を参照する。ピクセル風のテイストを保つため CSS で `image-rendering` を
  * `pixelated` に指定する。可視ラベルは持たないため、アクセシビリティと

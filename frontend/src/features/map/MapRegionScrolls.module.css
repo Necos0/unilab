@@ -1,0 +1,9 @@
+/* 全体マップの領域中央に置く移動用巻物。 */
+
+/*
+ * 巻物本体（LandmarkScroll）の `.scroll` が cursor: pointer とホバー明滅を
+ * 担うため、ここではクリック判定を有効化するだけにとどめる。
+ */
+.region {
+  pointer-events: auto;
+}

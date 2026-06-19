@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styles from './MapScreen.module.css';
 import MapBackground from './MapBackground';
 import MapPaths from './MapPaths';
@@ -10,7 +10,7 @@ import BattleDemoButton from './BattleDemoButton';
 // import CoordinateGrid from './CoordinateGrid';
 import FullscreenToggleButton from './FullscreenToggleButton';
 import MapTravelButton from './MapTravelButton';
-import MapSelectOverlay from './MapSelectOverlay';
+import MapRegionScrolls from './MapRegionScrolls';
 import MapSwitchTransition from './MapSwitchTransition';
 import MapEditorLayer from './MapEditorLayer';
 import MapRegionEditorLayer from './MapRegionEditorLayer';
@@ -26,18 +26,11 @@ import mapsData from '../../data/maps.json';
 const DEFAULT_MAP_ID = 'map_1';
 
 /*
- * マップ ID → 表示ラベル の対応表。専用のアイコン画像と日本語名を用意
- * するまでの暫定で、`maps.json` の側にラベルを持たせる選択肢もあるが、
- * 現状はマップ移動 UI でしか使わないためこの近くに置く。マップを増やし
- * たらここに 1 行足す。
+ * 全体マップ（オーバーワールド）の ID。右上「マップ移動」ボタンはこの
+ * マップへ遷移し、各領域の巻物（`MapRegionScrolls`）から各バイオームマップ
+ * へ移動する。
  */
-const MAP_LABELS = {
-  map_0: 'マップ 0（全体マップ）',
-  map_1: 'マップ 1（草原）',
-  map_2: 'マップ 2（砂漠）',
-  map_3: 'マップ 3（海岸）',
-  map_4: 'マップ 4（火山）',
-};
+const OVERWORLD_MAP_ID = 'map_0';
 
 /**
  * マップ画面のルートコンポーネント。
@@ -51,12 +44,15 @@ const MAP_LABELS = {
  * リサイズ時も背景・道・キャラの相対位置が崩れない（要件 6-3）。
  *
  * 表示するマップ定義はストアの `currentMapId` から `maps.json` を引いて
- * 解決する。右下の「マップ移動」ボタンを押すと `MapSelectOverlay` を開き、
- * マップを選ぶと `MapSwitchTransition`（黒フェード）を挟んで `switchMap`
- * を呼ぶ。フェードイン完了時にマップを切り替えることで、画像の差し替えと
- * 勇者の `startId` への再配置が黒幕の裏側で行われ、視覚的に唐突さが出ない。
- * 切替時は新マップの `startId` に勇者を再配置する（移動中状態と残セグメント
- * もリセット）。
+ * 解決する。マップ移動はすべて `travelToMap` を起点とし、`MapSwitchTransition`
+ * （黒フェード）を挟んで `switchMap` を呼ぶ。右上の「マップ移動」ボタンは
+ * 全体マップ（`OVERWORLD_MAP_ID`）へ遷移し、全体マップ上では各領域の中央に
+ * 置いた巻物（`MapRegionScrolls`）クリックで各バイオームマップへ遷移する。
+ * フェードイン完了時にマップを切り替えることで、画像の差し替えと勇者の
+ * `startId` への再配置が黒幕の裏側で行われ、視覚的に唐突さが出ない。切替時は
+ * 新マップの `startId` に勇者を再配置する（移動中状態と残セグメントもリセット）。
+ * 全体マップは `startId` が null でランドマークも持たないため、勇者スプライトは
+ * 表示されず、巻物だけが並ぶハブ画面になる。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -98,7 +94,6 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
   const mapDef = mapsData.maps[currentMapId];
   const renderMap = isEditing && editorDraft ? editorDraft : mapDef;
 
-  const [isMapSelectOpen, setIsMapSelectOpen] = useState(false);
   /*
    * `pendingMapId` が立っている間は `MapSwitchTransition` がマウントされ、
    * 黒フェード演出が走る。フェードイン完了で `switchMap` を呼び、フェード
@@ -155,26 +150,15 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const mapList = useMemo(
-    () =>
-      Object.keys(mapsData.maps).map((id) => ({
-        id,
-        label: MAP_LABELS[id] ?? id,
-      })),
-    [],
-  );
-
-  const handleSelectMap = (mapId) => {
-    setIsMapSelectOpen(false);
-    if (mapId === currentMapId) {
-      return;
-    }
-    /*
-     * 黒フェードを起動するだけにとどめ、実際の `switchMap` はフェードイン
-     * 完了時の `handleSwitchTransitionMidpoint` で行う。多重発火を防ぐため
-     * 既にフェード中（`pendingMapId !== null`）なら無視する。
-     */
-    if (pendingMapId !== null) {
+  /*
+   * 指定マップへの移動を要求する。黒フェードを起動するだけにとどめ、実際の
+   * `switchMap` はフェードイン完了時の `handleSwitchTransitionMidpoint` で行う。
+   * 同じマップへの移動と、フェード中（`pendingMapId !== null`）の多重発火は
+   * 無視する。右上「マップ移動」ボタン（→ 全体マップ）と、全体マップ上の
+   * 各領域の巻物（→ 各バイオームマップ）の双方から呼ぶ。
+   */
+  const travelToMap = (mapId) => {
+    if (mapId === currentMapId || pendingMapId !== null) {
       return;
     }
     setPendingMapId(mapId);
@@ -223,6 +207,9 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
                 />
               ))}
               <PlayerSprite />
+              {currentMapId === OVERWORLD_MAP_ID && (
+                <MapRegionScrolls mapDef={mapDef} onSelectRegion={travelToMap} />
+              )}
               <MapOverlay viewBox={viewBox} />
             </>
           )}
@@ -236,21 +223,15 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
               demoStageIds={demoStageIds}
               onSelectStage={onStartBattleDemo}
             />
-            <MapTravelButton onClick={() => setIsMapSelectOpen(true)} />
+            {currentMapId !== OVERWORLD_MAP_ID && (
+              <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
+            )}
             <GalleryEntryButton onClick={onOpenGallery} />
             <EditorEntryButton onClick={onOpenEditor} />
           </>
         )}
         <MapEditorToggleButton mapId={currentMapId} mapDef={mapDef} />
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
-        {isMapSelectOpen && (
-          <MapSelectOverlay
-            maps={mapList}
-            currentMapId={currentMapId}
-            onSelect={handleSelectMap}
-            onClose={() => setIsMapSelectOpen(false)}
-          />
-        )}
       </div>
       {pendingMapId !== null && (
         <MapSwitchTransition
