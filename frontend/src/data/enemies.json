@@ -40,7 +40,7 @@
       "id": "knight",
       "displayName": "ナイト",
       "maxHp": 20,
-      "sizeRatio": 0.6,
+      "sizeRatio": 0.8,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -58,7 +58,7 @@
       "id": "golem",
       "displayName": "ゴーレム",
       "maxHp": 80,
-      "sizeRatio": 0.6,
+      "sizeRatio": 1.0,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -76,7 +76,7 @@
       "id": "cactus",
       "displayName": "サボテン",
       "maxHp": 20,
-      "sizeRatio": 0.6,
+      "sizeRatio": 0.65,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -91,10 +91,28 @@
       }
     },
     {
+      "id": "scorpion",
+      "displayName": "サソリ",
+      "maxHp": 100,
+      "sizeRatio": 0.8,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
       "id": "cobra",
       "displayName": "コブラ",
       "maxHp": 30,
-      "sizeRatio": 0.6,
+      "sizeRatio": 0.7,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -112,7 +130,7 @@
       "id": "starfish",
       "displayName": "ヒトデ",
       "maxHp": 20,
-      "sizeRatio": 0.6,
+      "sizeRatio": 0.8,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -121,6 +139,60 @@
         },
         "dead": {
           "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "squid",
+      "displayName": "イカ",
+      "maxHp": 50,
+      "sizeRatio": 0.7,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "shark",
+      "displayName": "サメ",
+      "maxHp": 20,
+      "sizeRatio": 0.8,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "lagiacrus",
+      "displayName": "ラギアクルス",
+      "maxHp": 90,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 5,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 7,
           "frameDurationMs": 250,
           "loop": false
         }
@@ -166,28 +238,10 @@
       "id": "phoenix",
       "displayName": "フェニックス",
       "maxHp": 80,
-      "sizeRatio": 0.6,
+      "sizeRatio": 0.9,
       "animations": {
         "idle": {
           "frameCount": 4,
-          "frameDurationMs": 250,
-          "loop": true
-        },
-        "dead": {
-          "frameCount": 7,
-          "frameDurationMs": 250,
-          "loop": false
-        }
-      }
-    },
-    {
-      "id": "lagiacrus",
-      "displayName": "ラギアクルス",
-      "maxHp": 90,
-      "sizeRatio": 0.6,
-      "animations": {
-        "idle": {
-          "frameCount": 5,
           "frameDurationMs": 250,
           "loop": true
         },
@@ -202,61 +256,7 @@
       "id": "dragon",
       "displayName": "ドラゴン",
       "maxHp": 100,
-      "sizeRatio": 0.6,
-      "animations": {
-        "idle": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
-          "loop": true
-        },
-        "dead": {
-          "frameCount": 4,
-          "frameDurationMs": 250,
-          "loop": false
-        }
-      }
-    },
-    {
-      "id": "scorpion",
-      "displayName": "サソリ",
-      "maxHp": 100,
-      "sizeRatio": 0.6,
-      "animations": {
-        "idle": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
-          "loop": true
-        },
-        "dead": {
-          "frameCount": 6,
-          "frameDurationMs": 250,
-          "loop": false
-        }
-      }
-    },
-    {
-      "id": "shark",
-      "displayName": "サメ",
-      "maxHp": 20,
-      "sizeRatio": 0.6,
-      "animations": {
-        "idle": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
-          "loop": true
-        },
-        "dead": {
-          "frameCount": 6,
-          "frameDurationMs": 250,
-          "loop": false
-        }
-      }
-    },
-    {
-      "id": "squid",
-      "displayName": "イカ",
-      "maxHp": 50,
-      "sizeRatio": 0.6,
+      "sizeRatio": 1.0,
       "animations": {
         "idle": {
           "frameCount": 5,
