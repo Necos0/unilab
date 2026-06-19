@@ -19,8 +19,9 @@ function formatStars(difficulty) {
 /**
  * ランドマーク到着時に表示される詳細パネル。
  *
- * パーチメント風の角丸矩形を背景に、最上段にランドマーク名、中段に
- * 難易度（星）、下段に「たたかう」ボタンを配置する。SVG `<g>` を返すため、
+ * パーチメント風の角丸矩形を背景に、上段に「むずかしさ」ラベルと難易度
+ * （星）、下段に「たたかう」ボタンを配置する。ランドマーク名は表示しない。
+ * SVG `<g>` を返すため、
  * 親側で `transform="translate(...)"` により位置を制御する。表示／非表示は
  * 親 Landmark 側の data-arrived 属性に紐づく CSS が opacity で切り替える
  * （本コンポーネント自体は常時マウントされてフェードのみ受け持つ）。
@@ -28,23 +29,15 @@ function formatStars(difficulty) {
  * 呼ばれる（ラベルクリック＝移動要求と区別するため）。表示中は必ず
  * プレイヤーが到着済みなので、ボタン側に到着判定は不要。
  *
- * `isCleared === true` のとき、ランドマーク名の下に「クリア済み」テキストを
- * 追加で表示する（要件 6-1）。たたかうボタンは引き続き有効に保ち、
- * 再挑戦を許可する（要件 6-2）。`isCleared === false` のときは
- * 「クリア済み」テキスト自体を描画しない。
- *
  * Args:
  *     props (object): React プロパティ。
- *         name (string): 最上段に表示するランドマーク名（例: `井戸`）。
  *         difficulty (number): 1〜5 の難易度。
  *         onFight (function): 「たたかう」ボタンのクリックハンドラ。引数なし。
- *         isCleared (boolean, optional): クリア済みなら `true`。デフォルト
- *             `false`。
  *
  * Returns:
  *     JSX.Element: 詳細パネル全体を表す `<g>` 要素。
  */
-function LandmarkDetail({ name, difficulty, onFight, isCleared = false }) {
+function LandmarkDetail({ difficulty, onFight }) {
   const halfWidth = 100;
   const halfHeight = 70;
 
@@ -64,35 +57,25 @@ function LandmarkDetail({ name, difficulty, onFight, isCleared = false }) {
         ry={6}
         className={styles.panel}
       />
-      <text x={0} y={-halfHeight + 18} textAnchor="middle" className={styles.name}>
-        {name}
+      <text x={0} y={-halfHeight + 32} textAnchor="middle" className={styles.label}>
+        むずかしさ
       </text>
-      {isCleared && (
-        <text
-          x={0}
-          y={-halfHeight + 36}
-          textAnchor="middle"
-          className={styles.clearedLabel}
-        >
-          クリア済み
-        </text>
-      )}
-      <text x={0} y={-halfHeight + 60} textAnchor="middle" className={styles.stars}>
+      <text x={0} y={-halfHeight + 70} textAnchor="middle" className={styles.stars}>
         {formatStars(difficulty)}
       </text>
       <g className={styles.fightButton} onClick={handleFightClick}>
         <rect
-          x={-60}
-          y={halfHeight - 50}
-          width={120}
-          height={36}
+          x={-halfWidth + 8}
+          y={halfHeight - 54}
+          width={halfWidth * 2 - 16}
+          height={46}
           rx={4}
           ry={4}
           className={styles.fightBg}
         />
         <text
           x={0}
-          y={halfHeight - 26}
+          y={halfHeight - 22}
           textAnchor="middle"
           className={styles.fightText}
         >

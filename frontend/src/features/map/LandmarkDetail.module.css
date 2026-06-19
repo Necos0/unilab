@@ -18,23 +18,12 @@
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
 }
 
-.name {
+.label {
   fill: #3a2410;
   stroke: #3a2410;
   stroke-width: 0.8;
   paint-order: stroke fill;
-  font-size: 18px;
-  font-family: 'DotGothic16', 'Press Start 2P', monospace;
-  user-select: none;
-  pointer-events: none;
-}
-
-.clearedLabel {
-  fill: #2f8a3e;
-  stroke: #2f8a3e;
-  stroke-width: 0.6;
-  paint-order: stroke fill;
-  font-size: 14px;
+  font-size: 27px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;
@@ -45,7 +34,7 @@
   stroke: #c47a1a;
   stroke-width: 0.8;
   paint-order: stroke fill;
-  font-size: 24px;
+  font-size: 34px;
   letter-spacing: 2px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
@@ -74,9 +63,9 @@
 .fightText {
   fill: #fff8e8;
   stroke: #fff8e8;
-  stroke-width: 0.7;
+  stroke-width: 0.8;
   paint-order: stroke fill;
-  font-size: 16px;
+  font-size: 28px;
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
   user-select: none;
   pointer-events: none;

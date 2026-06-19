@@ -30,6 +30,9 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  * Args:
  *     props (object): React プロパティ。
  *         text (string): 巻物上に表示するテキスト（ステージ番号 or 経由地名）。
+ *         isStage (boolean, optional): ステージ番号を表示する場合 `true`。
+ *             `false`（経由地名）のときは文字を 0.7 倍に縮小する
+ *             （`.text` に `.gateText` を併用）。デフォルト `true`。
  *         isLocked (boolean, optional): ロックオーバーレイを表示するなら
  *             `true`。デフォルト `false`。
  *         isFading (boolean, optional): ロックオーバーレイの解放アニメを
@@ -41,7 +44,7 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  * Returns:
  *     JSX.Element: ラベルバナー全体を表す `<g>` 要素。
  */
-function LandmarkScroll({ text, isLocked = false, isFading = false }) {
+function LandmarkScroll({ text, isStage = true, isLocked = false, isFading = false }) {
   const halfWidth = 115.2;
   const halfHeight = 35;
 
@@ -64,7 +67,7 @@ function LandmarkScroll({ text, isLocked = false, isFading = false }) {
         y={0}
         textAnchor="middle"
         dominantBaseline="central"
-        className={styles.text}
+        className={isStage ? styles.text : `${styles.text} ${styles.gateText}`}
       >
         {text}
       </text>

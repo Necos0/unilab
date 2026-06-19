@@ -19,7 +19,7 @@
       "landmarks": [
         {
           "id": "village_gate",
-          "label": "村の門",
+          "label": "いりぐち",
           "position": {
             "x": 170,
             "y": 500
@@ -180,7 +180,7 @@
       "landmarks": [
         {
           "id": "desert_gate",
-          "label": "砂漠の門",
+          "label": "いりぐち",
           "position": {
             "x": 270,
             "y": 800
@@ -208,8 +208,8 @@
           "id": "stone_arch",
           "label": "石のアーチ",
           "position": {
-            "x": 900,
-            "y": 180
+            "x": 912,
+            "y": 274
           },
           "stopPoint": {
             "x": 950,
@@ -317,7 +317,7 @@
       "landmarks": [
         {
           "id": "coast_gate",
-          "label": "海岸の門",
+          "label": "いりぐち",
           "position": {
             "x": 146,
             "y": 529
@@ -466,7 +466,7 @@
       "landmarks": [
         {
           "id": "volcano_gate",
-          "label": "火山の門",
+          "label": "いりぐち",
           "position": {
             "x": 159,
             "y": 786

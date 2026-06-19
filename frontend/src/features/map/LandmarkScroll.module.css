@@ -34,11 +34,19 @@
    * （`村の門` 等）の日本語はブラウザのフォント別グリフフォールバックで
    * DotGothic16 が拾う。`geometricPrecision` で字形のヒンティングを抑制する。
    */
-  font-size: 48px;
+  font-size: 60px;
   font-family: 'VT323', 'DotGothic16', 'Press Start 2P', monospace;
   text-rendering: geometricPrecision;
   user-select: none;
   pointer-events: none;
+}
+
+/*
+ * 経由地名（`いりぐち` 等の日本語）はステージ番号より字数が多く、
+ * 同じ 60px だと巻物からはみ出すため 0.7 倍（42px）に縮小する。
+ */
+.gateText {
+  font-size: 42px;
 }
 
 /*

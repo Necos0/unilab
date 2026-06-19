@@ -2,7 +2,6 @@ import styles from './Landmark.module.css';
 import LandmarkScroll from './LandmarkScroll';
 import LandmarkDetail from './LandmarkDetail';
 import useProgressStore, {
-  isStageClearedSelector,
   isStageUnlockedSelector,
 } from '../../stores/progressStore';
 
@@ -25,11 +24,10 @@ import useProgressStore, {
  *     対象。アニメ中は `isFading` でロックをフェードアウトさせる（要件 5-1）
  *   - `isUnlockAnimating === true` → アニメ中は全マップクリックを抑止
  *     （要件 5-3, 5-4）
- *   - `isCleared === true` → 詳細パネルに「クリア済み」を表示（要件 6-1）
  *
  * `stageId` を持たないランドマーク（村の門等の経由地）は解放判定の
- * 対象外。ロック表示も「クリア済み」表示も行わず、`isUnlockAnimating`
- * 中だけクリック抑止に従う（要件 1-3, 5-3）。
+ * 対象外。ロック表示も行わず、`isUnlockAnimating` 中だけクリック抑止に
+ * 従う（要件 1-3, 5-3）。
  *
  * クリックには 2 通りある：
  *   - ラベル（巻物）クリック → `onClick(id)` で移動要求（`isMoving===true`
@@ -65,9 +63,6 @@ function Landmark({
 
   const isUnlocked = useProgressStore(
     hasStage ? isStageUnlockedSelector(stageId) : () => true,
-  );
-  const isCleared = useProgressStore(
-    hasStage ? isStageClearedSelector(stageId) : () => false,
   );
   const pendingUnlockStageId = useProgressStore(
     (state) => state.pendingUnlockStageId,
@@ -116,6 +111,7 @@ function Landmark({
       <g transform="translate(0, -36)">
         <LandmarkScroll
           text={stageId ?? label}
+          isStage={hasStage}
           isLocked={shouldShowLock}
           isFading={isFading}
         />
@@ -123,10 +119,8 @@ function Landmark({
       {hasStage && (
         <g transform="translate(0, -141)">
           <LandmarkDetail
-            name={label}
             difficulty={difficulty}
             onFight={handleFight}
-            isCleared={isCleared}
           />
         </g>
       )}
