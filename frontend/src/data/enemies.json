@@ -4,6 +4,7 @@
       "id": "slime",
       "displayName": "スライム",
       "maxHp": 10,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -21,6 +22,7 @@
       "id": "wolf",
       "displayName": "ウルフ",
       "maxHp": 20,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 3,
@@ -38,6 +40,7 @@
       "id": "knight",
       "displayName": "ナイト",
       "maxHp": 20,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -55,6 +58,7 @@
       "id": "golem",
       "displayName": "ゴーレム",
       "maxHp": 80,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -72,6 +76,7 @@
       "id": "cactus",
       "displayName": "サボテン",
       "maxHp": 20,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -89,6 +94,7 @@
       "id": "cobra",
       "displayName": "コブラ",
       "maxHp": 30,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -106,6 +112,7 @@
       "id": "starfish",
       "displayName": "ヒトデ",
       "maxHp": 20,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -123,6 +130,7 @@
       "id": "crab",
       "displayName": "カニ",
       "maxHp": 25,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -140,6 +148,7 @@
       "id": "lizard",
       "displayName": "トカゲ",
       "maxHp": 25,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -157,6 +166,7 @@
       "id": "phoenix",
       "displayName": "フェニックス",
       "maxHp": 80,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 4,
@@ -174,6 +184,7 @@
       "id": "lagiacrus",
       "displayName": "ラギアクルス",
       "maxHp": 90,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -191,6 +202,7 @@
       "id": "dragon",
       "displayName": "ドラゴン",
       "maxHp": 100,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -208,6 +220,7 @@
       "id": "scorpion",
       "displayName": "サソリ",
       "maxHp": 100,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -225,6 +238,7 @@
       "id": "shark",
       "displayName": "サメ",
       "maxHp": 20,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,
@@ -242,6 +256,7 @@
       "id": "squid",
       "displayName": "イカ",
       "maxHp": 50,
+      "sizeRatio": 0.6,
       "animations": {
         "idle": {
           "frameCount": 5,

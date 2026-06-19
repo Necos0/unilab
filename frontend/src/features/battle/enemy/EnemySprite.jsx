@@ -20,6 +20,8 @@ import useBattleStore from '../../../stores/battleStore';
  * 原寸から「枠に収まる最大倍率」を計算して `<img>` の `zoom` に適用する。
  * これにより敵ごとの固定スケール値を持たなくても、どの画面サイズでも
  * スプライトが表示枠いっぱいの最大サイズで、かつ常に枠内に収まる。
+ * `enemies.json` の任意プロパティ `sizeRatio`（0〜1）を渡すと、その最大
+ * サイズからの比率でキャラごとに表示を縮小できる（未指定時は 1＝枠いっぱい）。
  * `zoom` を使うのは、`transform: scale()` だとレイアウト上の占有サイズが
  * 原寸のまま残り、`overflow: hidden` の敵エリアで HP バーが押し出されて
  * しまうため。`zoom` は占有ボックスごと拡縮するので、HP バーが常に
@@ -85,7 +87,9 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   const isFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
   const failPhase = useBattleStore((s) => s.failPhase);
   const isDimmed = failPhase === 'shown';
-  const { containerRef, onImageLoad, zoom } = useResponsiveSpriteZoom();
+  const { containerRef, onImageLoad, zoom } = useResponsiveSpriteZoom(
+    enemy?.sizeRatio ?? 1,
+  );
 
   useEffect(() => {
     if (!animation) return;

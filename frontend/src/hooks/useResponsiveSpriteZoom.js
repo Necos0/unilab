@@ -14,6 +14,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * 間は 1 を返す。画像はロード前に描画されないため、未確定状態で枠を
  * はみ出して見えることはない。
  *
+ * 引数 `sizeRatio`（0〜1）で「枠に収まる最大サイズ」からの比率を指定できる。
+ * 1 なら従来どおり枠いっぱい、0.5 なら最大サイズの半分の大きさで表示される。
+ * 敵ごとに `enemies.json` の `sizeRatio` を渡すことで、キャラ単位で見た目の
+ * 大きさを調整できる。範囲外の値は 0〜1 にクランプし、未指定時は 1 とする。
+ *
  * **重要な前提：表示枠（`containerRef` を付ける要素）はクロス軸方向に
  * `align-self: stretch` 等で「親の全幅」が保証されていなければならない**
  * （`EnemySprite.module.css` の `.root` 参照）。これは `<img>` に適用する
@@ -39,9 +44,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *             コンテナのクロス軸に依存しない幅（`align-self: stretch` 等）が必須**。
  *         onImageLoad (function): スプライト `<img>` の `onLoad` に渡す
  *             ハンドラ。画像の `naturalWidth`/`naturalHeight` を取り込む。
- *         zoom (number): `<img>` の `zoom` に渡すズーム倍率（枠に収まる最大値）。
+ *         zoom (number): `<img>` の `zoom` に渡すズーム倍率（枠に収まる最大値に
+ *             `sizeRatio` を掛けた値）。
+ *
+ * Args:
+ *     sizeRatio (number): 枠に収まる最大サイズからの表示比率。0〜1 の範囲で、
+ *         範囲外はクランプする。既定値 1（枠いっぱい）。
  */
-export function useResponsiveSpriteZoom() {
+export function useResponsiveSpriteZoom(sizeRatio = 1) {
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState(null);
   const [naturalSize, setNaturalSize] = useState(null);
@@ -79,6 +89,9 @@ export function useResponsiveSpriteZoom() {
       containerSize.height / naturalSize.height,
     );
   }
+
+  const clampedRatio = Math.min(1, Math.max(0, sizeRatio));
+  zoom *= clampedRatio;
 
   return { containerRef, onImageLoad, zoom };
 }
