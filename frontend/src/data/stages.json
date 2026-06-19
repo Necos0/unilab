@@ -93,7 +93,7 @@
       ]
     },
     "2-3": {
-      "enemyId": "slime",
+      "enemyId": "cobra",
       "cards": [
         { "id": "attack", "power": 10 },
         { "id": "guard", "power": 20 },
