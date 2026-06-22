@@ -7,3 +7,23 @@
 .region {
   pointer-events: auto;
 }
+
+/*
+ * ロック中の領域はクリック・ホバー明滅を無効化する。`pointer-events: none`
+ * で内部の `.scroll`（cursor: pointer とホバー演出）にも一切イベントが
+ * 届かなくなるため、南京錠オーバーレイ付きの静的な見た目だけになる。
+ */
+.region[data-locked='true'] {
+  pointer-events: none;
+}
+
+/*
+ * 未解放領域のグレーアウト。`buildRegionPolygons` の曲線パスで該当領域だけを
+ * 半透明の灰色で覆い、下の地図画像を暗く沈ませる。クリックは下の地図に
+ * 通したいので `pointer-events: none`。
+ */
+.lockedRegion {
+  fill: #3b3f45;
+  fill-opacity: 0.66;
+  pointer-events: none;
+}

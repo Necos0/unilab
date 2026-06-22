@@ -46,6 +46,7 @@ const useProgressStore = create((set, get) => ({
   clearedStageIds: [],
   pendingUnlockStageId: null,
   isUnlockAnimating: false,
+  unlockedWorlds: [],
 
   /**
    * ステージのクリアを記録し、必要なら次ステージ解放のフラグを立てる。
@@ -103,26 +104,34 @@ const useProgressStore = create((set, get) => ({
     set({ pendingUnlockStageId: null, isUnlockAnimating: false }),
 
   /**
-   * テスト用：全ステージを即座に解放する。
+   * テスト用：全ステージと全ワールドを即座に解放する。
    *
    * `stages.json` の全ステージを走査し、各ステージの解放条件を満たす
    * ために必要な「直前ステージ」を `clearedStageIds` に追加する。
    * `*-1` は常に解放扱いのため、各ワールドの最終ステージ自体は
    * `cleared` 扱いにならず「未クリアだが解放済み」状態になる。
+   * 同時に、全体マップ（`map_0`）の各領域＝ワールド単位の「ステージN」を
+   * すべて解放するため、登場する全ワールド番号を `unlockedWorlds` に入れる。
    * 解放アニメは抑止したいので `pendingUnlockStageId` はリセットし、
    * `isUnlockAnimating` も `false` に戻す。
    */
   unlockAllStages: () => {
     const predecessors = new Set();
+    const worlds = new Set();
     for (const stageId of Object.keys(stagesData.stages)) {
       const parsed = parseStageId(stageId);
-      if (!parsed || parsed.number <= 1) {
+      if (!parsed) {
+        continue;
+      }
+      worlds.add(parsed.world);
+      if (parsed.number <= 1) {
         continue;
       }
       predecessors.add(`${parsed.world}-${parsed.number - 1}`);
     }
     set({
       clearedStageIds: Array.from(predecessors),
+      unlockedWorlds: Array.from(worlds),
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
     });
@@ -200,6 +209,30 @@ export const isStageUnlockedSelector = (stageId) => (state) =>
 export const shouldShowLockSelector = (stageId) => (state) =>
   !isStageUnlockedFromCleared(state.clearedStageIds, stageId) ||
   state.pendingUnlockStageId === stageId;
+
+/**
+ * 全体マップ（`map_0`）のワールド単位「ステージN」が解放済みかを判定する
+ * 純関数。
+ *
+ * ワールド `1` は常に解放（各マップ内の `*-1` を常に解放扱いにするのと
+ * 同じ思想）。それ以外は `unlockedWorlds` に番号が含まれていれば解放扱い。
+ * 実プレイのクリア連動による解放はまだ実装しておらず、開発用 Space キー
+ * （`unlockAllStages`）のみが 2 以降のワールドを解放する。
+ *
+ * Args:
+ *     unlockedWorlds (string[]): 解放済みワールド番号（文字列）の配列。
+ *     world (string|number): 判定対象ワールド番号。
+ *
+ * Returns:
+ *     boolean: 解放されているなら `true`。
+ */
+export function isWorldUnlocked(unlockedWorlds, world) {
+  const key = String(world);
+  if (key === '1') {
+    return true;
+  }
+  return unlockedWorlds.includes(key);
+}
 
 export { UNLOCK_FADE_DURATION_MS };
 export default useProgressStore;
