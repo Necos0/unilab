@@ -94,6 +94,7 @@
     },
     "2-3": {
       "enemyId": "cobra",
+      "maxEnemyHp": 10,
       "cards": [
         { "id": "attack", "power": 10 },
         { "id": "guard", "power": 20 },
