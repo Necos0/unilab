@@ -177,12 +177,14 @@ unilab/
         │   └── GuardBar.module.css
         ├── data/                 ← 静的データ(stages.json 等、JS から import)
         │   ├── enemies.json
+        │   ├── cutscenes.json    ← 自動ガイド演出(トリガー→吹き出し/指差し/再生アニメ)の定義
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   ├── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
         │   └── stagesLoader.js   ← stages.json の短縮形式を完全形式に展開するローダー
         ├── stores/               ← グローバル状態管理(zustand)
         │   ├── battleStore.js    ← 手札・スロット割当・ドラッグ状態
+        │   ├── cutsceneStore.js  ← 自動ガイド演出の再生・表示済み記録(localStorage 永続)
         │   ├── mapStore.js       ← マップ画面の現在位置・移動状態
         │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
         ├── hooks/                ← 機能横断のカスタムフック
@@ -269,6 +271,10 @@ unilab/
             │   ├── DraggableCard.module.css
             │   ├── Hand.jsx
             │   └── Hand.module.css
+            ├── cutscene/         ← 自動ガイド演出(ロボの吹き出し)
+            │   ├── RoboBubble.jsx          ← 吹き出し＋ロボアイコン(読み上げ表示・クリック/Enterで送り)
+            │   ├── RoboBubble.module.css
+            │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)
                 ├── MapScreen.module.css

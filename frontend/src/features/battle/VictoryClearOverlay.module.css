@@ -36,7 +36,8 @@
 }
 
 .button {
-    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    /* ゲーム内の日本語テキスト（吹き出し・LandmarkDetail 等）と統一 */
+    font-family: 'DotGothic16', 'Press Start 2P', monospace;
     font-size: 0.85rem;
     color: #e5e5ff;
     background: rgba(31, 31, 40, 0.85);

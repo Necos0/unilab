@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './MapScreen.module.css';
 import MapBackground from './MapBackground';
 import MapPaths from './MapPaths';
@@ -18,9 +18,11 @@ import MapEditorPanel from './MapEditorPanel';
 import MapEditorToggleButton from './MapEditorToggleButton';
 import EditorEntryButton from '../../editer/EditorEntryButton';
 import GalleryEntryButton from '../../editer/GalleryEntryButton';
+import RoboBubble from '../cutscene/RoboBubble';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
+import useCutsceneStore from '../../stores/cutsceneStore';
 import mapsData from '../../data/maps.json';
 
 const DEFAULT_MAP_ID = 'map_1';
@@ -123,8 +125,10 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
   }, []);
 
   /*
-   * テスト用ショートカット：Space キーを押すと全ステージを即座に解放する。
-   * input/textarea にフォーカスがある場合と、修飾キー同時押しは無視する。
+   * テスト用ショートカット：Space キーで全ステージを即座に解放し、あわせて
+   * すべてのガイドを「視聴済み」にする（以降ガイドが出なくなる）。R キー
+   * （全リセット）と対になる「全部済ませる」キー。input/textarea にフォーカス
+   * がある場合と、修飾キー同時押しは無視する。
    */
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -145,10 +149,52 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
       }
       event.preventDefault();
       useProgressStore.getState().unlockAllStages();
+      useCutsceneStore.getState().markAllSeen();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  /*
+   * ランドマーク到着時に自動ガイド（`arriveLandmark`）を発火する。移動完了
+   * （`isMoving` が true→false）した時点の `currentLocation` が `stageId` を持つ
+   * ランドマークなら、そのステージ ID でトリガーする。ランドマーク ID（例:
+   * `well`）とステージ ID（例: `1-1`）は別物なので、`landmarks` から引き直す。
+   */
+  const wasMovingRef = useRef(false);
+  useEffect(() => {
+    if (wasMovingRef.current && !isMoving) {
+      const landmark = mapDef?.landmarks?.find(
+        (item) => item.id === currentLocation,
+      );
+      if (landmark?.stageId) {
+        useCutsceneStore
+          .getState()
+          .fireTrigger({ type: 'arriveLandmark', stageId: landmark.stageId });
+      }
+    }
+    wasMovingRef.current = isMoving;
+  }, [isMoving, currentLocation, mapDef]);
+
+  /*
+   * バイオームマップ表示直後に自動ガイド（`enterMapArea`）を発火する。
+   * そのマップの入口ステージ（番号 1 のステージ、例: `1-1`）を stageId に
+   * 渡す。全体マップ（`OVERWORLD_MAP_ID`）と編集中は対象外。`once`＋`seenIds`
+   * で一度見たら再表示されない。
+   */
+  useEffect(() => {
+    if (isEditing || currentMapId === OVERWORLD_MAP_ID) {
+      return;
+    }
+    const entry = mapDef?.landmarks?.find((item) =>
+      /-1$/.test(item.stageId ?? ''),
+    );
+    if (entry?.stageId) {
+      useCutsceneStore
+        .getState()
+        .fireTrigger({ type: 'enterMapArea', stageId: entry.stageId });
+    }
+  }, [currentMapId, isEditing, mapDef]);
 
   /*
    * 指定マップへの移動を要求する。黒フェードを起動するだけにとどめ、実際の
@@ -239,6 +285,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
           onEnd={handleSwitchTransitionEnd}
         />
       )}
+      <RoboBubble variant="map" />
     </section>
   );
 }

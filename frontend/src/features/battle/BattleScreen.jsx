@@ -24,6 +24,8 @@ import PlayerDamageFloater from './player/PlayerDamageFloater';
 import PlayerHealFloater from './player/PlayerHealFloater';
 import PlayerGuardFloater from './player/PlayerGuardFloater';
 import useBattleStore from '../../stores/battleStore';
+import useCutsceneStore from '../../stores/cutsceneStore';
+import RoboBubble from '../cutscene/RoboBubble';
 import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
 import BattleFailOverlay from './BattleFailOverlay';
@@ -355,6 +357,29 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
 
   useEffect(() => () => collapseFlowchart(), [collapseFlowchart]);
 
+  /*
+   * 自動ガイド（カットシーン）のトリガー発火。
+   *   - 入場時: バトル画面マウントで `enterBattle`
+   *   - 勝利時: `victoryPhase === 'cleared'`（CLEAR! 演出が出た瞬間）で `defeatEnemy`
+   *   - 敗北時: `failPhase === 'shown'` で `battleLost`
+   * いずれも `cutsceneStore` 側で表示済み判定・吹き出し有無を確認するため、
+   * ここでは素直にイベントを投げるだけにする。
+   */
+  const fireTrigger = useCutsceneStore((s) => s.fireTrigger);
+  useEffect(() => {
+    fireTrigger({ type: 'enterBattle', stageId: resolvedStageId });
+  }, [fireTrigger, resolvedStageId]);
+  useEffect(() => {
+    if (victoryPhase === 'cleared') {
+      fireTrigger({ type: 'defeatEnemy', stageId: resolvedStageId });
+    }
+  }, [victoryPhase, fireTrigger, resolvedStageId]);
+  useEffect(() => {
+    if (failPhase === 'shown') {
+      fireTrigger({ type: 'battleLost', stageId: resolvedStageId });
+    }
+  }, [failPhase, fireTrigger, resolvedStageId]);
+
   const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
   const hasDeadAnim = Boolean(enemy?.animations?.dead);
   const enemySpriteState = victoryPhase && hasDeadAnim ? 'dead' : 'idle';
@@ -481,6 +506,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
           </div>
           <Hand />
         </div>
+        <RoboBubble variant="battle" />
       </section>
       <DragOverlay>
         {activeCard && (

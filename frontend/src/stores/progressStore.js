@@ -115,6 +115,21 @@ const useProgressStore = create((set, get) => ({
    * 解放アニメは抑止したいので `pendingUnlockStageId` はリセットし、
    * `isUnlockAnimating` も `false` に戻す。
    */
+  /**
+   * クリア・解放の進行状況をすべて初期状態に戻す。開発・テスト用。
+   *
+   * `clearedStageIds` / `unlockedWorlds` を空にし、解放アニメ関連の
+   * `pendingUnlockStageId` / `isUnlockAnimating` も `null` / `false` に戻す。
+   * `unlockAllStages`（全解放）と対になる「全リセット」。
+   */
+  resetProgress: () =>
+    set({
+      clearedStageIds: [],
+      unlockedWorlds: [],
+      pendingUnlockStageId: null,
+      isUnlockAnimating: false,
+    }),
+
   unlockAllStages: () => {
     const predecessors = new Set();
     const worlds = new Set();

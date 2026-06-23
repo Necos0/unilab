@@ -59,6 +59,22 @@ body {
    * 露出すると目立つため、背後のレイヤーをダークに揃えて白浮きを防ぐ。
    */
   background: #0b0b10;
+  /*
+   * アプリ全体で文字・画像の範囲選択（青いハイライト）を無効化する。
+   * ゲーム UI はクリック操作中心で、テキスト選択は誤操作になりやすいため。
+   * ただし入力欄（input/textarea/編集可能要素）だけは選択を戻す（エディタ
+   * の入力が使えなくならないように）。
+   */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 #root {

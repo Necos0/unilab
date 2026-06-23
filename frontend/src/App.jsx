@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
 import CharacterGallery from './editer/CharacterGallery.jsx';
 import useProgressStore from './stores/progressStore.js';
+import useCutsceneStore from './stores/cutsceneStore.js';
 import stagesData from './data/stagesLoader.js';
 
 /**
@@ -51,6 +52,61 @@ function App() {
   const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
   const [pendingStageId, setPendingStageId] = useState(null);
 
+  /*
+   * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
+   * が終わってから出したい。開放アニメが走る場合はここに対象ステージ ID を
+   * 退避し、アニメ完了（`isUnlockAnimating` が true→false）を検知して発火する。
+   */
+  const pendingExitStageIdRef = useRef(null);
+  const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
+  const wasUnlockAnimatingRef = useRef(false);
+  useEffect(() => {
+    if (
+      wasUnlockAnimatingRef.current &&
+      !isUnlockAnimating &&
+      pendingExitStageIdRef.current !== null
+    ) {
+      useCutsceneStore
+        .getState()
+        .fireTrigger({ type: 'exitStage', stageId: pendingExitStageIdRef.current });
+      pendingExitStageIdRef.current = null;
+    }
+    wasUnlockAnimatingRef.current = isUnlockAnimating;
+  }, [isUnlockAnimating]);
+
+  /*
+   * 開発用ショートカット（自動ガイドの履歴操作）。マップ・バトルどちらの
+   * 画面でも効くようグローバルに登録する。input/textarea へのフォーカス中と
+   * 修飾キー同時押しは無視する（MapScreen の Space キー＝全解放と同じガード方針）。
+   *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
+   *         まとめてリフレッシュ。最初の状態からガイドを見直せるようにする。
+   *   （全ガイドを視聴済みにする Space は MapScreen の全解放と同じ場所で扱う。）
+   */
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.code !== 'KeyR') {
+        return;
+      }
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      useCutsceneStore.getState().resetSeen();
+      useProgressStore.getState().resetProgress();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleStartBattle = (id) => {
     if (pendingStageId !== null) {
       return;
@@ -81,6 +137,18 @@ function App() {
 
   const handleClearedExitToMap = useCallback((clearedStageId) => {
     useProgressStore.getState().markStageCleared(clearedStageId);
+    /*
+     * 次ステージの開放アニメーションが走るなら、`exitStage` カットシーンは
+     * アニメ完了後に出す（上の useEffect が発火する）。開放対象が無ければ
+     * 開放アニメも出ないので、ここで即時発火する。
+     */
+    if (useProgressStore.getState().pendingUnlockStageId !== null) {
+      pendingExitStageIdRef.current = clearedStageId;
+    } else {
+      useCutsceneStore
+        .getState()
+        .fireTrigger({ type: 'exitStage', stageId: clearedStageId });
+    }
     setScreen('map');
   }, []);
 

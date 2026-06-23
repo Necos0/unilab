@@ -1,0 +1,114 @@
+/*
+ * 自動ガイドのロボ吹き出しレイヤー。
+ *
+ * `.layer` は画面全体を覆う固定レイヤーで、クリック／タップを受けて次の
+ * 吹き出しへ送る。チュートリアル中は下の画面操作をブロックする役割も兼ねる。
+ * `.group`（ロボのアイコン＋スピーチバブル）の見た目は map / battle で共通で、
+ * 画面内の縦位置だけをバリアントで切り替える。
+ */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  cursor: pointer;
+  /*
+   * 勝利/失敗中は親の `.root` が `pointer-events: none` になり、子のこの
+   * レイヤーも none を継承してクリックを取りこぼす（VictoryClearOverlay 等の
+   * ボタンだけが auto で反応してしまう）。会話中はレイヤーが前面で全クリックを
+   * 受けて送り動作にしたいので、auto を明示して継承を打ち消す。
+   */
+  pointer-events: auto;
+  /* ゲーム内の日本語テキスト（LandmarkDetail 等）と統一 */
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+}
+
+/* ロボのアイコン＋スピーチバブルのまとまり。位置だけ variant で変える */
+.group {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 172px;
+  height: 172px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  /* 画像のドラッグ（ゴースト表示）を抑止。範囲選択はグローバルで無効化済み */
+  -webkit-user-drag: none;
+}
+
+.bubble {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: min(440px, 60vw);
+  box-sizing: border-box;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  color: #1a1a22;
+  border: 3px solid #2a2a33;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+/* スピーチバブルのしっぽ（左向き・上下中央）。外枠色＋白を重ねて縁取る */
+.bubble::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -18px;
+  transform: translateY(-50%);
+  border-style: solid;
+  border-width: 12px 18px 12px 0;
+  border-color: transparent #2a2a33 transparent transparent;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -14px;
+  transform: translateY(-50%);
+  border-style: solid;
+  border-width: 9px 14px 9px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+
+.body {
+  min-width: 0;
+}
+
+.text {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.8;
+}
+
+.text ruby rt {
+  font-size: 0.6em;
+}
+
+/* 読み上げ前のトークン。場所は確保したまま透明にしてバブルの大きさを固定する */
+.hidden {
+  color: transparent;
+}
+
+/* 戦闘画面: 画面上部（敵エリア）の左。マップより左に寄せ、バブルは 0.8 倍幅 */
+.layer.battle .group {
+  top: 6%;
+  left: 0.25rem;
+}
+
+.layer.battle .bubble {
+  max-width: min(352px, 48vw);
+}
+
+/* マップ画面: 画面上部の左（戦闘と同じ配置） */
+.layer.map .group {
+  top: 6%;
+  left: 1.5rem;
+}
