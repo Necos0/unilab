@@ -18,7 +18,6 @@ import styles from './FlowchartArea.module.css';
 
 const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode, condition: ConditionNode, merge: MergeNode };
 const edgeTypes = { 'animated-progress': AnimatedProgressEdge };
-const EXPANDED_BASELINE_BOUNDS_WIDTH = 720;
 const LOOP_TOP_HEADROOM = 80;
 
 /**
@@ -222,40 +221,41 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoa
  * 強調する。
  *
  * 拡大／縮小切替（`battleStore.isExpanded`）に連動して以下をコントロール：
- *   - **縮小状態**：`getNodesBounds` で求めたノード範囲を `fitBounds`
- *     （`padding: 0.1`）でフィットさせ、全体が収まるよう自動でズームする。
- *     ループの戻りエッジ（`targetHandle === 'top'` のエッジ）があるステージでは、
- *     エッジが行の上を回ってノード上端より上に出るため、`fitView` 系がノード
- *     bbox しか見ず上が見切れる。これを防ぐため、戻りエッジがある場合のみ
- *     bbox 上端を `LOOP_TOP_HEADROOM`（80px）持ち上げた矩形にフィットさせる
- *     （`flowchart-loop` 仕様）。戻りエッジが無いステージは bbox そのままで
- *     従来表示と同じ
- *   - **拡大状態**：`setViewport` でズームを
- *     `(canvasWidth × 0.8) / EXPANDED_BASELINE_BOUNDS_WIDTH` で動的算出し、
- *     `getNodesBounds` で得たノード集合の中心が canvas の中心に重なるよう
- *     viewport の x / y を計算する。`EXPANDED_BASELINE_BOUNDS_WIDTH` は
- *     「1 スロットステージ（start + slot-1 + goal）の bounding box 幅」
- *     に相当する定数で、実機で見え方を調整しながら決めた基準値。これにより
- *     全ステージで「1 スロット分のフローチャートが canvas 幅の 80% に
- *     収まる zoom」が共通の基準として適用される。結果として 1-1 のような
- *     スロットの少ないステージでは縮小状態とほぼ同じ表示、1-2 / 1-4 の
- *     ようなスロットの多いステージでは同じカードサイズを維持したまま横に
- *     はみ出し、`panOnScroll` のホイールスクロールで両端へアクセスできる。
- *     `<ReactFlow>` の `minZoom` / `maxZoom` はデフォルトを広げて
- *     `[0.1, 5]` に設定しており、canvas 幅が大きいときに baselineZoom が
- *     2.0 を超えてもクランプされないようにしている。`fitView` 単体だと
- *     ステージのノード集合が canvas より大きい場合に縮小フィットされて
- *     しまい「拡大ボタンを押した意味がない」見た目になったため、位置と
- *     ズームを `setViewport` で直接制御する方式に切り替えた経緯がある
+ *   - **両モード共通の zoom 計算**：`getNodesBounds` で求めたノード範囲を
+ *     `fitBounds`（`padding: 0.1`）でフィットさせ、ステージ全体が canvas に
+ *     収まる zoom を自動算出する。canvas の `clientWidth` / `clientHeight` は
+ *     縮小モード（`.flowchartArea` flex-grow: 35）と拡大モード（同 80）で異なる
+ *     ため、同じ `fitBounds` 呼び出しでも canvas が広い拡大モードの方が
+ *     自然に大きい zoom が計算される。これにより「拡大ボタンを押すと
+ *     フローチャートが拡大ウィンドウのサイズに合わせて大きく表示される」
+ *     直感的な挙動になり、スロット数の多いステージでも全体が一目で
+ *     収まる（はみ出して panOnScroll で横スクロールする必要がない）
+ *   - **ループ戻りエッジ対応**：`targetHandle === 'top'` のエッジがある
+ *     ステージでは、戻りエッジが行の上を回ってノード上端より上に出るため、
+ *     bbox しか見ない `fitView` 系では上が見切れる。これを防ぐため、戻り
+ *     エッジがある場合のみ bbox 上端を `LOOP_TOP_HEADROOM`（80px）持ち上げた
+ *     矩形にフィットさせる（`flowchart-loop` 仕様）。戻りエッジが無いステージ
+ *     は bbox そのままで従来表示と同じ
  *
- * 拡大状態では上記の基準ズームを初期値としつつ、ユーザーが手動でズームを
+ * 経緯：当初は拡大モードでのみ `setViewport` を使い、`(canvasWidth × 0.8) /
+ * EXPANDED_BASELINE_BOUNDS_WIDTH(=720)` で固定の zoom 比を計算する方式だった
+ * （「1 スロットステージでも拡大時に大きく表示する」狙い）。しかしスロットの
+ * 多いステージで canvas からはみ出して `panOnScroll` 必須になり「拡大しすぎ」
+ * の不満が出たため、両モード共通の `fitBounds` 方式に統一した。1 スロット
+ * ステージでも拡大モードの canvas が広いぶん縮小モードより自然に大きく表示
+ * されるため、拡大ボタンの効果は十分に保たれる。
+ *
+ * 拡大状態では上記の自動 zoom を初期値としつつ、ユーザーが手動で zoom を
  * 変更できる：トラックパッドのピンチ（`zoomOnPinch={isExpanded}`）と、マウス
  * 向けの `ZoomControls`（フロー領域右下の +/− ボタン）。`panOnScroll` の 2 本指
  * スクロール（パン）とピンチ（`ctrlKey` 付き wheel）は React Flow が別イベントに
  * 振り分けるため共存する。手動ズームは下記の refit が走らない限り保持される
- * （refit はリサイズ・`isExpanded`/`nodes`/`edges` 変化時のみ基準ズームへ再計算
+ * （refit はリサイズ・`isExpanded`/`nodes`/`edges` 変化時のみ自動 zoom へ再計算
  * するため、拡大が安定した後のピンチ・ボタン操作は残る）。縮小状態ではピンチ・
  * ボタンとも無効（`zoomOnPinch` は false、`ZoomControls` は非表示）。
+ * `<ReactFlow>` の `minZoom` / `maxZoom` はデフォルトを広げて `[0.1, 5]` に設定
+ * しており、極端に小さい / 大きいステージでも fitBounds の自動値がクランプ
+ * されないようにしている。
  *
  * コンテナサイズの変化（CSS トランジションによる `flex-grow` 変化）は
  * `ResizeObserver` で検出し、その都度 refit ロジックを呼び直すことで、
@@ -303,18 +303,6 @@ function FlowchartArea({ stage }) {
     }
 
     const refit = () => {
-      if (isExpanded) {
-        const nodesBounds = reactFlowInstance.getNodesBounds(nodes);
-        const canvasWidth = canvas.clientWidth;
-        const canvasHeight = canvas.clientHeight;
-        const baselineZoom = (canvasWidth * 0.8) / EXPANDED_BASELINE_BOUNDS_WIDTH;
-        const x = canvasWidth / 2 - (nodesBounds.x + nodesBounds.width / 2) * baselineZoom;
-        const y = canvasHeight / 2 - (nodesBounds.y + nodesBounds.height / 2) * baselineZoom;
-        reactFlowInstance.setViewport(
-          { x, y, zoom: baselineZoom },
-          { duration: 0 },
-        );
-      } else {
         const bounds = reactFlowInstance.getNodesBounds(nodes);
         const hasLoopBackEdge = edges.some((e) => e.targetHandle === 'top');
         const top = hasLoopBackEdge ? LOOP_TOP_HEADROOM : 0;
@@ -327,7 +315,6 @@ function FlowchartArea({ stage }) {
           },
           { padding: 0.1, duration: 0 },
         );
-      }
     };
 
     refit();
@@ -362,7 +349,7 @@ function FlowchartArea({ stage }) {
         <Background
           variant={BackgroundVariant.Lines}
           gap={24}
-          color="#1a1a24"
+          color="#c8dde2"
           size={1}
         />
         <ZoomControls />

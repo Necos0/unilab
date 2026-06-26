@@ -15,6 +15,12 @@
   overflow: hidden;
   /* BackToMapButton の絶対配置の基準 */
   position: relative;
+  /* フロチャロボパネルの仕様 */
+  --robo-frame-color: #6c5599;
+  --robo-frame-color-light: #9685c0;
+  --robo-frame-color-dark: #4c3579;
+  --robo-frame-width: 10px;
+  --robo-frame-radius: 20px;
 }
 
 .enemyArea {
@@ -39,7 +45,7 @@
   /* フローチャートコントロール（リセット／拡大トグル）を絶対配置で
      重ねるための基準（card-placement 要件 7-5、flowchart-zoom 要件 1-1） */
   position: relative;
-  border-bottom: 1px solid #2a2a33;
+  /*border-bottom: 1px solid #2a2a33;*/
   color: #a9a9b3;
   min-height: 0;
   /* 拡大時に flex-grow を 80 にアニメーションさせる（flowchart-zoom 要件 4） */
@@ -50,11 +56,46 @@
   flex: 20 0 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 1rem 1.5rem;
   gap: 1rem;
   min-height: 0;
   overflow: hidden;
+}
+
+/* フロチャロボパネルを1つの紫枠で包むラッパー */
+.roboPanel {
+  flex: 55 0 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  border: var(--robo-frame-width) solid transparent;
+  border-radius: var(--robo-frame-radius);
+  overflow: hidden;
+  background:
+    /*  1. 上端のリムライト（光が当たる縁, 短く鮮明）*/
+    /*linear-gradient(180deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0) 12%
+    ) padding-box,*/
+    /* 2. 斜めの光の帯（ガラスの表面反射, 中央に集中）*/
+    linear-gradient(115deg,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0) 65%
+    ) padding-box,
+    /* 3. ベースの水色ティント（液晶パネルらしさ）*/
+    linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)) padding-box,
+    linear-gradient(155deg,
+      var(--robo-frame-color-light) 0%,
+      var(--robo-frame-color) 30%,
+      var(--robo-frame-color-dark) 55%,
+      var(--robo-frame-color) 80%,
+      var(--robo-frame-color-light) 100%
+    ) border-box;
+  /* 4. 外側のドロップシャドウ（宙に浮かんで見える）*/
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 /* 拡大状態：敵エリアを 0 に潰し、フローチャートエリアを 80 まで広げる。
@@ -65,14 +106,6 @@
 
 .root.expanded .flowchartArea {
   flex-grow: 80;
-}
-
-/* 拡大時はフローチャート領域が画面上部まで広がり、`.flowchartControls`       
-    （ZoomButton + ResetButton + PlayButton）が右上の BackToMapButton          
-    （`.root` 基準で top: 0.5rem）と被って押せなくなるため、コントロール
-    群を BackToMapButton の高さぶん下に逃がす */
-.root.expanded .flowchartControls {
-  top: 3rem;
 }
 
 /* 切替アニメーション中は全ユーザー操作をブロックする
@@ -187,6 +220,14 @@
 
 .hpNumeratorReflect {
   color: #ff8c42;
+}
+
+/* playerHpBox は enemyArea に置く */
+.enemyArea .playerHpBox {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 1.5rem;
+  z-index: 5;
 }
 
 .playerHpBox {

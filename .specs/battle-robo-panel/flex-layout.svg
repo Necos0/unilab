@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="760">
+  <defs>
+    <style>
+      .enemy { fill: #ffe9d6; stroke: #c77a2a; stroke-width: 1.5; }
+      .panel-bg { fill: #fff8e1; stroke: #c5a017; stroke-width: 1.5; }
+      .panel-frame { fill: none; stroke: #2c1d3f; stroke-width: 5; }
+      .flow { fill: #e3f2fd; stroke: #1976d2; stroke-width: 1.5; }
+      .player { fill: #e8f5e9; stroke: #388e3c; stroke-width: 1.5; }
+      .lab { font-family: monospace; font-size: 12px; fill: #222; }
+      .lab-b { font-family: monospace; font-size: 12px; fill: #222; font-weight: bold; }
+      .lab-s { font-family: monospace; font-size: 10px; fill: #555; }
+      .lab-y { font-family: monospace; font-size: 11px; fill: #b8860b; font-weight: bold; }
+      .title { font-family: sans-serif; font-size: 14px; fill: #222; font-weight: bold; }
+      .arrow { fill: none; stroke: #444; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <text class="title" x="180" y="22" text-anchor="middle">縮小状態（既定）</text>
+  <text class="title" x="560" y="22" text-anchor="middle">拡大状態（.root.expanded）</text>
+
+  <rect class="enemy" x="80" y="40" width="200" height="180" rx="4"/>
+  <text class="lab-b" x="180" y="60" text-anchor="middle">.enemyArea</text>
+  <text class="lab-s" x="180" y="76" text-anchor="middle">flex-grow: 45</text>
+  <text class="lab-s" x="180" y="92" text-anchor="middle">→ 全体の 45%</text>
+
+  <rect class="panel-bg" x="80" y="222" width="200" height="220" rx="4"/>
+  <rect class="panel-frame" x="84" y="226" width="192" height="212" rx="8"/>
+  <text class="lab-b" x="180" y="246" text-anchor="middle" fill="#2c1d3f">.roboPanel</text>
+  <text class="lab-y" x="180" y="262" text-anchor="middle">flex-grow: 55</text>
+  <text class="lab-y" x="180" y="276" text-anchor="middle">→ 全体の 55%</text>
+
+  <rect class="flow" x="100" y="288" width="160" height="100" rx="4"/>
+  <text class="lab-b" x="180" y="306" text-anchor="middle">.flowchartArea</text>
+  <text class="lab-s" x="180" y="322" text-anchor="middle">flex-grow: 35</text>
+  <text class="lab-s" x="180" y="338" text-anchor="middle">→ panel の 35/55</text>
+  <text class="lab-s" x="180" y="352" text-anchor="middle">≈ 全体の 35%</text>
+
+  <rect class="player" x="100" y="394" width="160" height="36" rx="4"/>
+  <text class="lab-b" x="180" y="412" text-anchor="middle">.playerArea</text>
+  <text class="lab-s" x="180" y="425" text-anchor="middle">20/55 ≈ 全体の 20%</text>
+
+  <rect class="enemy" x="460" y="40" width="200" height="14" rx="2"/>
+  <text class="lab-b" x="460" y="50" text-anchor="end" dx="-8" fill="#c77a2a">.enemyArea</text>
+  <text class="lab-s" x="680" y="50" fill="#c77a2a">flex-grow: 0 (潰れる)</text>
+
+  <rect class="panel-bg" x="460" y="56" width="200" height="386" rx="4"/>
+  <rect class="panel-frame" x="464" y="60" width="192" height="378" rx="8"/>
+  <text class="lab-b" x="560" y="80" text-anchor="middle" fill="#2c1d3f">.roboPanel</text>
+  <text class="lab-y" x="560" y="96" text-anchor="middle">flex-grow: 55 (不変)</text>
+  <text class="lab-y" x="560" y="110" text-anchor="middle">→ 全体の 100%</text>
+  <text class="lab-s" x="560" y="124" text-anchor="middle">(enemy が 0 なので</text>
+  <text class="lab-s" x="560" y="138" text-anchor="middle">相対的に 100% を占める)</text>
+
+  <rect class="flow" x="480" y="152" width="160" height="234" rx="4"/>
+  <text class="lab-b" x="560" y="170" text-anchor="middle">.flowchartArea</text>
+  <text class="lab-s" x="560" y="186" text-anchor="middle">flex-grow: 80</text>
+  <text class="lab-s" x="560" y="200" text-anchor="middle">→ panel の 80/100</text>
+  <text class="lab-s" x="560" y="214" text-anchor="middle">= 全体の 80%</text>
+
+  <rect class="player" x="480" y="394" width="160" height="36" rx="4"/>
+  <text class="lab-b" x="560" y="412" text-anchor="middle">.playerArea</text>
+  <text class="lab-s" x="560" y="425" text-anchor="middle">20/100 = 全体の 20%</text>
+
+  <path class="arrow" d="M 290 130 Q 360 130 360 230 Q 360 250 450 240" stroke-dasharray="5 3"/>
+  <text class="lab-s" x="370" y="200" text-anchor="middle" fill="#444">ZoomButton</text>
+  <text class="lab-s" x="370" y="214" text-anchor="middle" fill="#444">→ isExpanded</text>
+  <text class="lab-s" x="370" y="228" text-anchor="middle" fill="#444">250ms transition</text>
+
+  <text class="lab-s" x="380" y="460" text-anchor="middle">紫枠 (.roboPanel::before) は inset: 0 で .roboPanel に追従し、自動的に拡縮する</text>
+</svg>
