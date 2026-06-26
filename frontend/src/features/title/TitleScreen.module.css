@@ -31,16 +31,26 @@
 }
 
 /*
- * 画面中央に置くスタートボタン。タイトルの赤バナー＋金枠のトーンに合わせた
- * RPG 風の見た目。`translate(-50%, -50%)` で中央基準にし、ゆっくり拡縮する
- * パルスで「押せる」ことを伝える（transform はパルス側で translate を含めて
- * 管理し、ホバー／押下は filter で表現して transform の競合を避ける）。
+ * 絵の中央に置く操作群。スタートボタンと、その下の大画面表示ボタンを縦に
+ * 並べる。`.canvas` 基準の絶対配置で中央に置く（黒帯ではなく絵の中央）。
  */
-.startButton {
+.controls {
   position: absolute;
   left: 50%;
-  top: 58%;
+  top: 64%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/*
+ * スタートボタン。タイトルの赤バナー＋金枠のトーンに合わせた RPG 風の見た目。
+ * ゆっくり拡縮するパルスで「押せる」ことを伝える（ホバー／押下は filter で
+ * 表現し、pulse の transform と競合させない）。
+ */
+.startButton {
   padding: 0.85rem 2.8rem;
   font-family: 'DotGothic16', system-ui, sans-serif;
   font-size: clamp(1.1rem, 3.4vw, 2.1rem);
@@ -70,9 +80,43 @@
 @keyframes titlePulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.06);
+    transform: scale(1.06);
   }
+}
+
+/*
+ * 大画面表示トグル。スタートより一回り小さい二次ボタンとして、金枠＋暗い
+ * 半透明地のタイトル調でまとめる（マップ画面のデバッグ風グレーではなく、
+ * プレイヤーに見せられる見た目）。
+ */
+.fullscreenButton {
+  padding: 0.45rem 1.5rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.8rem, 2vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f7e9c0;
+  background: rgba(22, 17, 32, 0.72);
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s;
+}
+
+.fullscreenButton:hover {
+  filter: brightness(1.15);
+}
+
+.fullscreenButton:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.4);
 }

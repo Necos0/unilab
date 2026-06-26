@@ -280,6 +280,10 @@ unilab/
             ├── title/            ← タイトル画面
             │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面
             │   └── TitleScreen.module.css
+            ├── cutsceneflow/    ← デバッグ用:カットシーン発生タイミング一覧(C キーで開閉)
+            │   ├── CutsceneFlowScreen.jsx     ← 時系列フローでカットシーンの差し込み口を表示
+            │   ├── CutsceneFlowScreen.module.css
+            │   └── buildCutsceneFlow.js       ← cutscenes/stages を突き合わせフロー構造を組む(純関数)
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)
                 ├── MapScreen.module.css

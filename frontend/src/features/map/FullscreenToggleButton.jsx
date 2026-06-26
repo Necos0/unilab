@@ -12,14 +12,20 @@ import styles from './FullscreenToggleButton.module.css';
  * UI ががた付かないようにする（例: フルスクリーン許可がブラウザ側で
  * 拒否された場合）。
  *
- * 配置は CSS の `position: absolute` でマップ画面の左下に重ねる。
- * BattleDemoButton（左上）と同じトーンで配色を揃え、デバッグ／視聴用
- * UI として控えめに表示する。
+ * 既定の配置・配色は CSS の `position: absolute` でマップ画面の左下に重ねる
+ * デバッグ／視聴用トーン。`className` を渡すとその場限りの見た目に差し替え
+ * られるため、タイトル画面など別画面で見栄えのするボタンとして再利用できる
+ * （トグルのロジックとラベルは共通のまま）。
+ *
+ * Args:
+ *     props (object): React プロパティ。
+ *         className (string, optional): ボタンに適用するクラス名。省略時は
+ *             既定のデバッグ風スタイル（`styles.button`、左下配置）。
  *
  * Returns:
  *     JSX.Element: トグルボタン要素。
  */
-function FullscreenToggleButton() {
+function FullscreenToggleButton({ className }) {
   const [isFullscreen, setIsFullscreen] = useState(
     () => typeof document !== 'undefined' && Boolean(document.fullscreenElement),
   );
@@ -47,7 +53,11 @@ function FullscreenToggleButton() {
   };
 
   return (
-    <button type="button" className={styles.button} onClick={handleClick}>
+    <button
+      type="button"
+      className={className ?? styles.button}
+      onClick={handleClick}
+    >
       {isFullscreen ? '⛶ 通常画面' : '⛶ 大画面'}
     </button>
   );

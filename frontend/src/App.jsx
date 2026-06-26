@@ -5,6 +5,7 @@ import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
 import CharacterGallery from './editer/CharacterGallery.jsx';
+import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
 import stagesData from './data/stagesLoader.js';
@@ -12,7 +13,7 @@ import stagesData from './data/stagesLoader.js';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'map' | 'battle' | 'editor' | 'gallery'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
  * でステージ1の入り口にあたるマップ画面（`MapScreen`＝`map_1`）へ遷移する。
@@ -61,6 +62,12 @@ function App() {
    * 退避し、アニメ完了（`isUnlockAnimating` が true→false）を検知して発火する。
    */
   const pendingExitStageIdRef = useRef(null);
+  /*
+   * 開発用カットシーン・フロー画面（`C` キー）を開く直前の画面を控えておき、
+   * 「戻る」で元の画面へ復帰できるようにする。バトル中に開いた場合は戻ると
+   * バトルが再マウントされてトリガーが再発火するため、`map` に丸めて退避する。
+   */
+  const prevScreenRef = useRef('map');
   const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
   const wasUnlockAnimatingRef = useRef(false);
   useEffect(() => {
@@ -84,11 +91,13 @@ function App() {
    *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
    *         まとめてリフレッシュ。最初の状態からガイドを見直せるようにする。
    *   - T : タイトル画面（`TitleScreen`）へ戻る。
+   *   - C : カットシーン・フロー画面（`CutsceneFlowScreen`、開発用）を開閉する。
+   *         開く直前の画面を `prevScreenRef` に退避し、画面内の「戻る」で復帰する。
    *   （どこまで解放するかを選ぶ Space は `UnlockSelectButton`（MapScreen）が扱う。）
    */
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.code !== 'KeyR' && event.code !== 'KeyT') {
+      if (event.code !== 'KeyR' && event.code !== 'KeyT' && event.code !== 'KeyC') {
         return;
       }
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
@@ -106,6 +115,16 @@ function App() {
       event.preventDefault();
       if (event.code === 'KeyT') {
         setScreen('title');
+        return;
+      }
+      if (event.code === 'KeyC') {
+        setScreen((prev) => {
+          if (prev === 'cutsceneflow') {
+            return prevScreenRef.current;
+          }
+          prevScreenRef.current = prev === 'battle' ? 'map' : prev;
+          return 'cutsceneflow';
+        });
         return;
       }
       useCutsceneStore.getState().resetSeen();
@@ -147,6 +166,10 @@ function App() {
     setScreen('gallery');
   }, []);
 
+  const handleExitCutsceneFlow = useCallback(() => {
+    setScreen(prevScreenRef.current);
+  }, []);
+
   const handleClearedExitToMap = useCallback((clearedStageId) => {
     useProgressStore.getState().markStageCleared(clearedStageId);
     const progress = useProgressStore.getState();
@@ -181,6 +204,8 @@ function App() {
         onClearedExitToMap={handleClearedExitToMap}
       />
     );
+  } else if (screen === 'cutsceneflow') {
+    currentScreen = <CutsceneFlowScreen onExit={handleExitCutsceneFlow} />;
   } else if (screen === 'editor') {
     currentScreen = <SpriteSheetEditor onExit={handleExitToMap} />;
   } else if (screen === 'gallery') {

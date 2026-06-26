@@ -1,4 +1,5 @@
 import styles from './TitleScreen.module.css';
+import FullscreenToggleButton from '../map/FullscreenToggleButton';
 
 /* タイトル画像（`public/title.png`、1536×1024 の 3:2 ピクセルアート）。 */
 const TITLE_IMAGE_SRC = '/title.png';
@@ -10,10 +11,12 @@ const TITLE_IMAGE_SRC = '/title.png';
  * 「スタート」ボタンを重ねる。ボタンを押すと `onStart` を呼び、親（`App`）が
  * ステージ1の入り口（マップ画面 `map_1`）へ遷移する。
  *
- * 画像は 3:2 のため、`.root`（ダーク背景・中央寄せ）の中に画像比に合わせた
- * `.canvas` を置き、`object-fit: contain` で絵全体を見せる。スタートボタンは
- * `.canvas` 基準の絶対配置で中央に置くため、レターボックスの黒帯ではなく
- * 実際の絵の中央に重なる（`MapScreen` の `.root` / `.canvas` と同じ構成）。
+ * `.root`（ダーク背景・中央寄せ）の中にマップ画面と同じ 16:9 の `.canvas` を
+ * 置き、`object-fit: contain` で絵全体を見せる（`MapScreen` の `.root` /
+ * `.canvas` と同じ構成）。中央の `.controls` に「スタート」ボタンと、その下に
+ * 大画面表示トグル（共通の `FullscreenToggleButton` にタイトル用のクラスを
+ * 渡したもの）を縦に並べる。レターボックスの黒帯ではなく実際の絵の中央に
+ * 重なるよう、`.controls` を `.canvas` 基準の絶対配置で中央に置く。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -31,9 +34,16 @@ function TitleScreen({ onStart }) {
           src={TITLE_IMAGE_SRC}
           alt="わせだクエスト"
         />
-        <button type="button" className={styles.startButton} onClick={onStart}>
-          スタート
-        </button>
+        <div className={styles.controls}>
+          <button
+            type="button"
+            className={styles.startButton}
+            onClick={onStart}
+          >
+            スタート
+          </button>
+          <FullscreenToggleButton className={styles.fullscreenButton} />
+        </div>
       </div>
     </section>
   );
