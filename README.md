@@ -164,7 +164,8 @@ unilab/
     │           ├── starfish/     ← idle / dead
     │           ├── scorpion/     ← idle / dead
     │           ├── shark/        ← idle / dead
-    │           └── squid/        ← idle / dead
+    │           ├── squid/        ← idle / dead
+    │           └── goldenbird/   ← idle / dead
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx

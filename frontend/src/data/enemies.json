@@ -269,6 +269,24 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "goldenbird",
+      "displayName": "ゴールデンバード",
+      "maxHp": 80,
+      "sizeRatio": 0.8,
+      "animations": {
+        "idle": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }
