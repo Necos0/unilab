@@ -427,7 +427,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       onDragEnd={handleDragEnd}
     >
       <section className={rootClassName}>
-        {victoryPhase !== 'cleared' && failPhase !== 'shown' && <BackToMapButton onClick={onExitToMap} />}
+        {victoryPhase !== 'cleared' && failPhase !== 'shown' && !isExpanded && <BackToMapButton onClick={onExitToMap} />}
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
           <div 
@@ -442,26 +442,6 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               {currentEnemyHp}/{maxEnemyHp}
             </span>
           </div>
-          <DamageFloater />
-          <ReflectDamageFloater />
-          {victoryPhase === 'cleared' && (
-            <VictoryClearOverlay onExitToMap={handleClearedExitToMap} />
-          )}
-          {failPhase === 'shown' && (
-            <BattleFailOverlay onExitToMap={onExitToMap} onRetry={retryFromFail} />
-          )}
-        </div>
-        <div className={styles.flowchartArea}>
-          <FlowchartArea stage={stage} />
-          <div className={styles.flowchartControls}>
-            <div className={styles.topRow}>
-              <ZoomButton />
-              <ResetButton stage={stage} />
-            </div>
-            <PlayButton stage={stage} />
-          </div>
-        </div>
-        <div className={styles.playerArea}>
           <div 
             className={[
               styles.playerHpBox,
@@ -504,7 +484,29 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             <PlayerHealFloater />
             <PlayerGuardFloater />
           </div>
-          <Hand />
+          <DamageFloater />
+          <ReflectDamageFloater />
+          {victoryPhase === 'cleared' && (
+            <VictoryClearOverlay onExitToMap={handleClearedExitToMap} />
+          )}
+          {failPhase === 'shown' && (
+            <BattleFailOverlay onExitToMap={onExitToMap} onRetry={retryFromFail} />
+          )}
+        </div>
+        <div className={styles.roboPanel}>
+          <div className={styles.flowchartArea}>
+            <FlowchartArea stage={stage} />
+            <div className={styles.flowchartControls}>
+              <div className={styles.topRow}>
+                <ZoomButton />
+                <ResetButton stage={stage} />
+              </div>
+              <PlayButton stage={stage} />
+            </div>
+          </div>
+          <div className={styles.playerArea}>
+            <Hand />
+          </div>
         </div>
         <RoboBubble variant="battle" />
       </section>

@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760">
+  <defs>
+    <marker id="arr-dom" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#444"/>
+    </marker>
+    <style>
+      .box { fill: #f5f5fa; stroke: #333; stroke-width: 1.5; }
+      .new { fill: #fff5cc; stroke: #c5a017; stroke-width: 1.5; }
+      .root { fill: #e3f2fd; stroke: #1976d2; stroke-width: 1.5; }
+      .lab { font-family: monospace; font-size: 12px; fill: #222; }
+      .lab-b { font-family: monospace; font-size: 12px; fill: #222; font-weight: bold; }
+      .lab-s { font-family: monospace; font-size: 10px; fill: #555; }
+      .lab-y { font-family: monospace; font-size: 10px; fill: #b8860b; }
+      .title { font-family: sans-serif; font-size: 14px; fill: #222; font-weight: bold; }
+      .ed { fill: none; stroke: #444; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <text class="title" x="170" y="20" text-anchor="middle">変更前</text>
+  <text class="title" x="570" y="20" text-anchor="middle">変更後</text>
+
+  <rect class="root" x="40" y="40" width="260" height="36" rx="6"/>
+  <text class="lab-b" x="170" y="63" text-anchor="middle">.root (flex column)</text>
+
+  <line class="ed" x1="170" y1="76" x2="170" y2="100" marker-end="url(#arr-dom)"/>
+
+  <rect class="box" x="60" y="102" width="220" height="40" rx="6"/>
+  <text class="lab" x="170" y="120" text-anchor="middle">.enemyArea</text>
+  <text class="lab-s" x="170" y="135" text-anchor="middle">flex: 45 0 0</text>
+
+  <line class="ed" x1="170" y1="142" x2="170" y2="166" marker-end="url(#arr-dom)"/>
+
+  <rect class="box" x="60" y="168" width="220" height="40" rx="6"/>
+  <text class="lab" x="170" y="186" text-anchor="middle">.flowchartArea</text>
+  <text class="lab-s" x="170" y="201" text-anchor="middle">flex: 35 0 0 (transition)</text>
+
+  <line class="ed" x1="170" y1="208" x2="170" y2="232" marker-end="url(#arr-dom)"/>
+
+  <rect class="box" x="60" y="234" width="220" height="40" rx="6"/>
+  <text class="lab" x="170" y="252" text-anchor="middle">.playerArea</text>
+  <text class="lab-s" x="170" y="267" text-anchor="middle">flex: 20 0 0</text>
+
+  <rect class="root" x="440" y="40" width="260" height="36" rx="6"/>
+  <text class="lab-b" x="570" y="63" text-anchor="middle">.root (flex column)</text>
+
+  <line class="ed" x1="570" y1="76" x2="570" y2="100" marker-end="url(#arr-dom)"/>
+
+  <rect class="box" x="460" y="102" width="220" height="40" rx="6"/>
+  <text class="lab" x="570" y="120" text-anchor="middle">.enemyArea</text>
+  <text class="lab-s" x="570" y="135" text-anchor="middle">flex: 45 0 0 (無変更)</text>
+
+  <line class="ed" x1="570" y1="142" x2="570" y2="166" marker-end="url(#arr-dom)"/>
+
+  <rect class="new" x="440" y="168" width="260" height="180" rx="6"/>
+  <text class="lab-b" x="570" y="188" text-anchor="middle">.roboPanel (新規)</text>
+  <text class="lab-y" x="570" y="204" text-anchor="middle">flex: 55 0 0 (= 35+20)</text>
+  <text class="lab-y" x="570" y="218" text-anchor="middle">position: relative</text>
+  <text class="lab-y" x="570" y="232" text-anchor="middle">::before で紫枠を描画</text>
+
+  <rect class="box" x="470" y="248" width="200" height="40" rx="6"/>
+  <text class="lab" x="570" y="266" text-anchor="middle">.flowchartArea</text>
+  <text class="lab-s" x="570" y="281" text-anchor="middle">flex: 35 0 0 (無変更)</text>
+
+  <line class="ed" x1="570" y1="288" x2="570" y2="302" marker-end="url(#arr-dom)"/>
+
+  <rect class="box" x="470" y="304" width="200" height="40" rx="6"/>
+  <text class="lab" x="570" y="322" text-anchor="middle">.playerArea</text>
+  <text class="lab-s" x="570" y="337" text-anchor="middle">flex: 20 0 0 (無変更)</text>
+
+  <text class="lab-s" x="380" y="240" text-anchor="middle" fill="#b8860b">差分：</text>
+  <text class="lab-s" x="380" y="254" text-anchor="middle" fill="#b8860b">.roboPanel</text>
+  <text class="lab-s" x="380" y="268" text-anchor="middle" fill="#b8860b">の追加のみ</text>
+
+  <rect class="new" x="40" y="372" width="14" height="14" rx="2"/>
+  <text class="lab-s" x="62" y="383">新規追加</text>
+  <rect class="box" x="180" y="372" width="14" height="14" rx="2"/>
+  <text class="lab-s" x="202" y="383">既存（無変更）</text>
+  <rect class="root" x="340" y="372" width="14" height="14" rx="2"/>
+  <text class="lab-s" x="362" y="383">既存ルート要素</text>
+</svg>
