@@ -115,7 +115,7 @@
       "sizeRatio": 0.7,
       "animations": {
         "idle": {
-          "frameCount": 5,
+          "frameCount": 4,
           "frameDurationMs": 250,
           "loop": true
         },
