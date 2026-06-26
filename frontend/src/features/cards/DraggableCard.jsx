@@ -33,6 +33,11 @@ import styles from './DraggableCard.module.css';
  * 二重防御になっている：dnd-kit 側で抑止するのが UX 的に正しいが、万が一
  * そこを抜けても状態遷移層で弾けるためデータが壊れない。
  *
+ * ルート要素には `data-cutscene-point="<id>Card"`（例: `attackCard` /
+ * `guardCard`）を付与し、カットシーンの指差し誘導（`CutscenePointer`）が
+ * このカードを指し示せるようにする。同一 `id` のカードが複数あるときは
+ * `querySelector` が DOM 先頭の 1 枚を指す。
+ *
  * 配置先のコンテナに合わせてサイズ計算方法を切り替えるため `variant` を
  * 受け取る：
  *   - `'hand'`（既定）: 手札レイアウトで使用。`height: 100%` + `aspect-ratio: 2/3`
@@ -72,6 +77,7 @@ function DraggableCard({ card, source, variant = 'hand' }) {
   return (
     <div
       ref={setNodeRef}
+      data-cutscene-point={`${card.id}Card`}
       className={className}
       {...listeners}
       {...attributes}

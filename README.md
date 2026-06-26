@@ -178,6 +178,7 @@ unilab/
         │   ├── GuardBar.jsx           ← ガード残量バー(HpBar の下に縦並び、盾アイコン付き)
         │   └── GuardBar.module.css
         ├── data/                 ← 静的データ(stages.json 等、JS から import)
+        │   ├── card_help.json    ← カードの名前・効果説明(ヘルプ画面で表示、ふりがな付き)
         │   ├── enemies.json
         │   ├── cutscenes.json    ← 自動ガイド演出(トリガー→吹き出し/指差し/再生アニメ)の定義
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
@@ -219,6 +220,10 @@ unilab/
             │   ├── BattleScreen.module.css
             │   ├── BackToMapButton.jsx        ← 右上のテスト用「マップへ戻る」ボタン
             │   ├── BackToMapButton.module.css
+            │   ├── HelpButton.jsx             ← 左上のヘルプ(カード説明)ボタン
+            │   ├── HelpButton.module.css
+            │   ├── CardHelpWindow.jsx         ← カード効果を説明するタブ式ヘルプウィンドウ
+            │   ├── CardHelpWindow.module.css
             │   ├── BattleTransition.jsx       ← マップ→バトルの黒フェード演出＋画像プリロード
             │   ├── BattleTransition.module.css
             │   ├── VictoryClearOverlay.jsx    ← 勝利時の CLEAR! テキスト＋マップへ戻るボタン
@@ -276,6 +281,10 @@ unilab/
             ├── cutscene/         ← 自動ガイド演出(ロボの吹き出し)
             │   ├── RoboBubble.jsx          ← 吹き出し＋ロボアイコン(読み上げ表示・クリック/Enterで送り)
             │   ├── RoboBubble.module.css
+            │   ├── CutscenePointer.jsx     ← 画面内の対象(HPバー/カード/スロット)を指すリング＋矢印
+            │   ├── CutscenePointer.module.css
+            │   ├── CutsceneDragDemo.jsx    ← カード→スロットのドラッグ&ドロップ操作デモ(ゴースト＋指先)
+            │   ├── CutsceneDragDemo.module.css
             │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)
             ├── title/            ← タイトル画面
             │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面

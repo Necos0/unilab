@@ -1,0 +1,70 @@
+/*
+ * カードをスロットへドラッグ＆ドロップする説明アニメ（CutsceneDragDemo）の見た目。
+ *
+ * `.ghost` は始点カードと同じ大きさの半透明カードで、動き（始点→終点→フェード）は
+ * JS 側の Web Animations API が `transform` / `opacity` を駆動する。ここでは静的な
+ * 配置・重なり・見た目だけを定義する。`.cardScale` は素の `Card`（120×180）を画面上の
+ * 実寸へ縮小する入れ物、`.cursor` はゴーストに付き従う指先カーソル、`.targetRing` は
+ * 置き先スロットを囲む点滅枠。すべて `pointer-events: none` で下のクリック受けを邪魔
+ * しない。
+ */
+
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-origin: top left;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
+  will-change: transform, opacity;
+}
+
+/* 素の Card（120×180）を画面上のカード実寸へ縮小する入れ物 */
+.cardScale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+/* 指先カーソル。ゴーストの右下に重ね、つかんでいる位置を示す */
+.cursor {
+  position: absolute;
+  right: -12px;
+  bottom: -14px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* 置き先スロットを囲む点滅枠。「ここに置く」を示す */
+.targetRing {
+  position: fixed;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 4px dashed #ffe14d;
+  border-radius: 12px;
+  pointer-events: none;
+  animation: targetPulse 0.9s ease-in-out infinite;
+}
+
+/* 置き先の枠を強→弱で点滅させて視線を引きつける */
+@keyframes targetPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 225, 77, 0.35),
+      0 0 16px 4px rgba(255, 225, 77, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 225, 77, 0.6),
+      0 0 24px 9px rgba(255, 225, 77, 0.8);
+  }
+}
+
+/* 動きが苦手なユーザー向けに、枠の点滅も止める（ゴーストの移動は JS 側で停止） */
+@media (prefers-reduced-motion: reduce) {
+  .targetRing {
+    animation: none;
+  }
+}

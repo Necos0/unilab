@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import stagesData from '../data/stages.json';
 import mapsData from '../data/maps.json';
 import parseStageId from '../features/map/parseStageId';
@@ -66,13 +67,39 @@ function getNextUnlockableWorld(world) {
   return mapsData.maps?.[`map_${nextWorld}`] ? nextWorld : null;
 }
 
-const useProgressStore = create((set, get) => ({
+const useProgressStore = create(
+  persist(
+    (set, get) => ({
   clearedStageIds: [],
   pendingUnlockStageId: null,
   isUnlockAnimating: false,
   unlockedWorlds: [],
   pendingWorldUnlock: null,
   unlockingWorld: null,
+  seenCardIds: [],
+
+  /**
+   * プレイヤーが戦闘で「初めて出てきた」カードを既出として記録する。
+   *
+   * カード説明ヘルプ（`CardHelpWindow`）は、まだ出会っていないカードの
+   * 説明を伏せて「？？？カード」と表示する。そのための既出フラグを
+   * `seenCardIds` 集合（配列で保持）として一元管理する。`BattleScreen`
+   * のマウント時に、そのステージの手札カード ID を渡して呼ぶ想定。
+   *
+   * 既に記録済みの ID は無視し、新規 ID が 1 つも無ければ参照を変えずに
+   * no-op する（不要な再レンダーを避けるため `set` 自体を呼ばない）。
+   *
+   * Args:
+   *     cardIds (string[]): このステージで手札に出るカードの ID 配列。
+   */
+  markCardsSeen: (cardIds) => {
+    const state = get();
+    const fresh = cardIds.filter((id) => !state.seenCardIds.includes(id));
+    if (fresh.length === 0) {
+      return;
+    }
+    set({ seenCardIds: [...state.seenCardIds, ...new Set(fresh)] });
+  },
 
   /**
    * ステージのクリアを記録し、必要なら次ステージ解放のフラグを立てる。
@@ -286,7 +313,27 @@ const useProgressStore = create((set, get) => ({
       unlockingWorld: null,
     });
   },
-}));
+    }),
+    {
+      /*
+       * 進行状況の永続化（localStorage）。リロードしても「クリア済みステージ・
+       * 解放ワールド・既出カード」が残るようにする。
+       *
+       * `partialize` で永続データだけを保存し、解放アニメ進行中の一時状態
+       * （`pendingUnlockStageId` / `isUnlockAnimating` / `pendingWorldUnlock`
+       * / `unlockingWorld`）は保存しない。これらを保存すると、復元直後に
+       * 解放シネマが中途半端に再生されたり、ロック表示が固まったりするため、
+       * リロード時は必ず「アニメ無し」の静止状態から始める。
+       */
+      name: 'unilab-progress',
+      partialize: (state) => ({
+        clearedStageIds: state.clearedStageIds,
+        unlockedWorlds: state.unlockedWorlds,
+        seenCardIds: state.seenCardIds,
+      }),
+    },
+  ),
+);
 
 /**
  * `clearedStageIds` 配列のみから解放状態を派生計算する内部ヘルパー。
@@ -327,6 +374,21 @@ function isStageUnlockedFromCleared(clearedStageIds, stageId) {
  */
 export const isStageClearedSelector = (stageId) => (state) =>
   state.clearedStageIds.includes(stageId);
+
+/**
+ * 指定カードが既出（プレイヤーが戦闘で出会った）かを返すセレクタファクトリ。
+ *
+ * `useProgressStore(isCardSeenSelector("attack"))` のように使う。カード
+ * 説明ヘルプで、未出のカードを「？？？カード」と伏せ表示するための判定。
+ *
+ * Args:
+ *     cardId (string): 判定対象カードの ID。
+ *
+ * Returns:
+ *     (state) => boolean: zustand セレクタ関数。
+ */
+export const isCardSeenSelector = (cardId) => (state) =>
+  state.seenCardIds.includes(cardId);
 
 /**
  * 指定ステージが解放済みかを返すセレクタファクトリ。

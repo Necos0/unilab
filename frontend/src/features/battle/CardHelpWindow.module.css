@@ -1,0 +1,262 @@
+/*
+ * カード説明ヘルプウィンドウ（RPG 風意匠）。
+ *
+ * タイトル画面（赤グラデ＋金枠 #f0c040＋立体影、DotGothic16）と意匠を
+ * 揃え、ゲームの世界観に溶け込む「装飾された巻物／石板」風のモーダルに
+ * する。選択中カードのテーマ色は `--accent`（JSX から注入）で受け取り、
+ * カード枠・名前・アクティブタブの強調に使う。
+ */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(4, 2, 10, 0.66);
+  backdrop-filter: blur(2px);
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  animation: helpBackdropIn 0.18s ease-out;
+}
+
+.window {
+  --accent: #f0c040;
+  position: relative;
+  width: min(96%, 680px);
+  max-height: 92%;
+  display: flex;
+  flex-direction: column;
+  color: #f7e9c0;
+  /* 二重の金枠：外周の太い金縁＋内側の暗い石板地 */
+  background:
+    linear-gradient(#1d1730, #140f22) padding-box,
+    linear-gradient(#f7e0a0, #c79a2e) border-box;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px #6e521c,
+    0 10px 0 rgba(0, 0, 0, 0.35),
+    0 18px 44px rgba(0, 0, 0, 0.6),
+    inset 0 0 22px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  animation: helpWindowIn 0.22s cubic-bezier(0.2, 1.1, 0.4, 1);
+}
+
+/* 上部の赤バナー見出し（タイトル画面のスタートボタンと同系）。 */
+.titleBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  background: linear-gradient(#c0392b, #8f2a20);
+  border-bottom: 2px solid #f0c040;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.titleText {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #fff7e0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+.closeButton {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  width: 1.9rem;
+  height: 1.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: #fff7e0;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid #f0c040;
+  border-radius: 6px;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  transition: filter 0.15s, transform 0.08s;
+}
+
+.closeButton:hover {
+  filter: brightness(1.18);
+}
+
+.closeButton:active {
+  transform: translateY(calc(-50% + 2px));
+}
+
+/* 上部タブ列（1 列固定、均等割り）。選択中はカードのテーマ色で発光する。 */
+.tabBar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  padding: 0.7rem 0.6rem 0;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 2px solid #6e521c;
+}
+
+.tab {
+  --accent: #f0c040;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.6rem 0.5rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #c8bfa0;
+  background: linear-gradient(rgba(40, 32, 60, 0.9), rgba(26, 20, 40, 0.9));
+  border: 2px solid #5a4a7a;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  transition: color 0.15s, filter 0.15s, transform 0.08s;
+}
+
+.tab:hover {
+  filter: brightness(1.18);
+  color: #f7e9c0;
+}
+
+/* 未出カードのタブ：くすませて押せない見た目にする。 */
+.tabLocked {
+  color: #8a8298;
+  background: linear-gradient(rgba(28, 24, 38, 0.85), rgba(20, 16, 30, 0.85));
+  border-color: #4a4458;
+  cursor: not-allowed;
+}
+
+.tabLocked:hover {
+  filter: none;
+  color: #8a8298;
+}
+
+.tab rt {
+  font-size: 0.58em;
+  font-weight: 400;
+}
+
+/* アクティブタブ：テーマ色の枠＋下地と地続きにして「前面の紙」を表現。 */
+.tabActive {
+  color: #fff7e0;
+  background: linear-gradient(#241c38, #140f22);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 2px 0 color-mix(in srgb, var(--accent) 35%, transparent);
+  transform: translateY(2px);
+}
+
+/* 選択中カードの内容（額装した絵＋名前＋説明）。 */
+.content {
+  display: flex;
+  gap: 1.6rem;
+  padding: 1.8rem;
+  overflow-y: auto;
+}
+
+/* カードの絵を入れる「額縁」。テーマ色の枠＋暗いインセット地。 */
+.cardFrame {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 0.4rem;
+  background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.25));
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--accent) 45%, transparent),
+    inset 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+/* 未出カードの額縁：本物の絵を伏せ、card と同じ寸法の「？」プレートにする。 */
+.cardFrameLocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 180px;
+  box-sizing: border-box;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.03) 8px,
+      rgba(0, 0, 0, 0.25) 8px,
+      rgba(0, 0, 0, 0.25) 16px
+    ),
+    linear-gradient(#241c38, #140f22);
+}
+
+.lockedMark {
+  font-family: 'Press Start 2P', 'DotGothic16', monospace;
+  font-size: 3rem;
+  color: #6e6880;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.cardText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cardName {
+  margin: 0.2rem 0 1rem;
+  font-family: inherit;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.55),
+    0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.cardName rt {
+  font-size: 0.5em;
+  font-weight: 400;
+  color: #f7e9c0;
+  text-shadow: none;
+}
+
+.cardDescription {
+  margin: 0;
+  font-family: inherit;
+  font-size: 1.2rem;
+  line-height: 2.1;
+  color: #ece3cf;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.cardDescription rt {
+  font-size: 0.5em;
+  color: #c9bf9f;
+  text-shadow: none;
+}
+
+@keyframes helpBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes helpWindowIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

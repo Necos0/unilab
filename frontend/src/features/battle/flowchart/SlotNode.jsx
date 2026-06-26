@@ -112,6 +112,11 @@ import styles from './SlotNode.module.css';
  * いずれの拡張ハンドルも、参照しないステージでは未使用ハンドルとして無害に存在する
  * だけ。`isConnectable={false}` でユーザー操作からの手動接続を防ぐ。
  *
+ * ルート要素には `data-cutscene-point={id}`（例: `slot-1`）を付与し、カットシーンの
+ * 指差し誘導（`CutscenePointer`）やドラッグ説明アニメ（`CutsceneDragDemo`）が
+ * このスロットを位置の基準として参照できるようにする。`DraggableCard` の
+ * `attackCard` などと同じ仕組みで、`data-cutscene-point` 値を step 側から指定する。
+ *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
  *         id (string): スロット ID（`stages.json` の `slots[].id` に一致）。
@@ -202,7 +207,7 @@ function SlotNode({ id, data }) {
     .join(' ');
 
   return (
-    <div ref={setNodeRef} className={className}>
+    <div ref={setNodeRef} className={className} data-cutscene-point={id}>
       <Handle
         type="target"
         position={Position.Left}

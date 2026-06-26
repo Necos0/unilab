@@ -22,6 +22,16 @@
   font-family: 'DotGothic16', 'Press Start 2P', monospace;
 }
 
+/*
+ * 操作待ち（`waitForCardInSlot`）step 用の素通しレイヤー。下のカードを実際に
+ * ドラッグできるよう、全面レイヤーのクリック受けを無効化する。吹き出し・指差し
+ * （`.group` / CutscenePointer）はもともと `pointer-events: none` なので、ヒント
+ * 表示は残したままゲーム操作だけを通す。
+ */
+.passThrough {
+  pointer-events: none;
+}
+
 /* ロボのアイコン＋スピーチバブルのまとまり。位置だけ variant で変える */
 .group {
   position: absolute;

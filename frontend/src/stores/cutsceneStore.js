@@ -6,26 +6,41 @@ import parseStageId from '../features/map/parseStageId';
  * 自動ガイド演出（カットシーン）の表示状態を管理する Zustand ストア。
  *
  * `cutscenes.json` に定義された「トリガー → 演出の並び（steps）」を、
- * ゲーム内イベント（`fireTrigger`）に応じて再生する。フェーズ1では演出
- * 種類のうち **ロボの吹き出し（`bubble`）だけ** を扱い、`point`（指差し
- * 誘導）・`playAnimation`（再生アニメ）を持つ step は表示対象から除外する
+ * ゲーム内イベント（`fireTrigger`）に応じて再生する。フェーズ1で再生する
+ * step は2種類:
+ *   - `bubble`（ロボの吹き出し）: `point`（指差し誘導の対象 ID）を持つことが
+ *     あり、`RoboBubble` 側が対象 DOM 要素を指す演出を出す。
+ *   - `openCardHelp`（カード説明モーダル誘導）: その step に進むと
+ *     `pendingCardHelpId` を立て、`BattleScreen` が `CardHelpWindow` を開く。
+ *     吹き出しの「あいだ」に挟めるので、説明の途中で特定カードのモーダルを
+ *     見せてから次の吹き出しへ続けられる。
+ * `playAnimation`（再生アニメ）のみを持つ step は再生対象から除外する
  * （データとしては将来フェーズ用に温存される）。
  *
- * 吹き出しは1つずつ表示し、`advance()`（クリック／タップ）で次へ送る。
- * 末尾まで送ると `finish()` が走り、`once` なカットシームは `id` を
- * `seenIds` に記録して二度と出さないようにする。`seenIds` は localStorage
- * に永続化し、リロード後も再表示しない。
+ * step は1つずつ表示し、`advance()`（クリック／タップ）で次へ送る。
+ * `openCardHelp` step ではモーダルが閉じる（`consumeCardHelp()`）まで待ち、
+ * 閉じたら次の step へ進む。末尾まで送ると `finish()` が走り、`once` な
+ * カットシーンは `id` を `seenIds` に記録して二度と出さないようにする。
+ * `seenIds` は localStorage に永続化し、リロード後も再表示しない。
  *
  * 状態:
  *   - `seenIds` (string[]): 表示済みカットシーン ID（localStorage 永続）。
  *   - `activeId` (string|null): 再生中のカットシーン ID。null なら非表示。
- *   - `bubbles` (string[]): 再生中カットシーンの吹き出し文言（順送り用）。
- *   - `stepIndex` (number): 現在表示中の吹き出しのインデックス。
+ *   - `steps` (Array<object>): 再生中カットシーンの再生対象 step（順送り用）。
+ *     各要素は `{ bubble?, point?, openCardHelp? }`。`bubble` か `openCardHelp`
+ *     のどちらかを必ず持つ。
+ *   - `stepIndex` (number): 現在表示中の step のインデックス。
+ *   - `pendingCardHelpId` (string|null): いま開くべきカード説明モーダルの対象
+ *     カード ID。`openCardHelp` step に進むと立ち、`BattleScreen` が
+ *     `CardHelpWindow` を開く。モーダルを閉じると `consumeCardHelp()` で
+ *     クリアして次の step へ進む。
  *
  * 公開アクション:
  *   - `fireTrigger(event)` : イベントに一致するカットシーンを探して再生開始。
- *   - `advance()`          : 次の吹き出しへ。末尾なら `finish()`。
+ *   - `advance()`          : 次の step へ。末尾なら `finish()`。
+ *   - `goToStep(index)`    : 指定 step へ移動（`openCardHelp` ならモーダルを開く）。
  *   - `finish()`           : 再生終了。`once` なら `seenIds` に記録。
+ *   - `consumeCardHelp()`  : モーダルを閉じた合図。次の step へ進む。
  *   - `resetSeen()`        : 表示済み記録を全消去（開発・テスト用）。
  */
 
@@ -103,8 +118,9 @@ function findCutscene(event) {
 const useCutsceneStore = create((set, get) => ({
   seenIds: loadSeenIds(),
   activeId: null,
-  bubbles: [],
+  steps: [],
   stepIndex: 0,
+  pendingCardHelpId: null,
 
   /**
    * イベントに一致するカットシーンを探し、条件を満たせば再生を開始する。
@@ -116,6 +132,10 @@ const useCutsceneStore = create((set, get) => ({
    *     （`playAnimation` のみの開放演出など）。`seenIds` には記録せず、
    *     将来フェーズで再生できるよう温存する
    *   - `once`（デフォルト true）かつ既に表示済み
+   *
+   * 再生対象の step は `bubble` と `openCardHelp` の2種類だけを取り出す。
+   * 先頭 step（通常は吹き出し）からスタートし、`goToStep(0)` 相当の初期化で
+   * 先頭が `openCardHelp` ならその時点でモーダルを開く。
    *
    * Args:
    *     event (object): 発火イベント。`{ type, stageId?, screen? }`。
@@ -129,35 +149,66 @@ const useCutsceneStore = create((set, get) => ({
       return;
     }
     const { id, def } = found;
-    const bubbles = def.steps
-      .filter((step) => typeof step.bubble === 'string')
-      .map((step) => step.bubble);
-    if (bubbles.length === 0) {
+    const steps = def.steps.filter(
+      (step) =>
+        typeof step.bubble === 'string' || typeof step.openCardHelp === 'string',
+    );
+    const hasBubble = steps.some((step) => typeof step.bubble === 'string');
+    if (!hasBubble) {
       return;
     }
     const isOnce = def.once !== false;
     if (isOnce && get().seenIds.includes(id)) {
       return;
     }
-    set({ activeId: id, bubbles, stepIndex: 0 });
+    const firstStep = steps[0];
+    set({
+      activeId: id,
+      steps,
+      stepIndex: 0,
+      pendingCardHelpId:
+        firstStep && typeof firstStep.openCardHelp === 'string'
+          ? firstStep.openCardHelp
+          : null,
+    });
   },
 
   /**
-   * 次の吹き出しへ進める。末尾を超える場合は `finish()` で再生終了する。
+   * 現在の step から次の step へ進める。
    *
-   * 再生中でない（`activeId` が null）ときは no-op。
+   * 再生中でない（`activeId` が null）ときは no-op。`openCardHelp` step の
+   * 上ではロボの吹き出しが隠れていてクリックで送れないため、ここは主に
+   * 吹き出しのクリック／タップ送りから呼ばれる。
    */
   advance: () => {
-    const { activeId, bubbles, stepIndex } = get();
-    if (!activeId) {
+    if (!get().activeId) {
       return;
     }
-    const nextIndex = stepIndex + 1;
-    if (nextIndex < bubbles.length) {
-      set({ stepIndex: nextIndex });
-    } else {
+    get().goToStep(get().stepIndex + 1);
+  },
+
+  /**
+   * 指定インデックスの step へ移動する。末尾を超える場合は `finish()`。
+   *
+   * 移動先が `openCardHelp` step なら `pendingCardHelpId` を立てて
+   * カード説明モーダルを開かせ、`bubble` step なら `pendingCardHelpId` を
+   * null に戻す。`advance()` と `consumeCardHelp()` の共通の遷移処理。
+   *
+   * Args:
+   *     index (number): 移動先の step インデックス。
+   */
+  goToStep: (index) => {
+    const { steps } = get();
+    if (index >= steps.length) {
       get().finish();
+      return;
     }
+    const step = steps[index];
+    set({
+      stepIndex: index,
+      pendingCardHelpId:
+        typeof step.openCardHelp === 'string' ? step.openCardHelp : null,
+    });
   },
 
   /**
@@ -176,7 +227,32 @@ const useCutsceneStore = create((set, get) => ({
       ? seenIds
       : [...seenIds, activeId];
     saveSeenIds(nextSeen);
-    set({ activeId: null, bubbles: [], stepIndex: 0, seenIds: nextSeen });
+    set({
+      activeId: null,
+      steps: [],
+      stepIndex: 0,
+      seenIds: nextSeen,
+      pendingCardHelpId: null,
+    });
+  },
+
+  /**
+   * カード説明モーダルを閉じた合図。`pendingCardHelpId` をクリアし、いま
+   * 開いていたモーダルがカットシーンの `openCardHelp` step によるものなら
+   * 次の step へ進める。
+   *
+   * `BattleScreen` がモーダルを閉じるときに呼ぶ。再生中で現在 step が
+   * `openCardHelp` の場合だけ `advance` 相当の遷移を行い、それ以外（手動で
+   * 開いたヘルプ等）は単に `pendingCardHelpId` を null に戻すだけにする。
+   */
+  consumeCardHelp: () => {
+    const { activeId, steps, stepIndex } = get();
+    const current = steps[stepIndex];
+    if (activeId && current && typeof current.openCardHelp === 'string') {
+      get().goToStep(stepIndex + 1);
+    } else {
+      set({ pendingCardHelpId: null });
+    }
   },
 
   /**
@@ -200,7 +276,13 @@ const useCutsceneStore = create((set, get) => ({
   markAllSeen: () => {
     const allIds = Object.keys(cutscenesData);
     saveSeenIds(allIds);
-    set({ seenIds: allIds, activeId: null, bubbles: [], stepIndex: 0 });
+    set({
+      seenIds: allIds,
+      activeId: null,
+      steps: [],
+      stepIndex: 0,
+      pendingCardHelpId: null,
+    });
   },
 
   /**
@@ -239,7 +321,13 @@ const useCutsceneStore = create((set, get) => ({
       })
       .map(([id]) => id);
     saveSeenIds(seen);
-    set({ seenIds: seen, activeId: null, bubbles: [], stepIndex: 0 });
+    set({
+      seenIds: seen,
+      activeId: null,
+      steps: [],
+      stepIndex: 0,
+      pendingCardHelpId: null,
+    });
   },
 }));
 

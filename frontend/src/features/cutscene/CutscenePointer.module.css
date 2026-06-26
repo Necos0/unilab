@@ -1,0 +1,59 @@
+/*
+ * カットシーンの指差し誘導（CutscenePointer）の見た目。
+ *
+ * `.ring` は対象要素にぴったり重なる固定配置の枠で、点滅するグロー付きの
+ * 角丸ボーダーで対象を強調する。`.arrow` はその真上で上下に弾む下向きの
+ * 三角矢印。どちらも下のクリック受けレイヤーを邪魔しないよう
+ * `pointer-events: none`。色は注目を引きやすい黄色系で統一する。
+ */
+
+.ring {
+  position: fixed;
+  z-index: 1; /* RoboBubble レイヤー内。吹き出し本体より背面でよい */
+  box-sizing: border-box;
+  border: 4px solid #ffe14d;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: pointerPulse 0.9s ease-in-out infinite;
+}
+
+/* 下向き三角の矢印。リング上辺の中央に置き、上下に弾ませる */
+.arrow {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 13px solid transparent;
+  border-right: 13px solid transparent;
+  border-top: 20px solid #ffe14d;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  animation: pointerBounce 0.7s ease-in-out infinite;
+}
+
+/* 枠のグローを強→弱で点滅させ、視線を引きつける */
+@keyframes pointerPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 225, 77, 0.35),
+      0 0 16px 4px rgba(255, 225, 77, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 225, 77, 0.6),
+      0 0 26px 10px rgba(255, 225, 77, 0.85);
+  }
+}
+
+/* 矢印を上下に弾ませて「ここだよ」と指し示す */
+@keyframes pointerBounce {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(7px);
+  }
+}

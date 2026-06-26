@@ -14,6 +14,8 @@ import ZoomButton from './flowchart/ZoomButton';
 import PlayButton from './flowchart/PlayButton';
 import EnemySprite from './enemy/EnemySprite';
 import BackToMapButton from './BackToMapButton';
+import HelpButton from './HelpButton';
+import CardHelpWindow from './CardHelpWindow';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
@@ -25,6 +27,7 @@ import PlayerHealFloater from './player/PlayerHealFloater';
 import PlayerGuardFloater from './player/PlayerGuardFloater';
 import useBattleStore from '../../stores/battleStore';
 import useCutsceneStore from '../../stores/cutsceneStore';
+import useProgressStore from '../../stores/progressStore';
 import RoboBubble from '../cutscene/RoboBubble';
 import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
@@ -338,6 +341,8 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const [consumedEnemyReflectId, setConsumedEnemyReflectId] = useState(null);
   const isEnemyReflected = lastEnemyReflectId !== null && lastEnemyReflectId !== consumedEnemyReflectId;
 
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   const [isShielded, setIsShielded] = useState(false);
   const prevGuardShieldRef = useRef(0);
   useEffect(() => {
@@ -354,6 +359,16 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   useEffect(() => {
     initializeBattle(stage);
   }, [initializeBattle, stage]);
+
+  /*
+   * カード説明ヘルプの解放：このステージで手札に出るカードを「既出」として
+   * 記録する。`CardHelpWindow` はまだ出会っていないカードの説明を伏せる
+   * （「？？？カード」表示）ため、出てきた瞬間（バトル入場時）に記録する。
+   */
+  const markCardsSeen = useProgressStore((s) => s.markCardsSeen);
+  useEffect(() => {
+    markCardsSeen((stage.cards ?? []).map((card) => card.id));
+  }, [markCardsSeen, stage]);
 
   useEffect(() => () => collapseFlowchart(), [collapseFlowchart]);
 
@@ -379,6 +394,45 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       fireTrigger({ type: 'battleLost', stageId: resolvedStageId });
     }
   }, [failPhase, fireTrigger, resolvedStageId]);
+
+  /*
+   * カットシーンの「操作待ち」step（`waitForCardInSlot`）の進行。プレイヤーが
+   * カードをスロットに入れるまで待ち、入った時点で次の step（「実行しよう」）へ
+   * 進める。待ち中はロボ吹き出しレイヤーが素通しになり実際にドラッグできる。
+   * `slotAssignments` にプレイヤー配置のカード（locked でない＝モンスター等の
+   * 固定札を除く）が1枚でもあれば配置済みとみなす。
+   */
+  const advanceCutscene = useCutsceneStore((s) => s.advance);
+  const isWaitingForCardInSlot = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.waitForCardInSlot === true,
+  );
+  const hasPlayerCardInSlot = useBattleStore((s) =>
+    Object.values(s.slotAssignments).some((card) => card && !card.locked),
+  );
+  useEffect(() => {
+    if (isWaitingForCardInSlot && hasPlayerCardInSlot) {
+      advanceCutscene();
+    }
+  }, [isWaitingForCardInSlot, hasPlayerCardInSlot, advanceCutscene]);
+
+  /*
+   * カットシーンの `openCardHelp` step による誘導表示。カットシーンがその step
+   * に進むと `cutsceneStore.pendingCardHelpId` が立つので、その対象カードを
+   * 初期タブにしたカード説明モーダルを開く。`isHelpOpen`（ヘルプボタンからの
+   * 手動表示）か `pendingCardHelpId` のどちらかで開く派生計算にして、effect 内
+   * setState（`react-hooks/set-state-in-effect`）を避ける。モーダルを閉じると
+   * `consumeCardHelp()` を呼び、カットシーン由来なら次の step（次の吹き出し）へ
+   * 進める。手動表示のときは `pendingCardHelpId` が null なので呼ばない。
+   */
+  const pendingCardHelpId = useCutsceneStore((s) => s.pendingCardHelpId);
+  const consumeCardHelp = useCutsceneStore((s) => s.consumeCardHelp);
+  const isCardHelpOpen = isHelpOpen || pendingCardHelpId !== null;
+  const closeCardHelp = () => {
+    setIsHelpOpen(false);
+    if (pendingCardHelpId !== null) {
+      consumeCardHelp();
+    }
+  };
 
   const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
   const hasDeadAnim = Boolean(enemy?.animations?.dead);
@@ -427,10 +481,18 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       onDragEnd={handleDragEnd}
     >
       <section className={rootClassName}>
+        <HelpButton onClick={() => setIsHelpOpen(true)} />
+        {isCardHelpOpen && (
+          <CardHelpWindow
+            initialCardId={pendingCardHelpId}
+            onClose={closeCardHelp}
+          />
+        )}
         {victoryPhase !== 'cleared' && failPhase !== 'shown' && !isExpanded && <BackToMapButton onClick={onExitToMap} />}
         <div className={styles.enemyArea}>
           <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
-          <div 
+          <div
+            data-cutscene-point="enemyHpBar"
             className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''} ${isEnemyReflected ? styles.shakenVert : ''}`}
             onAnimationEnd={() => {
               setConsumedEnemyDamageId(lastEnemyDamageId);
@@ -442,7 +504,8 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               {currentEnemyHp}/{maxEnemyHp}
             </span>
           </div>
-          <div 
+          <div
+            data-cutscene-point="playerHpBar"
             className={[
               styles.playerHpBox,
               isPlayerHit && styles.hit,
