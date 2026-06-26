@@ -159,20 +159,19 @@
    Card は height:100% + aspect-ratio で自身のサイズを決めるため、
    親要素に明示的な高さを与える必要がある。手札・スロットどちらから
    ドラッグしても違和感のないサイズとして固定値を採用する */
+/* dnd-kit のオーバーレイラッパー。ドラッグ中はこの要素がポインタの真下に
+   固定配置されるため、ここに grabbing を指定しないと移動中にカーソルが
+   通常へ戻ってしまう（元カードの `:active { cursor: grabbing }` はポインタが
+   元カードから離れた時点で効かなくなる）。cursor は継承されるので、配下の
+   `.dragOverlay` にも自動で伝わる。 */
+.dragOverlayWrapper {
+  cursor: grabbing;
+}
+
 .dragOverlay {
   width: 100px;
   height: 150px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
-}
-
-/* ドラッグ中は画面のどこにポインタがあっても「つかんでいる」カーソルを
-   維持する。dnd-kit はドラッグ中、元カードとは別の DragOverlay を
-   ポインタの下に描画するため、元カードの `:active { cursor: grabbing }`
-   だけでは移動中にカーソルが通常へ戻ってしまう。ルートと配下すべてに
-   grabbing を強制して握った状態を保つ。 */
-.dragActive,
-.dragActive * {
-  cursor: grabbing !important;
 }
 
 .playerStatusBars {

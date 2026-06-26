@@ -416,7 +416,6 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     isExecuting && styles.executing,
     victoryPhase && styles.victory,
     failPhase && styles.failed,
-    activeCard && styles.dragActive,
   ]
     .filter(Boolean)
     .join(' ');
@@ -509,7 +508,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
         </div>
         <RoboBubble variant="battle" />
       </section>
-      <DragOverlay>
+      <DragOverlay className={styles.dragOverlayWrapper}>
         {activeCard && (
           <div className={styles.dragOverlay}>
             <Card card={activeCard} />
