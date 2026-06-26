@@ -1,0 +1,78 @@
+/*
+ * タイトル画面。`MapScreen.module.css` と同じ「ダーク背景の .root に
+ * アスペクト比固定の .canvas を中央配置」する構成。マップ画面と枠の大きさ・
+ * 比率を揃えるため、canvas は画像比（3:2）ではなくマップと同じ 16:9 にする。
+ * タイトル画像は 3:2 なので `object-fit: contain` で全体を見せ、左右に
+ * （マップ画面と同じダーク色の）余白が入る。
+ */
+.root {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0b10;
+  overflow: hidden;
+}
+
+.canvas {
+  position: relative;
+  aspect-ratio: 1920 / 1080;
+  width: 100%;
+  max-width: calc(100dvh * 1920 / 1080);
+  max-height: 100dvh;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+/*
+ * 画面中央に置くスタートボタン。タイトルの赤バナー＋金枠のトーンに合わせた
+ * RPG 風の見た目。`translate(-50%, -50%)` で中央基準にし、ゆっくり拡縮する
+ * パルスで「押せる」ことを伝える（transform はパルス側で translate を含めて
+ * 管理し、ホバー／押下は filter で表現して transform の競合を避ける）。
+ */
+.startButton {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  padding: 0.85rem 2.8rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(1.1rem, 3.4vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #fff7e0;
+  background: linear-gradient(#c0392b, #962d22);
+  border: 3px solid #f0c040;
+  border-radius: 10px;
+  box-shadow:
+    0 4px 0 #6e1f17,
+    0 8px 20px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  animation: titlePulse 1.6s ease-in-out infinite;
+  transition: filter 0.15s;
+}
+
+.startButton:hover {
+  filter: brightness(1.12);
+}
+
+.startButton:active {
+  filter: brightness(0.92);
+}
+
+@keyframes titlePulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}

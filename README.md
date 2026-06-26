@@ -134,6 +134,7 @@ unilab/
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
+    │   ├── title.png            ← タイトル画面の背景画像(TitleScreen が参照)
     │   ├── cards/                ← カード画像(<id>.png)
     │   ├── icons/                ← UI アイコン
     │   │   ├── icon_round.png        ← アプリのファビコン(index.html が参照)
@@ -276,6 +277,9 @@ unilab/
             │   ├── RoboBubble.jsx          ← 吹き出し＋ロボアイコン(読み上げ表示・クリック/Enterで送り)
             │   ├── RoboBubble.module.css
             │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)
+            ├── title/            ← タイトル画面
+            │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面
+            │   └── TitleScreen.module.css
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)
                 ├── MapScreen.module.css

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import TitleScreen from './features/title/TitleScreen.jsx';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
@@ -11,9 +12,11 @@ import stagesData from './data/stagesLoader.js';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'map' | 'battle' | 'editor' | 'gallery'`）と `stageId` 状態（次に戦うステージ ID）
- * を `useState` で管理し、画面切替の起点として機能する。起動直後はマップ
- * 画面（`MapScreen`）を表示し、ランドマーク詳細パネルの「たたかう」ボタン、
+ * `screen` 状態（`'title' | 'map' | 'battle' | 'editor' | 'gallery'`）と `stageId` 状態（次に戦うステージ ID）
+ * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
+ * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
+ * でステージ1の入り口にあたるマップ画面（`MapScreen`＝`map_1`）へ遷移する。
+ * マップ画面では、ランドマーク詳細パネルの「たたかう」ボタン、
  * またはマップ右上のデバッグ用「バトルデモ」ボタンが押されると、対応する
  * `stageId` を保持しつつ戦闘画面（`BattleScreen`）に遷移する。テスト用途
  * のため、戦闘画面右上の「マップへ戻る」ボタンで戦闘進行や勝敗に関係なく
@@ -48,7 +51,7 @@ import stagesData from './data/stagesLoader.js';
  *     JSX.Element: 現在の画面に応じたコンポーネント。
  */
 function App() {
-  const [screen, setScreen] = useState('map');
+  const [screen, setScreen] = useState('title');
   const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
   const [pendingStageId, setPendingStageId] = useState(null);
 
@@ -75,16 +78,17 @@ function App() {
   }, [isUnlockAnimating]);
 
   /*
-   * 開発用ショートカット（自動ガイドの履歴操作）。マップ・バトルどちらの
-   * 画面でも効くようグローバルに登録する。input/textarea へのフォーカス中と
-   * 修飾キー同時押しは無視する（`UnlockSelectButton` の Space キーと同じガード方針）。
+   * 開発用ショートカット。マップ・バトルどちらの画面でも効くようグローバルに
+   * 登録する。input/textarea へのフォーカス中と修飾キー同時押しは無視する
+   * （`UnlockSelectButton` の Space キーと同じガード方針）。
    *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
    *         まとめてリフレッシュ。最初の状態からガイドを見直せるようにする。
+   *   - T : タイトル画面（`TitleScreen`）へ戻る。
    *   （どこまで解放するかを選ぶ Space は `UnlockSelectButton`（MapScreen）が扱う。）
    */
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.code !== 'KeyR') {
+      if (event.code !== 'KeyR' && event.code !== 'KeyT') {
         return;
       }
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
@@ -100,6 +104,10 @@ function App() {
         return;
       }
       event.preventDefault();
+      if (event.code === 'KeyT') {
+        setScreen('title');
+        return;
+      }
       useCutsceneStore.getState().resetSeen();
       useProgressStore.getState().resetProgress();
     };
@@ -124,6 +132,10 @@ function App() {
   }, []);
 
   const handleExitToMap = useCallback(() => {
+    setScreen('map');
+  }, []);
+
+  const handleStartGame = useCallback(() => {
     setScreen('map');
   }, []);
 
@@ -159,7 +171,9 @@ function App() {
   }, []);
 
   let currentScreen;
-  if (screen === 'battle') {
+  if (screen === 'title') {
+    currentScreen = <TitleScreen onStart={handleStartGame} />;
+  } else if (screen === 'battle') {
     currentScreen = (
       <BattleScreen
         stageId={stageId}
