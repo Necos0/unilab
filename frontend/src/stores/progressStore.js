@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import stagesData from '../data/stages.json';
+import mapsData from '../data/maps.json';
 import parseStageId from '../features/map/parseStageId';
 import getNextStageId from '../features/map/getNextStageId';
 
@@ -42,11 +43,36 @@ import getNextStageId from '../features/map/getNextStageId';
 
 const UNLOCK_FADE_DURATION_MS = 1500;
 
+/**
+ * 指定ワールドの次ワールドが全体マップ（`map_0`）上に領域を持つかを判定する。
+ *
+ * 全体マップの各領域は `map_1`〜`map_4`（ワールド 1〜4）に対応する。ワールド
+ * `W` の最終ステージをクリアしたとき、次ワールド `W+1` に対応する `map_{W+1}`
+ * が `maps.json` に存在すれば「全体マップで解放できる次ワールドがある」と
+ * みなす。最終ワールド（領域を持たないワールド、例: 5）の最終ステージでは
+ * `false` になり、解放シネマを発火させない。
+ *
+ * Args:
+ *     world (string|number): 現在のワールド番号。
+ *
+ * Returns:
+ *     string | null: 次ワールド番号（文字列）。領域が無ければ `null`。
+ */
+function getNextUnlockableWorld(world) {
+  const nextWorld = String(Number(world) + 1);
+  if (Number.isNaN(Number(world))) {
+    return null;
+  }
+  return mapsData.maps?.[`map_${nextWorld}`] ? nextWorld : null;
+}
+
 const useProgressStore = create((set, get) => ({
   clearedStageIds: [],
   pendingUnlockStageId: null,
   isUnlockAnimating: false,
   unlockedWorlds: [],
+  pendingWorldUnlock: null,
+  unlockingWorld: null,
 
   /**
    * ステージのクリアを記録し、必要なら次ステージ解放のフラグを立てる。
@@ -56,6 +82,13 @@ const useProgressStore = create((set, get) => ({
    * かつ未だ解放されていなければ `pendingUnlockStageId` にセットする
    * （要件 4-1）。次ステージが存在しないか既に解放済みなら
    * `pendingUnlockStageId` は変更しない（要件 4-2, 4-3）。
+   *
+   * さらに、クリアしたのが「ワールドの最終ステージ」（同ワールド内に次が
+   * 無い、すなわち `getNextStageId` が `null`）で、かつ次ワールドが全体マップ
+   * 上に領域を持ち（`getNextUnlockableWorld`）まだ未解放なら、ワールド解放
+   * シネマの起点となる `pendingWorldUnlock`（次ワールド番号）をセットする。
+   * 1-4 / 2-4 / 3-4 クリア時のワールド 2 / 3 / 4 解放がこれに当たる。重複
+   * クリアは冒頭の早期 return で弾かれるため、シネマは初回クリア時のみ走る。
    *
    * Args:
    *     stageId (string): クリアしたステージ ID。
@@ -69,10 +102,20 @@ const useProgressStore = create((set, get) => ({
     const wasUnlocked = nextStageId
       ? isStageUnlockedFromCleared(state.clearedStageIds, nextStageId)
       : false;
+
+    const parsed = parseStageId(stageId);
+    const nextWorld =
+      !nextStageId && parsed ? getNextUnlockableWorld(parsed.world) : null;
+    const shouldUnlockWorld =
+      nextWorld !== null && !state.unlockedWorlds.includes(nextWorld);
+
     set({
       clearedStageIds: [...state.clearedStageIds, stageId],
       pendingUnlockStageId:
         nextStageId && !wasUnlocked ? nextStageId : state.pendingUnlockStageId,
+      pendingWorldUnlock: shouldUnlockWorld
+        ? nextWorld
+        : state.pendingWorldUnlock,
     });
   },
 
@@ -104,6 +147,46 @@ const useProgressStore = create((set, get) => ({
     set({ pendingUnlockStageId: null, isUnlockAnimating: false }),
 
   /**
+   * ワールド解放シネマの「開放アニメ」フェーズを開始する。
+   *
+   * `pendingWorldUnlock`（解放対象ワールド番号）を `unlockingWorld` に写し、
+   * 全体マップ（`MapRegionScrolls`）の該当領域に南京錠破壊アニメ（`isFading`）
+   * を発火させる。`unlockedWorlds` への反映はアニメ完了後の `commitWorldUnlock`
+   * で行うため、この時点では領域は「未解放のまま破壊演出中」になる。
+   */
+  startWorldUnlockAnimation: () =>
+    set({ unlockingWorld: get().pendingWorldUnlock }),
+
+  /**
+   * ワールド解放を確定する。
+   *
+   * `unlockingWorld` のワールドを `unlockedWorlds` に追加（重複は無視）し、
+   * `unlockingWorld` を `null` に戻す。南京錠破壊アニメが終わって演出上は
+   * 既に解放済みに見えているので、ここでの状態確定による表示の飛びは
+   * 起きない。
+   */
+  commitWorldUnlock: () => {
+    const { unlockingWorld, unlockedWorlds } = get();
+    if (unlockingWorld === null) {
+      return;
+    }
+    set({
+      unlockedWorlds: unlockedWorlds.includes(unlockingWorld)
+        ? unlockedWorlds
+        : [...unlockedWorlds, unlockingWorld],
+      unlockingWorld: null,
+    });
+  },
+
+  /**
+   * ワールド解放シネマの終了処理。`pendingWorldUnlock` を `null` に戻す。
+   *
+   * シネマ（`WorldUnlockCutscene`）の最終フェーズで親から呼ばれ、これにより
+   * `MapScreen` 側のシネマがアンマウントされる。
+   */
+  finishWorldUnlockCutscene: () => set({ pendingWorldUnlock: null }),
+
+  /**
    * テスト用：全ステージと全ワールドを即座に解放する。
    *
    * `stages.json` の全ステージを走査し、各ステージの解放条件を満たす
@@ -128,7 +211,57 @@ const useProgressStore = create((set, get) => ({
       unlockedWorlds: [],
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
+      pendingWorldUnlock: null,
+      unlockingWorld: null,
     }),
+
+  /**
+   * 指定ステージに「到達済み」の進行状態へ一括設定する。開発・テスト用。
+   *
+   * `targetStageId` より前のステージ（前ワールド、または同ワールドで番号が
+   * 小さい）をすべて `clearedStageIds` に入れ、到達したワールドまで（全体マップ
+   * に領域 `map_N` を持つもの）を `unlockedWorlds` に入れる。`targetStageId`
+   * 自身は「これから初めて挑む」状態＝未クリアのまま残すので、選んだステージ
+   * から再生されるカットシーンや初回挑戦の挙動をテストできる。解放アニメ系の
+   * フラグ（`pendingUnlockStageId` / `isUnlockAnimating` / `pendingWorldUnlock`
+   * / `unlockingWorld`）はすべてリセットし、選択直後に演出が走らないようにする。
+   * `cutsceneStore.markSeenBeforeStage` と対で「到達ステージ選択」を構成する。
+   *
+   * Args:
+   *     targetStageId (string): 「ここに到達した」基準ステージ ID。
+   */
+  setProgressUpToStage: (targetStageId) => {
+    const target = parseStageId(targetStageId);
+    if (!target) {
+      return;
+    }
+    const targetWorld = Number(target.world);
+    const clearedStageIds = Object.keys(stagesData.stages).filter((id) => {
+      const parsed = parseStageId(id);
+      if (!parsed) {
+        return false;
+      }
+      const world = Number(parsed.world);
+      return (
+        world < targetWorld ||
+        (world === targetWorld && parsed.number < target.number)
+      );
+    });
+    const unlockedWorlds = [];
+    for (let world = 1; world <= targetWorld; world += 1) {
+      if (mapsData.maps?.[`map_${world}`]) {
+        unlockedWorlds.push(String(world));
+      }
+    }
+    set({
+      clearedStageIds,
+      unlockedWorlds,
+      pendingUnlockStageId: null,
+      isUnlockAnimating: false,
+      pendingWorldUnlock: null,
+      unlockingWorld: null,
+    });
+  },
 
   unlockAllStages: () => {
     const predecessors = new Set();
@@ -149,6 +282,8 @@ const useProgressStore = create((set, get) => ({
       unlockedWorlds: Array.from(worlds),
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
+      pendingWorldUnlock: null,
+      unlockingWorld: null,
     });
   },
 }));
@@ -231,8 +366,10 @@ export const shouldShowLockSelector = (stageId) => (state) =>
  *
  * ワールド `1` は常に解放（各マップ内の `*-1` を常に解放扱いにするのと
  * 同じ思想）。それ以外は `unlockedWorlds` に番号が含まれていれば解放扱い。
- * 実プレイのクリア連動による解放はまだ実装しておらず、開発用 Space キー
- * （`unlockAllStages`）のみが 2 以降のワールドを解放する。
+ * 実プレイでは各ワールド最終ステージのクリア連動で解放シネマ
+ * （`WorldUnlockCutscene`）が走って `unlockedWorlds` に追加される。開発用
+ * には「到達ステージ選択」（`setProgressUpToStage`）や `unlockAllStages` でも
+ * まとめて解放できる。
  *
  * Args:
  *     unlockedWorlds (string[]): 解放済みワールド番号（文字列）の配列。

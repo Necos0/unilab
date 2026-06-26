@@ -1,0 +1,52 @@
+/*
+ * ワールド解放カットシーンの黒オーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）
+ *   - z-index は `MapSwitchTransition` と同じ最上位（ボタン群・選択 UI より上）
+ *   - カットシーン中は終始クリックをブロックするため pointer-events を有効にする
+ *   - 不透明度は `fadeIn` / `fadeOut` のキーフレーム終了状態を `forwards` で
+ *     保持し、JS 側の phase 切替と CSS アニメーションを同期させる
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 0;
+  pointer-events: auto;
+}
+
+/* 暗転（透明 → 黒）。 */
+.fadeIn {
+  animation: worldUnlockFadeIn 300ms ease-in forwards;
+}
+
+/* 暗転を晴らす（黒 → 透明）。 */
+.fadeOut {
+  animation: worldUnlockFadeOut 300ms ease-out forwards;
+}
+
+/*
+ * 開放アニメを見せる `hold` フェーズ。アニメは付けず透明のまま固定し、
+ * `fadeOut` から再び `fadeOut` を当て直すことによる明滅を避ける。
+ */
+.transparent {
+  opacity: 0;
+}
+
+@keyframes worldUnlockFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes worldUnlockFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

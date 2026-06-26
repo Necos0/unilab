@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import cutscenesData from '../data/cutscenes.json';
+import parseStageId from '../features/map/parseStageId';
 
 /**
  * 自動ガイド演出（カットシーン）の表示状態を管理する Zustand ストア。
@@ -200,6 +201,45 @@ const useCutsceneStore = create((set, get) => ({
     const allIds = Object.keys(cutscenesData);
     saveSeenIds(allIds);
     set({ seenIds: allIds, activeId: null, bubbles: [], stepIndex: 0 });
+  },
+
+  /**
+   * 指定ステージに「到達済み」になるよう、それより前のステージで発生する
+   * カットシーンだけを視聴済みにする。開発・テスト用。
+   *
+   * 各カットシーンの `trigger.stageId` を `targetStageId` とワールド・番号で
+   * 比較し、`targetStageId` より前（前ワールド、または同ワールドで番号が
+   * 小さい）のものだけを `seenIds` にまとめて上書き保存する。`targetStageId`
+   * 以降（同ステージを含む）のカットシーンは未視聴のまま残し、選んだ地点から
+   * テストで再生できるようにする。`trigger.stageId` を持たない（またはパース
+   * できない）カットシーンは対象外で未視聴のまま。再生中があれば閉じる。
+   * `setProgressUpToStage`（progressStore）と対で「到達ステージ選択」を構成する。
+   *
+   * Args:
+   *     targetStageId (string): 「ここに到達した」基準ステージ ID。
+   */
+  markSeenBeforeStage: (targetStageId) => {
+    const target = parseStageId(targetStageId);
+    if (!target) {
+      return;
+    }
+    const targetWorld = Number(target.world);
+    const seen = Object.entries(cutscenesData)
+      .filter(([, def]) => {
+        const stageId = def.trigger?.stageId;
+        const parsed = stageId ? parseStageId(stageId) : null;
+        if (!parsed) {
+          return false;
+        }
+        const world = Number(parsed.world);
+        return (
+          world < targetWorld ||
+          (world === targetWorld && parsed.number < target.number)
+        );
+      })
+      .map(([id]) => id);
+    saveSeenIds(seen);
+    set({ seenIds: seen, activeId: null, bubbles: [], stepIndex: 0 });
   },
 }));
 

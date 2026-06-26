@@ -29,9 +29,14 @@ const SCROLL_SCALE = 1.5;
  * 参照する。ワールド `1` は常に解放、それ以外は初期状態でロックされ、
  * 未解放の領域は `buildRegionPolygons` が返す曲線パス（`region.path`）で
  * 灰色に塗りつぶし、巻物にも南京錠オーバーレイ（`LandmarkScroll` の
- * `isLocked`）を重ねてクリックを抑止する。開発用 Space キー
- * （`unlockAllStages`）を押すと全ワールドが解放され、灰色塗りが消えて
- * すべての巻物がクリックできるようになる。
+ * `isLocked`）を重ねてクリックを抑止する。開発用の「到達ステージ選択」
+ * （`UnlockSelectButton`、Space キーで開く）で先のワールドを選ぶと、そこまでの
+ * 領域が解放され、灰色塗りが消えて巻物がクリックできるようになる。
+ *
+ * ワールド解放シネマ（`WorldUnlockCutscene`）の再生中は、解放対象ワールド
+ * （`progressStore` の `unlockingWorld`）の巻物に `isFading` を渡して南京錠
+ * 破壊アニメを発火し、灰色領域パスも `data-fading` で同位相にフェード
+ * アウトさせる。解放確定（`commitWorldUnlock`）後は通常の解放表示になる。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -50,6 +55,7 @@ function MapRegionScrolls({ mapDef, onSelectRegion }) {
     mapDef.viewBox,
   );
   const unlockedWorlds = useProgressStore((state) => state.unlockedWorlds);
+  const unlockingWorld = useProgressStore((state) => state.unlockingWorld);
 
   const regionViews = regions.map((region) => {
     const stageNumber = region.stageId.replace(/^map_/, '');
@@ -58,6 +64,7 @@ function MapRegionScrolls({ mapDef, onSelectRegion }) {
       stageNumber,
       center: polygonCentroid(region.points),
       isUnlocked: isWorldUnlocked(unlockedWorlds, stageNumber),
+      isFading: unlockingWorld === stageNumber,
     };
   });
 
@@ -74,10 +81,11 @@ function MapRegionScrolls({ mapDef, onSelectRegion }) {
             key={`locked-${view.region.id}`}
             d={view.region.path}
             className={styles.lockedRegion}
+            data-fading={view.isFading ? 'true' : 'false'}
           />
         ))}
 
-      {regionViews.map(({ region, stageNumber, center, isUnlocked }) => (
+      {regionViews.map(({ region, stageNumber, center, isUnlocked, isFading }) => (
         <g
           key={region.id}
           className={styles.region}
@@ -89,6 +97,7 @@ function MapRegionScrolls({ mapDef, onSelectRegion }) {
             text={`ステージ${stageNumber}`}
             isStage={false}
             isLocked={!isUnlocked}
+            isFading={isFading}
           />
         </g>
       ))}

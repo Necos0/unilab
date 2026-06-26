@@ -77,10 +77,10 @@ function App() {
   /*
    * 開発用ショートカット（自動ガイドの履歴操作）。マップ・バトルどちらの
    * 画面でも効くようグローバルに登録する。input/textarea へのフォーカス中と
-   * 修飾キー同時押しは無視する（MapScreen の Space キー＝全解放と同じガード方針）。
+   * 修飾キー同時押しは無視する（`UnlockSelectButton` の Space キーと同じガード方針）。
    *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
    *         まとめてリフレッシュ。最初の状態からガイドを見直せるようにする。
-   *   （全ガイドを視聴済みにする Space は MapScreen の全解放と同じ場所で扱う。）
+   *   （どこまで解放するかを選ぶ Space は `UnlockSelectButton`（MapScreen）が扱う。）
    */
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -137,12 +137,18 @@ function App() {
 
   const handleClearedExitToMap = useCallback((clearedStageId) => {
     useProgressStore.getState().markStageCleared(clearedStageId);
+    const progress = useProgressStore.getState();
     /*
-     * 次ステージの開放アニメーションが走るなら、`exitStage` カットシーンは
-     * アニメ完了後に出す（上の useEffect が発火する）。開放対象が無ければ
-     * 開放アニメも出ないので、ここで即時発火する。
+     * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
+     * （`WorldUnlockCutscene`）が走るときは、吹き出し無しの全自動演出に任せ、
+     * `exitStage` カットシーンは出さない。
+     * それ以外で次ステージの開放アニメーションが走るなら、`exitStage` は
+     * アニメ完了後に出す（上の useEffect が発火する）。開放アニメも無ければ
+     * ここで即時発火する。
      */
-    if (useProgressStore.getState().pendingUnlockStageId !== null) {
+    if (progress.pendingWorldUnlock !== null) {
+      /* ワールド解放シネマが演出を担当するため何もしない。 */
+    } else if (progress.pendingUnlockStageId !== null) {
       pendingExitStageIdRef.current = clearedStageId;
     } else {
       useCutsceneStore

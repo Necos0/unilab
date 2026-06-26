@@ -99,15 +99,21 @@ const useMapStore = create((set, get) => ({
   /**
    * 別のマップへ切り替える。
    *
-   * 勇者を新マップの `startId` に再配置し、移動中状態と残セグメントを
+   * 勇者を新マップの開始地点に再配置し、移動中状態と残セグメントを
    * リセットする。隣接リストは新マップのエッジで再構築する。同マップへの
    * 切り替えは no-op。
+   *
+   * 既定では `startId`（マップの入り口）に再配置するが、`locationId` を渡すと
+   * その位置へ復元する。ワールド解放シネマ（`WorldUnlockCutscene`）のように
+   * 全体マップを経由して元のマップへ戻る際、勇者を元いた場所に保つために使う。
    *
    * Args:
    *     mapId (string): 切り替え先マップの ID。
    *     mapDef (object): `maps.json` の 1 マップ分。
+   *     locationId (string|null, optional): 再配置先のランドマーク ID。
+   *         省略時は `mapDef.startId`。
    */
-  switchMap: (mapId, mapDef) => {
+  switchMap: (mapId, mapDef, locationId) => {
     const state = get();
     if (state.currentMapId === mapId) {
       return;
@@ -115,7 +121,7 @@ const useMapStore = create((set, get) => ({
     set({
       mapDef,
       currentMapId: mapId,
-      currentLocation: mapDef.startId,
+      currentLocation: locationId ?? mapDef.startId,
       isMoving: false,
       segments: [],
       adjacency: buildAdjacency(mapDef.edges),

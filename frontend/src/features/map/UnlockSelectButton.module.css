@@ -1,0 +1,76 @@
+/*
+ * 開発用「到達ステージ選択」ドロップダウン。`BattleDemoButton` とトーンを
+ * 揃えた半透明ボタン。バトルデモボタン（左上）と重ならないよう右隣に並べる。
+ */
+.container {
+  position: absolute;
+  top: 0.5rem;
+  left: 8.5rem;
+  z-index: 10;
+}
+
+.button {
+  padding: 0.4rem 0.9rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: #e5e5ff;
+  background: rgba(31, 31, 40, 0.85);
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.button:hover {
+  background: rgba(42, 42, 51, 0.85);
+  border-color: #5a5a66;
+}
+
+.button:active {
+  background: rgba(21, 21, 28, 0.95);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: rgba(31, 31, 40, 0.95);
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+  min-width: 7rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* 操作の意味を補足する非クリックの見出し行。 */
+.header {
+  padding: 0.3rem 0.7rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  color: #9aa0b5;
+  border-bottom: 1px solid #3a3a45;
+  margin-bottom: 0.2rem;
+  user-select: none;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.7rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: #e5e5ff;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.menuItem:hover {
+  background: rgba(58, 58, 69, 0.6);
+}

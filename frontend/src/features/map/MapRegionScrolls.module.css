@@ -27,3 +27,22 @@
   fill-opacity: 0.66;
   pointer-events: none;
 }
+
+/*
+ * ワールド解放アニメ中（`unlockingWorld` 一致）の領域グレーアウトは、
+ * 巻物の南京錠破壊（`LandmarkLockOverlay` の `dimFadeOut`）と同位相で
+ * フェードアウトさせる。`animation-delay: 1050ms`＝静止後の破壊タイミングに
+ * 合わせ、`forwards` で消えたまま固定する（解放確定で要素が消えても飛ばない）。
+ */
+.lockedRegion[data-fading='true'] {
+  animation: regionFadeOut 450ms ease-out 1050ms forwards;
+}
+
+@keyframes regionFadeOut {
+  from {
+    fill-opacity: 0.66;
+  }
+  to {
+    fill-opacity: 0;
+  }
+}

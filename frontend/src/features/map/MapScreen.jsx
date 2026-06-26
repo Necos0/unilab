@@ -6,12 +6,14 @@ import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import MapOverlay from './MapOverlay';
 import BattleDemoButton from './BattleDemoButton';
+import UnlockSelectButton from './UnlockSelectButton';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
 import FullscreenToggleButton from './FullscreenToggleButton';
 import MapTravelButton from './MapTravelButton';
 import MapRegionScrolls from './MapRegionScrolls';
 import MapSwitchTransition from './MapSwitchTransition';
+import WorldUnlockCutscene from './WorldUnlockCutscene';
 import MapEditorLayer from './MapEditorLayer';
 import MapRegionEditorLayer from './MapRegionEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
@@ -85,6 +87,15 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
     useMapStore((state) => state.currentMapId) ?? DEFAULT_MAP_ID;
 
   /*
+   * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリア後に立つ「次ワールド解放」
+   * フラグ。非 null の間 `WorldUnlockCutscene`（暗転→全体マップ→開放アニメ→
+   * 暗転→復帰）を再生する。完了で `finishWorldUnlockCutscene` が null に戻す。
+   */
+  const pendingWorldUnlock = useProgressStore(
+    (state) => state.pendingWorldUnlock,
+  );
+
+  /*
    * マップ座標エディタ（開発用）。編集中は表示マップを `draft` に差し替えて
    * 道・背景をライブ更新し、ランドマーク／プレイヤーの代わりに座標ハンドル
    * （`MapEditorLayer`）と操作パネル（`MapEditorPanel`）を出す。
@@ -125,35 +136,11 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
   }, []);
 
   /*
-   * テスト用ショートカット：Space キーで全ステージを即座に解放し、あわせて
-   * すべてのガイドを「視聴済み」にする（以降ガイドが出なくなる）。R キー
-   * （全リセット）と対になる「全部済ませる」キー。input/textarea にフォーカス
-   * がある場合と、修飾キー同時押しは無視する。
+   * テスト用ショートカット：Space キーは「到達ステージ選択」ドロップダウン
+   * （`UnlockSelectButton`）の開閉を担う。どこまでステージ・カットシーンを
+   * 解放するかを選べる。R キー（全リセット）と対になる「ここまで進める」キー。
+   * 開閉とキーハンドリングは `UnlockSelectButton` 内に閉じている。
    */
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.code !== 'Space') {
-        return;
-      }
-      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
-        return;
-      }
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA')
-      ) {
-        return;
-      }
-      event.preventDefault();
-      useProgressStore.getState().unlockAllStages();
-      useCutsceneStore.getState().markAllSeen();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   /*
    * ランドマーク到着時に自動ガイド（`arriveLandmark`）を発火する。移動完了
@@ -223,6 +210,10 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
     setPendingMapId(null);
   }, []);
 
+  const handleWorldUnlockEnd = useCallback(() => {
+    useProgressStore.getState().finishWorldUnlockCutscene();
+  }, []);
+
   const { viewBox } = renderMap;
 
   return (
@@ -269,6 +260,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
               demoStageIds={demoStageIds}
               onSelectStage={onStartBattleDemo}
             />
+            <UnlockSelectButton />
             {currentMapId !== OVERWORLD_MAP_ID && (
               <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
             )}
@@ -284,6 +276,9 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
           onMidpoint={handleSwitchTransitionMidpoint}
           onEnd={handleSwitchTransitionEnd}
         />
+      )}
+      {pendingWorldUnlock !== null && (
+        <WorldUnlockCutscene onEnd={handleWorldUnlockEnd} />
       )}
       <RoboBubble variant="map" />
     </section>
