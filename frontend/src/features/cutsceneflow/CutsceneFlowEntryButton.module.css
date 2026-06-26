@@ -1,0 +1,37 @@
+/* マップ画面右下、キャラクター一覧ボタンのひとつ上に重ねるカットシーン・
+   フロー画面の起動ボタン。一覧（青系）・エディタ（暖色）と区別できるよう
+   緑系のアクセントにし、カットシーンカードの強調色とトーンを揃える。
+   ホバーで緑グロー＋わずかに拡大する。 */
+.button {
+  position: absolute;
+  bottom: 5.95rem;
+  right: 0.75rem;
+  z-index: 10;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #d6ffe0;
+  background: rgba(16, 28, 20, 0.72);
+  border: 1px solid rgba(120, 230, 160, 0.55);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.button:hover {
+  transform: scale(1.05);
+  background: rgba(24, 40, 30, 0.85);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(110, 220, 150, 0.55);
+}
+
+.button:active {
+  transform: scale(1.01);
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(150, 230, 180, 0.85);
+  outline-offset: 2px;
+}

@@ -166,6 +166,11 @@ function App() {
     setScreen('gallery');
   }, []);
 
+  const handleOpenCutsceneFlow = useCallback(() => {
+    prevScreenRef.current = 'map';
+    setScreen('cutsceneflow');
+  }, []);
+
   const handleExitCutsceneFlow = useCallback(() => {
     setScreen(prevScreenRef.current);
   }, []);
@@ -217,6 +222,7 @@ function App() {
         onStartBattleDemo={handleStartBattle}
         onOpenEditor={handleOpenEditor}
         onOpenGallery={handleOpenGallery}
+        onOpenCutsceneFlow={handleOpenCutsceneFlow}
         demoStageIds={stagesData.demoStageIds}
       />
     );

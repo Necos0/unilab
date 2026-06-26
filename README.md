@@ -280,9 +280,11 @@ unilab/
             ├── title/            ← タイトル画面
             │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面
             │   └── TitleScreen.module.css
-            ├── cutsceneflow/    ← デバッグ用:カットシーン発生タイミング一覧(C キーで開閉)
+            ├── cutsceneflow/    ← デバッグ用:カットシーン発生タイミング一覧(右下ボタン/C キーで開閉)
             │   ├── CutsceneFlowScreen.jsx     ← 時系列フローでカットシーンの差し込み口を表示
             │   ├── CutsceneFlowScreen.module.css
+            │   ├── CutsceneFlowEntryButton.jsx        ← マップ右下「カットシーン一覧」起動ボタン
+            │   ├── CutsceneFlowEntryButton.module.css
             │   └── buildCutsceneFlow.js       ← cutscenes/stages を突き合わせフロー構造を組む(純関数)
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)

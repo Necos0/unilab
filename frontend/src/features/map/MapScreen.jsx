@@ -20,6 +20,7 @@ import MapEditorPanel from './MapEditorPanel';
 import MapEditorToggleButton from './MapEditorToggleButton';
 import EditorEntryButton from '../../editer/EditorEntryButton';
 import GalleryEntryButton from '../../editer/GalleryEntryButton';
+import CutsceneFlowEntryButton from '../cutsceneflow/CutsceneFlowEntryButton';
 import RoboBubble from '../cutscene/RoboBubble';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
@@ -70,6 +71,8 @@ const OVERWORLD_MAP_ID = 'map_0';
  *             押下時に呼ぶ関数（引数なし）。App 側でエディタ画面へ切り替える。
  *         onOpenGallery (function): 右下の「キャラクター一覧」ボタン押下時に
  *             呼ぶ関数（引数なし）。App 側でキャラクター一覧画面へ切り替える。
+ *         onOpenCutsceneFlow (function): 右下の「カットシーン一覧」ボタン押下時に
+ *             呼ぶ関数（引数なし）。App 側でカットシーン・フロー画面へ切り替える。
  *         demoStageIds (Array<string>): バトルデモドロップダウンに並べる
  *             ステージ ID 配列。`stagesLoader.js` 経由で `stages.json` の
  *             `demoStageIds` から流れてくる。
@@ -77,7 +80,7 @@ const OVERWORLD_MAP_ID = 'map_0';
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, demoStageIds }) {
+function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, onOpenCutsceneFlow, demoStageIds }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -264,6 +267,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
             {currentMapId !== OVERWORLD_MAP_ID && (
               <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
             )}
+            <CutsceneFlowEntryButton onClick={onOpenCutsceneFlow} />
             <GalleryEntryButton onClick={onOpenGallery} />
             <EditorEntryButton onClick={onOpenEditor} />
           </>
