@@ -165,6 +165,16 @@
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
 }
 
+/* ドラッグ中は画面のどこにポインタがあっても「つかんでいる」カーソルを
+   維持する。dnd-kit はドラッグ中、元カードとは別の DragOverlay を
+   ポインタの下に描画するため、元カードの `:active { cursor: grabbing }`
+   だけでは移動中にカーソルが通常へ戻ってしまう。ルートと配下すべてに
+   grabbing を強制して握った状態を保つ。 */
+.dragActive,
+.dragActive * {
+  cursor: grabbing !important;
+}
+
 .playerStatusBars {
   display: flex;
   flex-direction: column;

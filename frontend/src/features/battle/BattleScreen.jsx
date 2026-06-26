@@ -416,6 +416,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     isExecuting && styles.executing,
     victoryPhase && styles.victory,
     failPhase && styles.failed,
+    activeCard && styles.dragActive,
   ]
     .filter(Boolean)
     .join(' ');
