@@ -3,7 +3,7 @@
      80×112（5:7）だと .filled 時にカードが左右に寄って隙間ができる */
   width: 80px;
   height: 120px;
-  border: 2px dashed #6a6a78;
+  border: 2px dashed #4a4a52;
   border-radius: 6px;
   background: #15151c;
   box-sizing: border-box;
