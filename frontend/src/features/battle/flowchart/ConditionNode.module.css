@@ -1,7 +1,7 @@
 .diamond {
   width: 140px;
   height: 120px;
-  background: #f5f5f5;
+  background: #4a4a52;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   display: flex;
   align-items: center;

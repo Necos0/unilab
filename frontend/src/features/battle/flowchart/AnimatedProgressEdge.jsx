@@ -166,7 +166,7 @@ function AnimatedProgressEdge({
           refY="0"                                                  
         >
           <polyline                                                 
-            style={{ stroke: '#f5f5ff', fill: '#f5f5ff' }}
+            style={{ stroke: '#1a1a1a', fill: '#1a1a1a' }}
             strokeLinecap="round"
             strokeLinejoin="round"                                
             points="-5,-4 0,0 -5,4 -5,-4"

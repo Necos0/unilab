@@ -11,7 +11,6 @@ import styles from './BattleScreen.module.css';
 import FlowchartArea from './flowchart/FlowchartArea';
 import ResetButton from './flowchart/ResetButton';
 import ZoomButton from './flowchart/ZoomButton';
-import PlayButton from './flowchart/PlayButton';
 import EnemySprite from './enemy/EnemySprite';
 import BackToMapButton from './BackToMapButton';
 import HelpButton from './HelpButton';
@@ -564,7 +563,6 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
                 <ZoomButton />
                 <ResetButton stage={stage} />
               </div>
-              <PlayButton stage={stage} />
             </div>
           </div>
           <div className={styles.playerArea}>
