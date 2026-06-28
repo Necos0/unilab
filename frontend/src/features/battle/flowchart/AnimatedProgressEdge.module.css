@@ -17,17 +17,17 @@
 }
 
 .traversed {
-  stroke: #f5f5ff;
-  filter: drop-shadow(0 0 4px rgba(229, 229, 225, 0.9));
+  stroke: #1a1a1a;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
 }
 
 .drawingPath {
   fill: none;
-  stroke: #f5f5ff;
+  stroke: #1a1a1a;
   stroke-width: 2;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 4px rgba(229, 229, 255, 0.9));
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
   animation-name: drawPath;
   animation-timing-function: linear;
   animation-fill-mode: forwards;

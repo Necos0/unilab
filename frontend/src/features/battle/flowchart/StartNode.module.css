@@ -1,56 +1,66 @@
 .marker {                                                                     
-    /* スロットと同じ寸法・角丸・背景にして「カードのような枠付き」を演出。
-       既存空きスロット（点線枠）に対して固体の枠で差別化（マーカーは
-       ドロップ対象でないことを示しつつ、視覚的トーンは揃える）。
-       枠色はスロットと同じダークグレー `#4a4a52` を使い、白基調のフロチャロボ
-       パネル背景に対してコントラストを確保する。線スタイル（dashed vs solid）
-       でスロットと差別化する方針 */
-    width: 80px;                                                                
-    height: 120px;                                                              
-    border: 2px solid #4a4a52;                                               
-    border-radius: 6px;
-    background: #15151c;
-    box-sizing: border-box;                                                     
-    display: flex;
-    align-items: center;                                                        
-    justify-content: center;
-    pointer-events: none;
+  /* スロットと同じ寸法・角丸・背景にして「カードのような枠付き」を演出。
+    既存空きスロット（点線枠）に対して固体の枠で差別化（マーカーは
+    ドロップ対象でないことを示しつつ、視覚的トーンは揃える）。
+    枠色はスロットと同じダークグレー `#4a4a52` を使い、白基調のフロチャロボ
+    パネル背景に対してコントラストを確保する。線スタイル（dashed vs solid）
+    でスロットと差別化する方針 */
+  width: 80px;                                                                
+  height: 120px;                                                              
+  border: 2px solid #4a4a52;                                               
+  border-radius: 6px;
+  background: #15151c;
+  box-sizing: border-box;                                                     
+  display: flex;
+  align-items: center;                                                        
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+
+.marker:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .icon {
-    /* マーカー領域　80x120の中央に控えめに配置 */
-    width: 48px;
-    height: 48px;
+  /* マーカー領域　80x120の中央に控えめに配置 */
+  width: 48px;
+  height: 48px;
 }
 
 /* SlotNodeと同じく、エッジ接続のためだけに存在する不可視ハンドル */
 .handle {
-    width: 1px;
-    height: 1px;
-    min-width: 0;
-    min-height: 0;
-    background: transparent;
-    border: none;
-    opacity: 0;
-    pointer-events: none;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 実行中：このマーカーが現在のフェーズ対象のとき、マーカー全体を発光・
-    点滅させる（play-button 要件 5-1）。SlotNode の `.slot.active` と同じ      
-    流儀で、`filter` を marker 全体に当てて「カード周りに光の影」を出す */
+  点滅させる（play-button 要件 5-1）。SlotNode の `.slot.active` と同じ      
+  流儀で、`filter` を marker 全体に当てて「カード周りに光の影」を出す */
 .marker.active {
-    animation: startGoalHighlight 0.3s ease-in-out 2 alternate;
+  animation: startGoalHighlight 0.3s ease-in-out 2 alternate;
 }
 
 @keyframes startGoalHighlight {
-    from {
-        filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
-    }
-    to {
-        filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
-    }
+  from {
+    filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+  }
+  to {
+    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+  }
 }
 
 .marker.traversed {
-    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+  filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
 }

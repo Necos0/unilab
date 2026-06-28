@@ -134,9 +134,11 @@
   pointer-events: none;
 }
 
-/* フローチャート領域の右上に配置するボタングループ。                         
-     上段に ZoomButton + ResetButton を横並び（.topRow）、    
-     下段に PlayButton を横長で配置する縦 2 段構成 */
+/* フローチャート領域の右上に配置するボタングループ。
+   上段に ZoomButton + ResetButton を横並び（.topRow）。
+   旧 PlayButton（下段に横長配置）は `start-node-execution` 仕様で廃止され、
+   実行トリガーは StartNode 自体のクリックに統合された。下段は次仕様で
+   別ボタンを置く場所として `.flowchartControls` の縦並び構造のみ残す */
 .flowchartControls {
   position: absolute;
   top: 0.5rem;

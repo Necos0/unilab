@@ -8,7 +8,7 @@
 
 ## タスク
 
-- [ ] **1. `FlowchartArea.jsx` の `startToNode` に `stage` を渡す**
+- [x] **1. `FlowchartArea.jsx` の `startToNode` に `stage` を渡す**  ✓ 完了
   - 内容：
     - `startToNode` のシグネチャを `startToNode(start)` → `startToNode(start, stage)` に変更
     - 戻り値の `data: {}` を `data: { stage }` に変更
@@ -21,7 +21,7 @@
     - Lint/型チェックがパスする
     - 既存ステージ（1-1〜5-X）の起動でエラーが出ない
 
-- [ ] **2. `StartNode.jsx` を `<button>` 化し、クリックで `startExecution` を発火する**
+- [x] **2. `StartNode.jsx` を `<button>` 化し、クリックで `startExecution` を発火する**  ✓ 完了
   - 内容：
     - 関数シグネチャを `function StartNode()` → `function StartNode({ data })` に変更
     - `useBattleStore` の購読を追加:
@@ -42,7 +42,7 @@
     - `disabled` 時は Enter / Space を押しても発火しない（要件6-4）
     - Lint/型チェックがパスする
 
-- [ ] **3. `StartNode.module.css` を `<button>` 互換に更新し、`:disabled` セレクタを追加**
+- [x] **3. `StartNode.module.css` を `<button>` 互換に更新し、`:disabled` セレクタを追加**  ✓ 完了
   - 内容：
     - `.marker` セレクタに以下を追加（既存プロパティは保持）:
       - `pointer-events: auto;`（React Flow NodeWrapper の `pointer-events: none` を上書き）
@@ -64,7 +64,7 @@
     - `play.svg` がマーカー中央にバランスよく配置される（要件3-3）
     - 通常状態のクリックが反応する（`pointer-events: auto` 効果確認）
 
-- [ ] **4. `BattleScreen.jsx` から `PlayButton` の参照を削除**
+- [x] **4. `BattleScreen.jsx` から `PlayButton` の参照を削除**  ✓ 完了
   - 内容：
     - 14 行目の `import PlayButton from './flowchart/PlayButton';` を削除
     - 567 行目の `<PlayButton stage={stage} />` を削除
@@ -78,7 +78,7 @@
     - `BattleScreen.jsx` 内に `PlayButton` 文字列が残っていない（grep で確認）
     - Lint/型チェックがパスする
 
-- [ ] **5. `PlayButton.jsx` / `PlayButton.module.css` を削除し、参照を全消去**
+- [x] **5. `PlayButton.jsx` / `PlayButton.module.css` を削除し、参照を全消去**  ✓ 完了
   - 内容：
     - `frontend/src/features/battle/flowchart/PlayButton.jsx` を削除
     - `frontend/src/features/battle/flowchart/PlayButton.module.css` を削除

@@ -94,9 +94,9 @@ function slotsToNodes(slots) {
  *     {id: 'start', type: 'start', position: object, data: object} | null:
  *         React Flow ノード。`start` が未定義なら `null`。
  */
-function startToNode(start) {
+function startToNode(start, stage) {
   if(!start) return null;
-  return { id: 'start', type: 'start', position: start.position, data: {} };
+  return { id: 'start', type: 'start', position: start.position, data: { stage } };
 }
 
 /**
@@ -276,7 +276,7 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoa
 function FlowchartArea({ stage }) {
   const nodes = useMemo(() => {
     const result = slotsToNodes(stage.slots);
-    const startNode = startToNode(stage.start);
+    const startNode = startToNode(stage.start, stage);
     const goalNode = goalToNode(stage.goal);
     const conditionNodes = conditionsToNodes(stage.conditions ?? []);
     const mergeNodes = mergeNodesToNodes(stage.mergeNodes ?? []);
@@ -285,11 +285,11 @@ function FlowchartArea({ stage }) {
     result.push(...conditionNodes);
     result.push(...mergeNodes);
     return result;
-  }, [stage.slots, stage.start, stage.goal, stage.conditions, stage.mergeNodes]);
+  }, [stage]);
   
   const edges = useMemo(
     () => edgesToFlowEdges(stage.edges, stage.slots, stage.conditions ?? [], stage.mergeNodes ?? [], !!stage.start, !!stage.goal),
-    [stage.edges, stage.slots, stage.conditions, stage.mergeNodes, stage.start, stage.goal],
+    [stage],
   );
 
   const canvasRef = useRef(null);
