@@ -42,8 +42,8 @@
 
 .icon {
   flex: 0 0 auto;
-  width: 172px;
-  height: 172px;
+  width: 138px;
+  height: 138px;
   object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
