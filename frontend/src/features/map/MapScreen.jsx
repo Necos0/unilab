@@ -158,6 +158,18 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
         (item) => item.id === currentLocation,
       );
       if (landmark?.stageId) {
+        const store = useCutsceneStore.getState();
+        /*
+         * 到着待ち step（`waitForArrival`）を再生中なら、まず進めて（＝末尾
+         * step なので終了して指差しリングを消し）、そのうえで到着ガイドを発火
+         * する。先に閉じておかないと `fireTrigger` が「再生中」で no-op になる。
+         */
+        const currentStep = store.activeId
+          ? store.steps[store.stepIndex]
+          : null;
+        if (currentStep?.waitForArrival === landmark.stageId) {
+          store.advance();
+        }
         useCutsceneStore
           .getState()
           .fireTrigger({ type: 'arriveLandmark', stageId: landmark.stageId });

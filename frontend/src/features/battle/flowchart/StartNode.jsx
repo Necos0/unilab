@@ -96,6 +96,7 @@ function StartNode({ data }){
       onClick={handleClick}
       disabled={isDisabled}
       aria-label="実行"
+      data-cutscene-point="executeButton"
     >
       <img
         className={styles.icon}

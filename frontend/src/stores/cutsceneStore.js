@@ -151,7 +151,10 @@ const useCutsceneStore = create((set, get) => ({
     const { id, def } = found;
     const steps = def.steps.filter(
       (step) =>
-        typeof step.bubble === 'string' || typeof step.openCardHelp === 'string',
+        typeof step.bubble === 'string' ||
+        typeof step.openCardHelp === 'string' ||
+        typeof step.waitForArrival === 'string' ||
+        typeof step.waitForBattle === 'string',
     );
     const hasBubble = steps.some((step) => typeof step.bubble === 'string');
     if (!hasBubble) {

@@ -5,7 +5,8 @@
     "trigger": { "type": "enterMapArea", "stageId": "1-1" },
     "steps": [
       { "bubble": "よし、行《い》くぞ {playerName}！" },
-      { "bubble": "まずは あの 巻物《まきもの》を タップだ！", "point": "scroll-1-1" }
+      { "bubble": "まずは あの 巻物《まきもの》を押して!", "point": "scroll-1-1" },
+      { "point": "scroll-1-1", "waitForArrival": "1-1" }
     ]
   },
 
@@ -14,8 +15,8 @@
     "once": true,
     "trigger": { "type": "arriveLandmark", "stageId": "1-1" },
     "steps": [
-      { "bubble": "敵《てき》が 待《ま》ってるぞ。" },
-      { "bubble": "『たたかう』を おして 勝負《しょうぶ》だ！", "point": "fightButton" }
+      { "bubble": "『たたかう』を 押《お》そう!", "point": "fightButton" },
+      { "point": "fightButton", "waitForBattle": "1-1" }
     ]
   },
 
@@ -24,14 +25,14 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "1-1" },
     "steps": [
+      { "bubble": "ここはバトル画面！" },
       { "bubble": "ここが{playerName}のHPで、", "point": "playerHpBar" },
-      { "bubble": "ここが相手のHPだ。", "point": "enemyHpBar" },
+      { "bubble": "ここが相手のHPだよ。", "point": "enemyHpBar" },
       { "bubble": "{playerName}のHPがゼロにならないように敵のHPをゼロにしたら{playerName}の勝ちだ。"},
       { "bubble": "このカードは「攻撃《こうげき》カード」だ！", "point": "attackCard" },
       { "openCardHelp": "attack" },
       { "bubble": "攻撃カードをマスに置いてみよう。"},
-      { "bubble": "こうやって マスに 入《い》れてね！", "demoDrag": { "from": "attackCard", "to": "slot-1" } },
-      { "bubble": "さあ、じぶんで やってみよう！", "point": "attackCard", "waitForCardInSlot": true },
+      { "bubble": "こうやって マスに 入《い》れてね！", "demoDrag": { "from": "attackCard", "to": "slot-1" }, "waitForCardInSlot": true },
       { "bubble": "ここを押して実行しよう!", "point": "executeButton" }
     ]
   },
@@ -41,7 +42,7 @@
     "once": true,
     "trigger": { "type": "defeatEnemy", "stageId": "1-1" },
     "steps": [
-      { "bubble": "やったな、グレート！" },
+      { "bubble": "やったね、グレート！" },
       { "bubble": "マップに 戻《もど》って 次《つぎ》へ 進《すす》もうぜ。", "point": "mapBackButton" }
     ]
   },

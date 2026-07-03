@@ -22,13 +22,6 @@ const ROBO_ICON_SRC = '/sprites/robo/robo.png';
  */
 const REVEAL_INTERVAL_MS = 45;
 
-/*
- * ドラッグ説明アニメ（`demoDrag`）の step で、最低限 流して見せる時間（ms）。
- * この間はクリック／Enter で次の step へ送れないようにし、操作デモが必ず
- * 一定時間 再生されるようにする（早送りで一瞬で飛ばされるのを防ぐ）。
- */
-const DEMO_MIN_DURATION_MS = 5000;
-
 /**
  * 自動ガイドのロボ吹き出しを描画するコンポーネント（フェーズ1）。
  *
@@ -108,6 +101,13 @@ function RoboBubble({ variant = 'map' }) {
    * `BattleScreen` 側の監視（カードがスロットに入ったら `advance`）だけにする。
    */
   const isWaitStep = currentStep?.waitForCardInSlot === true;
+  /*
+   * 吹き出しを持たず `point` だけを出す「到着待ち」step（`waitForArrival`）。
+   * ロボ・吹き出しは出さず、指差しリングだけを素通しレイヤーに重ねて対象の
+   * タップを促す。クリック／Enter では進めず、対象ランドマークへ到着したとき
+   * （`MapScreen` が `advance`）にだけ次へ進む。
+   */
+  const isPointerOnlyStep = !isBubbleStep && activePoint !== null;
   const playerName = playerData.name || FALLBACK_PLAYER_NAME;
   const text = rawText.replaceAll('{playerName}', playerName);
   const tokens = useMemo(() => tokenizeFurigana(text), [text]);
@@ -139,25 +139,6 @@ function RoboBubble({ variant = 'map' }) {
   }, [tokens, visibleCount]);
 
   /*
-   * `demoDrag` step では、最低 `DEMO_MIN_DURATION_MS` のあいだ「次へ送る」操作を
-   * ロックして、操作デモを必ず一定時間 見せる。step に入った時点でロックを立て、
-   * タイマーで解除する。送りロック中でも吹き出しの早送り（全文即表示）は許可する。
-   * ロックの判定は `handleAdvance`（依存なしの useCallback）から ref 経由で読む。
-   */
-  const advanceLockedRef = useRef(false);
-  useEffect(() => {
-    if (!demoDrag) {
-      advanceLockedRef.current = false;
-      return undefined;
-    }
-    advanceLockedRef.current = true;
-    const timerId = setTimeout(() => {
-      advanceLockedRef.current = false;
-    }, DEMO_MIN_DURATION_MS);
-    return () => clearTimeout(timerId);
-  }, [stepKey, demoDrag]);
-
-  /*
    * 読み上げアニメーション本体。`stepKey` ごとに 0 から1トークンずつ増やす。
    * setState は setInterval コールバック内（非同期）でのみ行うため、
    * `set-state-in-effect` ルールには抵触しない。
@@ -181,7 +162,7 @@ function RoboBubble({ variant = 'map' }) {
   /*
    * クリック／タップ／Enter の共通ハンドラ。
    *   - 表示が途中: 読み上げを止めて全文を即表示（早送り）
-   *   - 表示が完了: 次の吹き出しへ進める（ただし送りロック中は何もしない）
+   *   - 表示が完了: 次の吹き出しへ進める
    * ref 経由で最新値を読むため依存なしで安定。
    */
   const handleAdvance = useCallback(() => {
@@ -190,7 +171,7 @@ function RoboBubble({ variant = 'map' }) {
         clearInterval(intervalRef.current);
       }
       setVisibleCount(tokensRef.current.length);
-    } else if (!advanceLockedRef.current) {
+    } else {
       useCutsceneStore.getState().advance();
     }
   }, []);
@@ -222,8 +203,24 @@ function RoboBubble({ variant = 'map' }) {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [activeId, isBubbleStep, isWaitStep, handleAdvance]);
 
-  if (!activeId || !isBubbleStep) {
+  if (!activeId || (!isBubbleStep && !isPointerOnlyStep)) {
     return null;
+  }
+
+  /*
+   * point だけを出す「到着待ち」step。ロボ・吹き出しは描画せず、指差しリング
+   * だけを素通しレイヤー（`passThrough`）に重ねる。クリック送り・キー横取りは
+   * しないので、下の巻物を実際にタップして移動できる。
+   */
+  if (isPointerOnlyStep) {
+    const pointerLayerClassName = [styles.layer, styles[variant], styles.passThrough]
+      .filter(Boolean)
+      .join(' ');
+    return (
+      <div className={pointerLayerClassName} aria-hidden="true">
+        {activePoint && <CutscenePointer key={activePoint} targetId={activePoint} />}
+      </div>
+    );
   }
 
   const layerClassName = [styles.layer, styles[variant], isWaitStep && styles.passThrough]

@@ -117,8 +117,80 @@
   max-width: min(352px, 48vw);
 }
 
-/* マップ画面: 画面上部の左（戦闘と同じ配置） */
+/*
+ * マップ画面: 画面下に黄色っぽいパネルを置き、その中の左上にロボ、右に文言を
+ * 出す。角はドット絵ふうに「階段状（ステップ）」で落とす。パネル本体は枠色
+ * （濃色）で塗り、`::before` の一回り小さい黄色の面を重ねて枠線を表現する。
+ * 枠と塗りは同じ `clip-path` を使い、`::before` を `inset` ぶん内側にずらす
+ * ことで、はみ出した枠色が縁取りとして見える。
+ */
 .layer.map .group {
-  top: 6%;
-  left: 1.5rem;
+  top: auto;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(880px, calc(100vw - 3rem));
+  box-sizing: border-box;
+  align-items: flex-start;
+  gap: 1rem;
+  /* 枠 5px ぶんを内側に確保してから中身の余白を足す */
+  padding: calc(1rem + 5px) calc(1.25rem + 5px);
+  /* 縁がわを黄ばんだ色にする（塗りは白） */
+  background: #e6c65a;
+  clip-path: polygon(
+    0 10px, 5px 10px, 5px 5px, 10px 5px, 10px 0,
+    calc(100% - 10px) 0, calc(100% - 10px) 5px, calc(100% - 5px) 5px,
+    calc(100% - 5px) 10px, 100% 10px,
+    100% calc(100% - 10px), calc(100% - 5px) calc(100% - 10px),
+    calc(100% - 5px) calc(100% - 5px), calc(100% - 10px) calc(100% - 5px),
+    calc(100% - 10px) 100%,
+    10px 100%, 10px calc(100% - 5px), 5px calc(100% - 5px),
+    5px calc(100% - 10px), 0 calc(100% - 10px)
+  );
+  /* 角のステップに沿う、かっちりしたドット絵ふうの影 */
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.3));
+}
+
+.layer.map .group::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  background: #ffffff;
+  clip-path: polygon(
+    0 10px, 5px 10px, 5px 5px, 10px 5px, 10px 0,
+    calc(100% - 10px) 0, calc(100% - 10px) 5px, calc(100% - 5px) 5px,
+    calc(100% - 5px) 10px, 100% 10px,
+    100% calc(100% - 10px), calc(100% - 5px) calc(100% - 10px),
+    calc(100% - 5px) calc(100% - 5px), calc(100% - 10px) calc(100% - 5px),
+    calc(100% - 10px) 100%,
+    10px 100%, 10px calc(100% - 5px), 5px calc(100% - 5px),
+    5px calc(100% - 10px), 0 calc(100% - 10px)
+  );
+  z-index: 0;
+}
+
+/* ロボと文言は黄色の面（`::before`）より前面に置く */
+.layer.map .icon,
+.layer.map .bubble {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * マップでは白いスピーチバブルを使わず、文言を直接パネルに載せる。
+ * バブルの背景・枠・しっぽ（`::before` / `::after`）を消し、残り幅いっぱいに広げる。
+ */
+.layer.map .bubble {
+  flex: 1 1 auto;
+  max-width: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.layer.map .bubble::before,
+.layer.map .bubble::after {
+  display: none;
 }

@@ -381,6 +381,16 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    */
   const fireTrigger = useCutsceneStore((s) => s.fireTrigger);
   useEffect(() => {
+    const store = useCutsceneStore.getState();
+    /*
+     * バトル開始待ち step（`waitForBattle`）を再生中なら、まず進めて（＝末尾
+     * step なので終了して指差しリングを消し）、そのうえで入場ガイドを発火する。
+     * 先に閉じておかないと `fireTrigger` が「再生中」で no-op になる。
+     */
+    const currentStep = store.activeId ? store.steps[store.stepIndex] : null;
+    if (currentStep?.waitForBattle === resolvedStageId) {
+      store.advance();
+    }
     fireTrigger({ type: 'enterBattle', stageId: resolvedStageId });
   }, [fireTrigger, resolvedStageId]);
   useEffect(() => {

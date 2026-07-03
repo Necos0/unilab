@@ -63,7 +63,11 @@ function LandmarkDetail({ difficulty, onFight }) {
       <text x={0} y={-halfHeight + 70} textAnchor="middle" className={styles.stars}>
         {formatStars(difficulty)}
       </text>
-      <g className={styles.fightButton} onClick={handleFightClick}>
+      <g
+        className={styles.fightButton}
+        onClick={handleFightClick}
+        data-cutscene-point="fightButton"
+      >
         <rect
           x={-halfWidth + 8}
           y={halfHeight - 54}

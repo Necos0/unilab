@@ -3,6 +3,8 @@ import LandmarkLockOverlay from './LandmarkLockOverlay';
 
 const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
 
+const POINT_ATTR = 'data-cutscene-point';
+
 /**
  * ランドマークの上に常時表示される、巻物形のラベルバナー。
  *
@@ -40,11 +42,22 @@ const SCROLL_IMAGE_HREF = '/icons/landmark_scroll.png';
  *             される。`true` のときは本コンポーネント側の `data-unlocking`
  *             属性も同期し、スクロール全体の振動・パーチメント閃光が
  *             発火する。デフォルト `false`。
+ *         pointId (string, optional): カットシーンの指差し誘導（`point`）の
+ *             対象にするための `data-cutscene-point` 値（例: `scroll-1-1`）。
+ *             指定すると巻物の `<g>` にこの属性が付き、`CutscenePointer` が
+ *             `getBoundingClientRect` で位置を測って枠取りできる。未指定なら
+ *             属性を付けない。デフォルト `undefined`。
  *
  * Returns:
  *     JSX.Element: ラベルバナー全体を表す `<g>` 要素。
  */
-function LandmarkScroll({ text, isStage = true, isLocked = false, isFading = false }) {
+function LandmarkScroll({
+  text,
+  isStage = true,
+  isLocked = false,
+  isFading = false,
+  pointId = undefined,
+}) {
   const halfWidth = 115.2;
   const halfHeight = 35;
 
@@ -52,6 +65,7 @@ function LandmarkScroll({ text, isStage = true, isLocked = false, isFading = fal
     <g
       className={styles.scroll}
       data-unlocking={isFading ? 'true' : 'false'}
+      {...(pointId ? { [POINT_ATTR]: pointId } : {})}
     >
       <image
         href={SCROLL_IMAGE_HREF}

@@ -114,6 +114,7 @@ function Landmark({
           isStage={hasStage}
           isLocked={shouldShowLock}
           isFading={isFading}
+          pointId={hasStage ? `scroll-${stageId}` : undefined}
         />
       </g>
       {hasStage && (
