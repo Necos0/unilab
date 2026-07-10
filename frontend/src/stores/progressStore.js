@@ -228,14 +228,17 @@ const useProgressStore = create(
   /**
    * クリア・解放の進行状況をすべて初期状態に戻す。開発・テスト用。
    *
-   * `clearedStageIds` / `unlockedWorlds` を空にし、解放アニメ関連の
-   * `pendingUnlockStageId` / `isUnlockAnimating` も `null` / `false` に戻す。
+   * `clearedStageIds` / `unlockedWorlds` / `seenCardIds` を空にし、解放アニメ
+   * 関連の `pendingUnlockStageId` / `isUnlockAnimating` も `null` / `false` に
+   * 戻す。既出カード（`seenCardIds`）を残すと、リセット後にカード説明ヘルプで
+   * まだ出会っていないはずのカードの説明が見えてしまうため、一緒に消す。
    * `unlockAllStages`（全解放）と対になる「全リセット」。
    */
   resetProgress: () =>
     set({
       clearedStageIds: [],
       unlockedWorlds: [],
+      seenCardIds: [],
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
       pendingWorldUnlock: null,
@@ -249,9 +252,13 @@ const useProgressStore = create(
    * 小さい）をすべて `clearedStageIds` に入れ、到達したワールドまで（全体マップ
    * に領域 `map_N` を持つもの）を `unlockedWorlds` に入れる。`targetStageId`
    * 自身は「これから初めて挑む」状態＝未クリアのまま残すので、選んだステージ
-   * から再生されるカットシーンや初回挑戦の挙動をテストできる。解放アニメ系の
-   * フラグ（`pendingUnlockStageId` / `isUnlockAnimating` / `pendingWorldUnlock`
-   * / `unlockingWorld`）はすべてリセットし、選択直後に演出が走らないようにする。
+   * から再生されるカットシーンや初回挑戦の挙動をテストできる。既出カード
+   * （`seenCardIds`）もクリア済みステージの手札カードだけに巻き戻し、カード
+   * 説明ヘルプの伏せ字（？？？カード）がその到達地点の初見プレイと同じ状態に
+   * なるようにする（対象ステージ自身のカードは戦闘入場時に記録される）。
+   * 解放アニメ系のフラグ（`pendingUnlockStageId` / `isUnlockAnimating` /
+   * `pendingWorldUnlock` / `unlockingWorld`）はすべてリセットし、選択直後に
+   * 演出が走らないようにする。
    * `cutsceneStore.markSeenBeforeStage` と対で「到達ステージ選択」を構成する。
    *
    * Args:
@@ -280,9 +287,17 @@ const useProgressStore = create(
         unlockedWorlds.push(String(world));
       }
     }
+    const seenCardIds = Array.from(
+      new Set(
+        clearedStageIds.flatMap((id) =>
+          (stagesData.stages[id].cards ?? []).map((card) => card.id),
+        ),
+      ),
+    );
     set({
       clearedStageIds,
       unlockedWorlds,
+      seenCardIds,
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
       pendingWorldUnlock: null,
