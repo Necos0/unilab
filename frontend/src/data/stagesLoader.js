@@ -1198,6 +1198,77 @@ function validateCounterPairs(stage, stageId) {
 }
 
 /**
+ * ステージ定義から「登場する特殊マスの種別 ID」を収集する（ヘルプ用）。
+ *
+ * マス説明ヘルプ（`HelpWindow` のマスカテゴリ）は、まだ出会っていない
+ * 種別のマスの説明を「？？？マス」と伏せる。その既出判定のために、
+ * 各ステージにどの特殊マスが登場するかを展開時に洗い出し、展開後ステージの
+ * `slotTypeIds` フィールドとして持たせる。`BattleScreen` がバトル入場時に
+ * これを `progressStore.markSlotTypesSeen` へ渡す。
+ *
+ * 収集は **raw（短縮形式）のステージ定義** に対して行う。ループは展開後には
+ * 条件ノード＋合流ノード＋戻りエッジに分解されてしまい、展開後データからは
+ * 「条件分岐」と「ループ」を区別できないため、展開前の `flow` 構造を再帰的に
+ * 歩いて判定する。収集する種別 ID は `slot_help.json` の `id` と一致させる：
+ *   - `condition`  : 条件分岐要素（`{condition, true, false}`）
+ *   - `loop`       : ループ要素（`{loop: {...}}`）。body 内も再帰する
+ *   - `multiplier` : 数値リテラルの倍率スロット（`multiplier: 2` 等）
+ *   - `acceptOnly` : カード種別制限スロット（`acceptOnly: 'attack'` 等）
+ *   - `counter`    : パワーアップ（カウンタ）マス。カウンタ本体
+ *     （`lockedCard.id === 'counter'`）と、カウンタ連動倍率
+ *     （`multiplier: {counterRef}`）はペアで同じ仕組みなので同一種別に寄せる
+ * `turn`（折り返し）はマスではなく配置の折り返し指示なので収集しない。
+ *
+ * Args:
+ *     raw (object): `stages.json` 内の 1 ステージ分（短縮形式）。`flow` または
+ *         `slots` を持つ。
+ *
+ * Returns:
+ *     string[]: 登場する特殊マス種別 ID の配列（重複なし）。特殊マスの無い
+ *         ステージでは空配列。
+ */
+function collectSlotTypeIds(raw) {
+  const ids = new Set();
+  const visitSlot = (item) => {
+    if (item.lockedCard?.id === 'counter') {
+      ids.add('counter');
+    }
+    if (item.acceptOnly) {
+      ids.add('acceptOnly');
+    }
+    if (Number.isInteger(item.multiplier)) {
+      ids.add('multiplier');
+    }
+    if (typeof item.multiplier === 'object' && item.multiplier !== null) {
+      ids.add('counter');
+    }
+  };
+  const visitFlow = (items) => {
+    if (!Array.isArray(items)) {
+      return;
+    }
+    for (const item of items) {
+      if (isLoop(item)) {
+        ids.add('loop');
+        visitFlow(item.loop.body);
+      } else if (isCondition(item)) {
+        ids.add('condition');
+        visitFlow(item.true);
+        visitFlow(item.false);
+      } else if (!isTurn(item)) {
+        visitSlot(item);
+      }
+    }
+  };
+  if (raw.flow) {
+    visitFlow(raw.flow);
+  } else {
+    (raw.slots ?? []).forEach(visitSlot);
+  }
+  return Array.from(ids);
+}
+
+/**
  * 1 ステージ分の定義を完全形式に展開する。
  *
  * ステージ定義の形式によって 2 つのルートに分岐する：
@@ -1251,6 +1322,7 @@ function expandStage(raw, stageId) {
       enemyId: raw.enemyId,
       maxEnemyHp: raw.maxEnemyHp,
       cards: raw.cards ?? [],
+      slotTypeIds: collectSlotTypeIds(raw),
       ...expanded,
     };
     validateCounterPairs(stage, stageId);
@@ -1261,6 +1333,7 @@ function expandStage(raw, stageId) {
     enemyId: raw.enemyId,
     maxEnemyHp: raw.maxEnemyHp,
     cards: raw.cards ?? [],
+    slotTypeIds: collectSlotTypeIds(raw),
     slots,
     conditions: expandConditions(raw.conditions),
     mergeNodes: [],

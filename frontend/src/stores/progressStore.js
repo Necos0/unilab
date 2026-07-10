@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import stagesData from '../data/stages.json';
+import stagesData from '../data/stagesLoader.js';
 import mapsData from '../data/maps.json';
 import parseStageId from '../features/map/parseStageId';
 import getNextStageId from '../features/map/getNextStageId';
@@ -77,11 +77,12 @@ const useProgressStore = create(
   pendingWorldUnlock: null,
   unlockingWorld: null,
   seenCardIds: [],
+  seenSlotTypeIds: [],
 
   /**
    * プレイヤーが戦闘で「初めて出てきた」カードを既出として記録する。
    *
-   * カード説明ヘルプ（`CardHelpWindow`）は、まだ出会っていないカードの
+   * カード説明ヘルプ（`HelpWindow`）は、まだ出会っていないカードの
    * 説明を伏せて「？？？カード」と表示する。そのための既出フラグを
    * `seenCardIds` 集合（配列で保持）として一元管理する。`BattleScreen`
    * のマウント時に、そのステージの手札カード ID を渡して呼ぶ想定。
@@ -99,6 +100,30 @@ const useProgressStore = create(
       return;
     }
     set({ seenCardIds: [...state.seenCardIds, ...new Set(fresh)] });
+  },
+
+  /**
+   * プレイヤーが戦闘で「初めて出てきた」特殊マスの種別を既出として記録する。
+   *
+   * マス説明ヘルプ（`HelpWindow` のマスカテゴリ）は、まだ出会っていない
+   * 種別のマスの説明を伏せて「？？？マス」と表示する。そのための既出フラグを
+   * `seenSlotTypeIds` 集合（配列で保持）として管理する。`BattleScreen` の
+   * マウント時に、展開済みステージの `slotTypeIds`（`stagesLoader` が収集）を
+   * 渡して呼ぶ想定。挙動は `markCardsSeen` と同型（記録済み ID は無視、
+   * 新規が無ければ no-op）。
+   *
+   * Args:
+   *     slotTypeIds (string[]): このステージに登場する特殊マス種別 ID の配列。
+   */
+  markSlotTypesSeen: (slotTypeIds) => {
+    const state = get();
+    const fresh = slotTypeIds.filter(
+      (id) => !state.seenSlotTypeIds.includes(id),
+    );
+    if (fresh.length === 0) {
+      return;
+    }
+    set({ seenSlotTypeIds: [...state.seenSlotTypeIds, ...new Set(fresh)] });
   },
 
   /**
@@ -228,10 +253,11 @@ const useProgressStore = create(
   /**
    * クリア・解放の進行状況をすべて初期状態に戻す。開発・テスト用。
    *
-   * `clearedStageIds` / `unlockedWorlds` / `seenCardIds` を空にし、解放アニメ
-   * 関連の `pendingUnlockStageId` / `isUnlockAnimating` も `null` / `false` に
-   * 戻す。既出カード（`seenCardIds`）を残すと、リセット後にカード説明ヘルプで
-   * まだ出会っていないはずのカードの説明が見えてしまうため、一緒に消す。
+   * `clearedStageIds` / `unlockedWorlds` / `seenCardIds` / `seenSlotTypeIds`
+   * を空にし、解放アニメ関連の `pendingUnlockStageId` / `isUnlockAnimating` も
+   * `null` / `false` に戻す。既出カード・既出マス（`seenCardIds` /
+   * `seenSlotTypeIds`）を残すと、リセット後に説明ヘルプでまだ出会っていない
+   * はずのカードやマスの説明が見えてしまうため、一緒に消す。
    * `unlockAllStages`（全解放）と対になる「全リセット」。
    */
   resetProgress: () =>
@@ -239,6 +265,7 @@ const useProgressStore = create(
       clearedStageIds: [],
       unlockedWorlds: [],
       seenCardIds: [],
+      seenSlotTypeIds: [],
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
       pendingWorldUnlock: null,
@@ -253,9 +280,12 @@ const useProgressStore = create(
    * に領域 `map_N` を持つもの）を `unlockedWorlds` に入れる。`targetStageId`
    * 自身は「これから初めて挑む」状態＝未クリアのまま残すので、選んだステージ
    * から再生されるカットシーンや初回挑戦の挙動をテストできる。既出カード
-   * （`seenCardIds`）もクリア済みステージの手札カードだけに巻き戻し、カード
-   * 説明ヘルプの伏せ字（？？？カード）がその到達地点の初見プレイと同じ状態に
-   * なるようにする（対象ステージ自身のカードは戦闘入場時に記録される）。
+   * （`seenCardIds`）は「クリア済みステージ＋対象ステージ」に登場するカード
+   * （手札＋スロットのロックカード）に、既出マス（`seenSlotTypeIds`）は同じ
+   * 範囲に登場する特殊マス種別に巻き戻す。対象ステージ自身を含めるのは
+   * 開発用途への配慮：「解放レベル」で解放した地点の説明ヘルプを、戦闘に
+   * 入らなくてもすぐ確認できるようにするため（初見プレイの解放タイミング
+   * 自体は、通常プレイの戦闘入場時記録で再現される）。
    * 解放アニメ系のフラグ（`pendingUnlockStageId` / `isUnlockAnimating` /
    * `pendingWorldUnlock` / `unlockingWorld`）はすべてリセットし、選択直後に
    * 演出が走らないようにする。
@@ -287,10 +317,26 @@ const useProgressStore = create(
         unlockedWorlds.push(String(world));
       }
     }
+    const seenSourceStageIds = [...clearedStageIds, targetStageId].filter(
+      (id) => stagesData.stages[id],
+    );
     const seenCardIds = Array.from(
       new Set(
-        clearedStageIds.flatMap((id) =>
-          (stagesData.stages[id].cards ?? []).map((card) => card.id),
+        seenSourceStageIds.flatMap((id) => {
+          const stage = stagesData.stages[id];
+          return [
+            ...(stage.cards ?? []).map((card) => card.id),
+            ...(stage.slots ?? [])
+              .map((slot) => slot.lockedCard?.id)
+              .filter(Boolean),
+          ];
+        }),
+      ),
+    );
+    const seenSlotTypeIds = Array.from(
+      new Set(
+        seenSourceStageIds.flatMap(
+          (id) => stagesData.stages[id].slotTypeIds ?? [],
         ),
       ),
     );
@@ -298,6 +344,7 @@ const useProgressStore = create(
       clearedStageIds,
       unlockedWorlds,
       seenCardIds,
+      seenSlotTypeIds,
       pendingUnlockStageId: null,
       isUnlockAnimating: false,
       pendingWorldUnlock: null,
@@ -345,6 +392,7 @@ const useProgressStore = create(
         clearedStageIds: state.clearedStageIds,
         unlockedWorlds: state.unlockedWorlds,
         seenCardIds: state.seenCardIds,
+        seenSlotTypeIds: state.seenSlotTypeIds,
       }),
     },
   ),

@@ -14,7 +14,7 @@ import ZoomButton from './flowchart/ZoomButton';
 import EnemySprite from './enemy/EnemySprite';
 import BackToMapButton from './BackToMapButton';
 import HelpButton from './HelpButton';
-import CardHelpWindow from './CardHelpWindow';
+import HelpWindow from './HelpWindow';
 import Hand from '../cards/Hand';
 import Card from '../cards/Card';
 import HpBar from '../../components/HpBar';
@@ -360,14 +360,24 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   }, [initializeBattle, stage]);
 
   /*
-   * カード説明ヘルプの解放：このステージで手札に出るカードを「既出」として
-   * 記録する。`CardHelpWindow` はまだ出会っていないカードの説明を伏せる
-   * （「？？？カード」表示）ため、出てきた瞬間（バトル入場時）に記録する。
+   * 説明ヘルプの解放：このステージで手札に出るカードと、スロットに固定された
+   * ロックカード（敵攻撃の `monster` 等）を「既出カード」として、ステージに
+   * 登場する特殊マス種別（`stagesLoader` が収集した `slotTypeIds`）を
+   * 「既出マス」として記録する。`HelpWindow` はまだ出会っていないカード・
+   * マスの説明を伏せる（「？？？カード」「？？？マス」表示）ため、出てきた
+   * 瞬間（バトル入場時）に記録する。
    */
   const markCardsSeen = useProgressStore((s) => s.markCardsSeen);
+  const markSlotTypesSeen = useProgressStore((s) => s.markSlotTypesSeen);
   useEffect(() => {
-    markCardsSeen((stage.cards ?? []).map((card) => card.id));
-  }, [markCardsSeen, stage]);
+    markCardsSeen([
+      ...(stage.cards ?? []).map((card) => card.id),
+      ...(stage.slots ?? [])
+        .map((slot) => slot.lockedCard?.id)
+        .filter(Boolean),
+    ]);
+    markSlotTypesSeen(stage.slotTypeIds ?? []);
+  }, [markCardsSeen, markSlotTypesSeen, stage]);
 
   useEffect(() => () => collapseFlowchart(), [collapseFlowchart]);
 
@@ -492,7 +502,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       <section className={rootClassName}>
         <HelpButton onClick={() => setIsHelpOpen(true)} />
         {isCardHelpOpen && (
-          <CardHelpWindow
+          <HelpWindow
             initialCardId={pendingCardHelpId}
             onClose={closeCardHelp}
           />

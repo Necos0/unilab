@@ -11,7 +11,7 @@ import parseStageId from '../features/map/parseStageId';
  *   - `bubble`（ロボの吹き出し）: `point`（指差し誘導の対象 ID）を持つことが
  *     あり、`RoboBubble` 側が対象 DOM 要素を指す演出を出す。
  *   - `openCardHelp`（カード説明モーダル誘導）: その step に進むと
- *     `pendingCardHelpId` を立て、`BattleScreen` が `CardHelpWindow` を開く。
+ *     `pendingCardHelpId` を立て、`BattleScreen` が `HelpWindow` を開く。
  *     吹き出しの「あいだ」に挟めるので、説明の途中で特定カードのモーダルを
  *     見せてから次の吹き出しへ続けられる。
  * `playAnimation`（再生アニメ）のみを持つ step は再生対象から除外する
@@ -32,7 +32,7 @@ import parseStageId from '../features/map/parseStageId';
  *   - `stepIndex` (number): 現在表示中の step のインデックス。
  *   - `pendingCardHelpId` (string|null): いま開くべきカード説明モーダルの対象
  *     カード ID。`openCardHelp` step に進むと立ち、`BattleScreen` が
- *     `CardHelpWindow` を開く。モーダルを閉じると `consumeCardHelp()` で
+ *     `HelpWindow` を開く。モーダルを閉じると `consumeCardHelp()` で
  *     クリアして次の step へ進む。
  *
  * 公開アクション:
