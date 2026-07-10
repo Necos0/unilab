@@ -1,0 +1,180 @@
+/*
+ * マス説明ヘルプのミニ図解（SlotHelpVisual）。
+ *
+ * `HelpWindow` の額縁（.cardFrame、カード画像 120×180 と同寸）に収まる
+ * 静的なマスのモック描画。色・寸法は戦闘画面のフローチャート
+ * （SlotNode 80×120 の点線枠 #4a4a52 / 地色 #15151c、ConditionNode の
+ * ひし形、MultiplierIndicator の白文字、counterPaired の金アウトライン
+ * #ffd54a）から移植し、ヘルプと実戦が同じ見た目で結びつくようにする。
+ */
+.root {
+  width: 120px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SlotNode と同寸・同色の空スロット。 */
+.slot {
+  position: relative;
+  width: 80px;
+  height: 120px;
+  border: 2px dashed #4a4a52;
+  border-radius: 6px;
+  background: #15151c;
+  box-sizing: border-box;
+}
+
+/* 種類指定（attack 指定の例）：SlotNode の .acceptAttack と同じ赤枠。 */
+.slotAcceptAttack {
+  border-color: #ff4d4d;
+}
+
+/* パワーアップ：SlotNode の .counterPaired と同じ金アウトライン。 */
+.slotCounter {
+  outline: 2px solid #ffd54a;
+  outline-offset: 2px;
+}
+
+/* MultiplierIndicator と同じ意匠の右上バッジ。 */
+.multiplierBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: #f5f5f5;
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.9),
+    0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+/* RestrictedSlotIcon と同じ右上アイコン枠。 */
+.acceptIcon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+}
+
+/* パワーアップの倍率が上がっていく様子（x0→x1→x2）。 */
+.counterSteps {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  text-align: center;
+  color: #ffd54a;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* 条件マス：ひし形＋〇/×の出口マークを相対配置で重ねる。 */
+.conditionWrap {
+  position: relative;
+  width: 120px;
+  height: 150px;
+}
+
+/* ConditionNode の clip-path 意匠を縮小移植したひし形。 */
+.diamond {
+  position: absolute;
+  top: 20px;
+  left: 10px;
+  width: 100px;
+  height: 86px;
+  background: #4a4a52;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diamond::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: #15151c;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.diamondText {
+  position: relative;
+  color: #f5f5f5;
+  font-family: 'DotGothic16', monospace;
+  font-size: 1.2rem;
+}
+
+/* 条件の出口マーク（右=〇、下=×）。 */
+.exitMark {
+  position: absolute;
+  font-family: 'DotGothic16', monospace;
+  font-size: 0.95rem;
+  color: #c8bfa0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* 額縁（.cardFrame）の内側に収まるよう、ラップ外へは出さない。 */
+.exitTrue {
+  top: 52px;
+  right: -4px;
+  color: #6ee86e;
+}
+
+.exitFalse {
+  bottom: 8px;
+  left: 46px;
+  color: #ff7a7a;
+}
+
+/* カウントマス：繰り返し範囲を表す点線枠。 */
+.loopFrame {
+  position: relative;
+  width: 110px;
+  height: 150px;
+  border: 2px dashed #6a6a78;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 枠に書かれたカウント数字。 */
+.loopCount {
+  position: absolute;
+  top: -12px;
+  left: 8px;
+  padding: 0 6px;
+  background: #140f22;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #4ad0c8;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* 枠内の小さめスロット（繰り返す中身の代表）。 */
+.slotMini {
+  width: 56px;
+  height: 84px;
+  border: 2px dashed #4a4a52;
+  border-radius: 6px;
+  background: #15151c;
+  box-sizing: border-box;
+}
+
+/* 繰り返しの戻り矢印。 */
+.loopArrow {
+  position: absolute;
+  bottom: 2px;
+  right: 8px;
+  font-family: 'DotGothic16', monospace;
+  font-size: 1.3rem;
+  color: #4ad0c8;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
