@@ -121,14 +121,32 @@
     },
     "2-4": {
       "enemyId": "goldenbird",
+      "maxEnemyHp": 250,
       "cards": [
-        { "id": "attack", "power": 30 },
-        { "id": "reflect" }
+        { "id": "reflect" },
+        { "id": "reflect" },
+        { "id": "attack", "power": 50 },
+        { "id": "attack", "power": 20 },
+        { "id": "guard", "power": 40 },
+        { "id": "guard", "power": 20 },
+        { "id": "heal", "power": 50 },
+        { "id": "heal", "power": 40 }
       ],
-      "slots": [
+      "flow": [
+        { "lockedCard": { "id": "monster", "power": 80 } },
+        { "multiplier": 3 },
+        { "lockedCard": { "id": "monster", "power": 90 } },
+        { "multiplier": 2 },
         {},
         { "lockedCard": { "id": "monster", "power": 50 } },
-        {}
+        {},
+        { "acceptOnly": "attack" },
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {},
+        { "lockedCard": { "id": "monster", "power": 80 } }
       ]
     },
     "3-1": {
@@ -181,15 +199,33 @@
     },
     "3-3": {
       "enemyId": "shark",
+      "maxEnemyHp": 100,
       "cards": [
-        { "id": "heal", "power": 50 },
-        { "id": "attack", "power": 20 }
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 15 },
+        { "id": "attack", "power": 15 },
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 5 },
+        { "id": "attack", "power": 5 },
+        { "id": "reflect" }
       ],
-      "slots": [
-        { "lockedCard": { "id": "monster", "power": 60 } },
+      "flow": [
         {},
-        { "lockedCard": { "id": "monster", "power": 60 } },
-        {}
+        { "multiplier": 2 },
+        {},
+        { "multiplier": 3 },
+        { "multiplier": 2 },
+        {},
+        {
+          "condition": "enemyHp === 5",
+          "label": "敵のHPが5？",
+          "true":[],
+          "false":[
+            { "lockedCard": { "id": "monster", "power": 100} }
+          ]
+        },
+        {},
+        { "lockedCard": { "id": "monster", "power": 100 } }
       ]
     },
     "3-4": {
