@@ -9,7 +9,13 @@ import parseStageId from '../features/map/parseStageId';
  * ゲーム内イベント（`fireTrigger`）に応じて再生する。フェーズ1で再生する
  * step は2種類:
  *   - `bubble`（ロボの吹き出し）: `point`（指差し誘導の対象 ID）を持つことが
- *     あり、`RoboBubble` 側が対象 DOM 要素を指す演出を出す。
+ *     あり、`RoboBubble` 側が対象 DOM 要素を指す演出を出す。さらに
+ *     `nameInput`（プレイヤー名の入力フォーム）や `backdrop`（吹き出しの
+ *     背後に敷く全画面の一枚絵）を持てる。
+ *   - `choices`（主人公の返事の選択肢）: `{label, goto?}` の配列で、`goto` は
+ *     飛び先 step の `id`。ロボのセリフと同時には出さない方針のため、
+ *     `bubble` を持たない独立 step として置き、セリフ → 選択肢の交互で
+ *     進める。
  *   - `openCardHelp`（カード説明モーダル誘導）: その step に進むと
  *     `pendingCardHelpId` を立て、`BattleScreen` が `HelpWindow` を開く。
  *     吹き出しの「あいだ」に挟めるので、説明の途中で特定カードのモーダルを
@@ -38,8 +44,11 @@ import parseStageId from '../features/map/parseStageId';
  * 公開アクション:
  *   - `fireTrigger(event)` : イベントに一致するカットシーンを探して再生開始。
  *   - `advance()`          : 次の step へ。末尾なら `finish()`。
+ *   - `chooseOption(choice)`: 選択肢を選ぶ。`goto` があれば該当 `id` の step へ。
  *   - `goToStep(index)`    : 指定 step へ移動（`openCardHelp` ならモーダルを開く）。
- *   - `finish()`           : 再生終了。`once` なら `seenIds` に記録。
+ *   - `finish()`           : 再生終了。`once` なら `seenIds` に記録。定義に
+ *     `nextTrigger` があれば続けて `fireTrigger` し、次のカットシーンへ連鎖する
+ *     （例: オープニング会話 → ステージ1への誘導ガイド）。
  *   - `consumeCardHelp()`  : モーダルを閉じた合図。次の step へ進む。
  *   - `resetSeen()`        : 表示済み記録を全消去（開発・テスト用）。
  */
@@ -152,6 +161,7 @@ const useCutsceneStore = create((set, get) => ({
     const steps = def.steps.filter(
       (step) =>
         typeof step.bubble === 'string' ||
+        Array.isArray(step.choices) ||
         typeof step.openCardHelp === 'string' ||
         typeof step.waitForArrival === 'string' ||
         typeof step.waitForBattle === 'string',
@@ -191,6 +201,32 @@ const useCutsceneStore = create((set, get) => ({
   },
 
   /**
+   * 現在 step の選択肢（`choices` の1要素）を選んで先へ進める。
+   *
+   * 選択肢が `goto`（飛び先 step の `id`）を持つ場合は該当 step へジャンプ
+   * する（分岐・ループ用。例: 「いやだ」→ 説得の step へ）。`goto` が無い、
+   * または該当 `id` が見つからない場合は `advance()` と同じく次の step へ
+   * 進む。再生中でないときは no-op。
+   *
+   * Args:
+   *     choice (object): 選ばれた選択肢。`{label: string, goto?: string}`。
+   */
+  chooseOption: (choice) => {
+    const { activeId, steps } = get();
+    if (!activeId) {
+      return;
+    }
+    if (choice && typeof choice.goto === 'string') {
+      const index = steps.findIndex((step) => step.id === choice.goto);
+      if (index >= 0) {
+        get().goToStep(index);
+        return;
+      }
+    }
+    get().advance();
+  },
+
+  /**
    * 指定インデックスの step へ移動する。末尾を超える場合は `finish()`。
    *
    * 移動先が `openCardHelp` step なら `pendingCardHelpId` を立てて
@@ -220,12 +256,17 @@ const useCutsceneStore = create((set, get) => ({
    * 再生していたカットシーン ID を `seenIds` に追加して localStorage に
    * 永続化する（`once: false` のものも、フェーズ1では同様に記録する。
    * 繰り返し表示が要るものはトリガー側で再発火させる設計）。
+   *
+   * 定義に `nextTrigger`（`{type, stageId?}`）がある場合は、終了処理の後に
+   * そのイベントを `fireTrigger` し、次のカットシーンへ間を空けずに連鎖する
+   * （例: `opening-wake` → `enterMapArea` でステージ1への誘導ガイドへ）。
    */
   finish: () => {
     const { activeId, seenIds } = get();
     if (!activeId) {
       return;
     }
+    const nextTrigger = cutscenesData[activeId]?.nextTrigger ?? null;
     const nextSeen = seenIds.includes(activeId)
       ? seenIds
       : [...seenIds, activeId];
@@ -237,6 +278,9 @@ const useCutsceneStore = create((set, get) => ({
       seenIds: nextSeen,
       pendingCardHelpId: null,
     });
+    if (nextTrigger) {
+      get().fireTrigger(nextTrigger);
+    }
   },
 
   /**
@@ -262,11 +306,18 @@ const useCutsceneStore = create((set, get) => ({
    * 表示済み記録（`seenIds`）を全消去する。開発・テスト用。
    *
    * localStorage の保存値も空配列で上書きし、すべてのガイドを「未表示」に
-   * 戻す。
+   * 戻す。再生中のカットシーンがあれば併せて打ち切る（リセット後に古い
+   * 再生状態が残って、最初からのやり直しを妨げないようにする）。
    */
   resetSeen: () => {
     saveSeenIds([]);
-    set({ seenIds: [] });
+    set({
+      seenIds: [],
+      activeId: null,
+      steps: [],
+      stepIndex: 0,
+      pendingCardHelpId: null,
+    });
   },
 
   /**

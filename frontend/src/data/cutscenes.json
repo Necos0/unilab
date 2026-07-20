@@ -1,4 +1,65 @@
 {
+  "opening-wake": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "wakeUp" },
+    "nextTrigger": { "type": "enterMapArea", "stageId": "1-1" },
+    "steps": [
+      {
+        "backdrop": "/story/robo_wakeup.png",
+        "bubble": "おーい！大丈夫《だいじょうぶ》かい？"
+      },
+      {
+        "backdrop": "/story/robo_wakeup.png",
+        "bubble": "グレート！！気《き》がついたね！君《きみ》の名前《なまえ》は？",
+        "nameInput": true
+      },
+      {
+        "backdrop": "/story/robo_wakeup.png",
+        "bubble": "{playerName}か、グレートな名前《なまえ》だ！ぼくは フロチャロボ。"
+      },
+      {
+        "bubble": "実《じつ》は、魔物《まもの》たちに ぼくたちの街《まち》が 奪《うば》われてしまったんだ…。"
+      },
+      {
+        "bubble": "街《まち》を 取《と》り戻《もど》すのを 手伝《てつだ》ってくれないか？"
+      },
+      {
+        "choices": [
+          { "label": "はい", "goto": "agree" },
+          { "label": "いいえ", "goto": "refuse" }
+        ]
+      },
+      {
+        "id": "refuse",
+        "bubble": "そんなこと 言《い》わずにさあ、たのむよ〜！"
+      },
+      {
+        "choices": [
+          { "label": "はい", "goto": "agree" },
+          { "label": "いいえ", "goto": "refuse2" }
+        ]
+      },
+      {
+        "id": "refuse2",
+        "bubble": "たのむ！この通《とお》り！！"
+      },
+      {
+        "choices": [{ "label": "はい", "goto": "agree" }]
+      },
+      {
+        "id": "agree",
+        "bubble": "グレート！！！ありがとう！"
+      },
+      {
+        "bubble": "何《なに》を すればいいかは 心配《しんぱい》いらない。ぼくには 力《ちから》が あるんだ。"
+      },
+      {
+        "bubble": "ぼくに カードを はめて 敵《てき》を 倒《たお》すんだ！やり方《かた》は これから 教《おし》えるよ。"
+      }
+    ]
+  },
+
   "map-stage1-enter": {
     "category": "tutorial",
     "once": true,

@@ -1,0 +1,134 @@
+/*
+ * オープニング紙芝居画面。黒一色の背景に、上部の絵と下部の文章を縦に並べる。
+ * スライドの切り替えは `key={index}` の再マウントで `.imageArea` / `.text` の
+ * フェードインが毎回先頭から走る。最後のスライドを送ったら `.slide` に
+ * `.leaving` を付け、全体を黒へフェードアウトする（`StoryScreen.jsx` の
+ * `FADE_OUT_MS` と長さを合わせる）。
+ */
+.root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 5dvh 5vw 11dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3dvh;
+}
+
+.slide.leaving {
+  animation: storyFadeOut 0.7s ease forwards;
+}
+
+/* 絵の領域。残り高さを使い切り、絵は `contain` で全体を見せる。 */
+.imageArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: storyFadeIn 1.5s ease both;
+}
+
+.image {
+  max-width: min(100%, 60rem);
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/*
+ * 画像がまだ置かれていないときのプレースホルダー。置くべきファイル名を
+ * そのまま表示する（画像を入れれば自動で置き換わる）。
+ */
+.placeholder {
+  width: min(100%, 60rem);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #4a4a55;
+  border-radius: 12px;
+  color: #6a6a78;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.9rem, 2vw, 1.3rem);
+  letter-spacing: 0.08em;
+}
+
+/* 文章。絵よりわずかに遅れてフェードインする。ルビの分だけ行間を広く取る。 */
+.text {
+  margin: 0;
+  max-width: 36em;
+  color: #f5f0e0;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(1rem, 2.4vw, 1.5rem);
+  line-height: 2.3;
+  text-align: center;
+  animation: storyFadeIn 1.5s ease 0.35s both;
+}
+
+.text rt {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+/*
+ * 3 秒経過後に出す「つぎへ」の案内。ふわっと現れたあと、ゆっくり点滅して
+ * 送り操作ができることを伝える。
+ */
+.nextHint {
+  position: absolute;
+  left: 50%;
+  bottom: 4dvh;
+  transform: translateX(-50%);
+  color: #f0c040;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.85rem, 1.8vw, 1.15rem);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  animation:
+    storyFadeIn 0.4s ease both,
+    storyHintBlink 1.4s ease-in-out 0.4s infinite;
+}
+
+@keyframes storyFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes storyFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes storyHintBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

@@ -1,0 +1,40 @@
+/*
+ * 紙芝居後の「目覚め」用黒オーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）。z-index は `MapSwitchTransition`
+ *     と同じ最上位（9999）に置き、演出中のクリックをブロックする
+ *   - マウント直後は真っ黒（opacity: 1）のまま。`.fading` が付いたら
+ *     `wakeUpBlink` でゆっくり晴らす
+ *   - `wakeUpBlink` は単純なフェードではなく、途中で一度暗さが戻る
+ *     「まばたき」を挟んで、気絶から目を覚ます感じを出す。長さは
+ *     `WakeUpOverlay.jsx` の `FADE_MS` と合わせる
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fading {
+  animation: wakeUpBlink 5000ms ease-in-out forwards;
+}
+
+@keyframes wakeUpBlink {
+  0% {
+    opacity: 1;
+  }
+  /* うっすらと目が開き、平原がぼんやり見える */
+  35% {
+    opacity: 0.45;
+  }
+  /* まぶたが閉じかけて、また暗くなる（まばたき） */
+  55% {
+    opacity: 0.85;
+  }
+  /* ゆっくり完全に目が開く */
+  100% {
+    opacity: 0;
+  }
+}

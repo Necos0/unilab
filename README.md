@@ -143,30 +143,31 @@ unilab/
     │   │   ├── map_travel.png        ← マップ移動ボタンのアイコン
     │   │   └── flowchart/        ← フローチャート関連アイコン(goal/play/reset/start.svg)
     │   ├── maps/                 ← マップ画像(map_<id>.png、現在 map_1 / map_2)
-    │   └── sprites/              ← キャラ・敵・エフェクトのスプライト画像
-    │       ├── hero/             ← プレイヤースプライト(<state>/hero_<state>_NN.png)
-    │       │   ├── idle/         ← 静止(現在はテスト用に 1 枚)
-    │       │   ├── up/           ← 上方向への歩行
-    │       │   ├── down/         ← 下方向への歩行
-    │       │   ├── left/         ← 左方向への歩行
-    │       │   └── right/        ← 右方向への歩行
-    │       └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
-    │           ├── slime/        ← idle / dead
-    │           ├── wolf/         ← idle / dead
-    │           ├── knight/       ← idle / dead
-    │           ├── golem/        ← idle / dead
-    │           ├── cactus/       ← idle / dead
-    │           ├── cobra/        ← idle / dead
-    │           ├── crab/         ← idle / dead
-    │           ├── dragon/       ← idle / dead
-    │           ├── lizard/       ← idle / dead
-    │           ├── phoenix/      ← idle / dead
-    │           ├── lagiacrus/    ← idle / dead
-    │           ├── starfish/     ← idle / dead
-    │           ├── scorpion/     ← idle / dead
-    │           ├── shark/        ← idle / dead
-    │           ├── squid/        ← idle / dead
-    │           └── goldenbird/   ← idle / dead
+    │   ├── sprites/              ← キャラ・敵・エフェクトのスプライト画像
+    │   │   ├── hero/             ← プレイヤースプライト(<state>/hero_<state>_NN.png)
+    │   │   │   ├── idle/         ← 静止(現在はテスト用に 1 枚)
+    │   │   │   ├── up/           ← 上方向への歩行
+    │   │   │   ├── down/         ← 下方向への歩行
+    │   │   │   ├── left/         ← 左方向への歩行
+    │   │   │   └── right/        ← 右方向への歩行
+    │   │   └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
+    │   │       ├── slime/        ← idle / dead
+    │   │       ├── wolf/         ← idle / dead
+    │   │       ├── knight/       ← idle / dead
+    │   │       ├── golem/        ← idle / dead
+    │   │       ├── cactus/       ← idle / dead
+    │   │       ├── cobra/        ← idle / dead
+    │   │       ├── crab/         ← idle / dead
+    │   │       ├── dragon/       ← idle / dead
+    │   │       ├── lizard/       ← idle / dead
+    │   │       ├── phoenix/      ← idle / dead
+    │   │       ├── lagiacrus/    ← idle / dead
+    │   │       ├── starfish/     ← idle / dead
+    │   │       ├── scorpion/     ← idle / dead
+    │   │       ├── shark/        ← idle / dead
+    │   │       ├── squid/        ← idle / dead
+    │   │       └── goldenbird/   ← idle / dead
+    │   └── story/                ← オープニング紙芝居の画像(story_NN.png、StoryScreen が参照)
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
@@ -184,11 +185,13 @@ unilab/
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   ├── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
+        │   ├── story_slides.json ← オープニング紙芝居のスライド定義(画像パスとふりがな付き文章)
         │   └── stagesLoader.js   ← stages.json の短縮形式を完全形式に展開するローダー
         ├── stores/               ← グローバル状態管理(zustand)
         │   ├── battleStore.js    ← 手札・スロット割当・ドラッグ状態
         │   ├── cutsceneStore.js  ← 自動ガイド演出の再生・表示済み記録(localStorage 永続)
         │   ├── mapStore.js       ← マップ画面の現在位置・移動状態
+        │   ├── playerStore.js    ← プレイヤー名(オープニングで入力、localStorage 永続)
         │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
         ├── hooks/                ← 機能横断のカスタムフック
         │   └── useSpriteAnimation.js  ← スプライト連番のフレーム送り(敵・主人公共用)
@@ -285,7 +288,14 @@ unilab/
             │   ├── CutscenePointer.module.css
             │   ├── CutsceneDragDemo.jsx    ← カード→スロットのドラッグ&ドロップ操作デモ(ゴースト＋指先)
             │   ├── CutsceneDragDemo.module.css
+            │   ├── NameEntryPanel.jsx      ← ひらがな表でプレイヤー名を入力するパネル(オープニング用)
+            │   ├── NameEntryPanel.module.css
             │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)
+            ├── story/            ← オープニング紙芝居(スタート直後に再生、データは data/story_slides.json)
+            │   ├── StoryScreen.jsx        ← 紙芝居画面(フェードイン・3秒ロック・クリック/キー送り)
+            │   ├── StoryScreen.module.css
+            │   ├── WakeUpOverlay.jsx      ← 紙芝居後の目覚め演出(2秒暗転→まばたきしながら平原が現れる)
+            │   └── WakeUpOverlay.module.css
             ├── title/            ← タイトル画面
             │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面
             │   └── TitleScreen.module.css

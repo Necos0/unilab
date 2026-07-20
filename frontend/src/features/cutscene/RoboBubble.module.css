@@ -32,6 +32,32 @@
   pointer-events: none;
 }
 
+/*
+ * 吹き出しの背後に敷く全画面の一枚絵（`backdrop` step）。目覚めの主観視点
+ * など、下の画面（マップ）を隠して見せたい場面で使う。黒地に `cover` で
+ * 画面いっぱいに敷き、ふわっとフェードインさせる。
+ */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  pointer-events: none;
+  animation: backdropFadeIn 0.8s ease both;
+  -webkit-user-drag: none;
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* ロボのアイコン＋スピーチバブルのまとまり。位置だけ variant で変える */
 .group {
   position: absolute;
@@ -105,6 +131,82 @@
 /* 読み上げ前のトークン。場所は確保したまま透明にしてバブルの大きさを固定する */
 .hidden {
   color: transparent;
+}
+
+/*
+ * 主人公の返事の選択ウィンドウ（`choices` step）。ロボのセリフとは同時に
+ * 出さず、セリフの次の独立 step として単体で表示する（RPG の「はい／いいえ」
+ * ウィンドウふう）。選択肢は縦に並べ、レイヤー直下でバリアントごとに
+ * 位置決めする。
+ */
+.choicesWindow {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 8.5rem;
+  box-sizing: border-box;
+  padding: 0.45rem;
+  background: #ffffff;
+  border: 3px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  animation: choicesFadeIn 0.2s ease both;
+}
+
+@keyframes choicesFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * マップ画面: 会話パネルが出る位置（bottom 2rem）の右寄りに出す。セリフと
+ * 交互表示なのでパネルとは重ならない。translateX でウィンドウの右端を
+ * パネルの右端（パネル幅 min(880px, 100vw - 3rem) の半分だけ中央から右）に
+ * 揃える。
+ */
+.layer.map .choicesWindow {
+  left: 50%;
+  bottom: 2.5rem;
+  transform: translateX(calc(min(880px, 100vw - 3rem) / 2 - 100%));
+}
+
+/* 戦闘画面: 吹き出しグループの下に出す（現状は未使用の予備配置）。 */
+.layer.battle .choicesWindow {
+  top: calc(6% + 160px);
+  left: 1rem;
+}
+
+.choiceButton {
+  padding: 0.4rem 1.2rem;
+  font-family: inherit;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  text-align: left;
+  color: #1a1a22;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.choiceButton:hover {
+  background: #ffe9a8;
+}
+
+.choiceButton:active {
+  background: #f0c040;
+}
+
+.choiceButton ruby rt {
+  font-size: 0.55em;
 }
 
 /* 戦闘画面: 画面上部（敵エリア）の左。マップより左に寄せ、バブルは 0.8 倍幅 */

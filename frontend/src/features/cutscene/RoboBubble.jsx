@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './RoboBubble.module.css';
 import useCutsceneStore from '../../stores/cutsceneStore';
+import usePlayerStore from '../../stores/playerStore';
 import CutscenePointer from './CutscenePointer';
 import CutsceneDragDemo from './CutsceneDragDemo';
+import NameEntryPanel from './NameEntryPanel';
 import tokenizeFurigana from './tokenizeFurigana';
 import playerData from '../../data/player.json';
 
 /*
  * `{playerName}` が解決できないときに使う仮のプレイヤー名。
- * 名前入力・保存の仕組みが入るまでの暫定値（要件で「のあ」と指定）。
+ * オープニングの名前入力（`nameInput` step）を通っていない場合の既定値
+ * （要件で「のあ」と指定）。
  */
 const FALLBACK_PLAYER_NAME = 'のあ';
 
@@ -21,6 +24,12 @@ const ROBO_ICON_SRC = '/sprites/robo/robo.png';
  * 読み上げアニメーションで1トークン（1文字 or ルビ1組）を表示する間隔（ms）。
  */
 const REVEAL_INTERVAL_MS = 45;
+
+/*
+ * 背景一枚絵（`backdrop`）が消えるときのフェードアウト時間（ms）。CSS 側の
+ * `backdropFadeOut` の長さと合わせる。
+ */
+const BACKDROP_FADE_MS = 700;
 
 /**
  * 自動ガイドのロボ吹き出しを描画するコンポーネント（フェーズ1）。
@@ -39,9 +48,28 @@ const REVEAL_INTERVAL_MS = 45;
  * などのショートカット）を `stopImmediatePropagation` で遮断する。ブラウザ標準の
  * 修飾キー操作（Ctrl/Cmd/Alt 併用、リロード等）は妨げない。
  *
- * 吹き出し内の `{playerName}` は実際のプレイヤー名へ置換し（暫定値は「のあ」）、
+ * 吹き出し内の `{playerName}` は実際のプレイヤー名へ置換し（`playerStore` の
+ * 入力済みの名前を最優先、無ければ `player.json` → 「のあ」の順）、
  * `漢字《ふりがな》` 記法は `tokenizeFurigana` でトークン化してルビ付き表示に
  * 変換する。
+ *
+ * ストーリー会話向けの step 拡張を 3 つ描画できる（いずれも吹き出しの
+ * 「外」に独立した UI として出し、ロボのセリフと混ざらないようにする）:
+ *   - `choices`（`{label, goto?}` の配列）: 主人公の返事の選択肢。ロボの
+ *     セリフと同時には表示せず、`bubble` を持たない独立 step として置いて
+ *     「セリフ → 選択肢」の交互で進める。この step ではロボ・吹き出しを
+ *     描画せず、RPG ふうの選択ウィンドウだけを出し、クリックで
+ *     `chooseOption`（`goto` があれば分岐）する。レイヤーのクリック／Enter
+ *     では先へ進めない。ラベルは「はい」「いいえ」のような無機質な返答に
+ *     限定し、主人公の性格を決めつけない（プレイヤーが主人公に入り込める
+ *     ようにする）。
+ *   - `nameInput`: プレイヤー名の入力。読み上げ後に、ひらがな表をマウスで
+ *     選ぶ `NameEntryPanel`（RPG によくある名前入力画面）を画面中央に出し、
+ *     確定で `playerStore` に保存して次へ進む。
+ *   - `backdrop`（画像パス）: 吹き出しの背後に敷く全画面の一枚絵。目覚めの
+ *     主観視点など、マップを隠して見せたい場面で使う。`backdrop` を持たない
+ *     step へ進むとフェードアウトで下の画面（マップ）へゆっくり切り替わる。
+ *     画像が読み込めない（まだ置いていない）ときは黒地ごと表示しない。
  *
  * 現在の吹き出しが `point`（指差し誘導の対象 ID）を持つ場合は、`CutscenePointer`
  * を重ねて対応する画面要素（例: HP バー）をリング＋矢印で指し示す。対象 ID は
@@ -102,13 +130,53 @@ function RoboBubble({ variant = 'map' }) {
    */
   const isWaitStep = currentStep?.waitForCardInSlot === true;
   /*
+   * 主人公の返事の選択肢（`choices`）と名前入力（`nameInput`）。どちらかを
+   * 持つ step では、読み上げ完了後もレイヤーのクリック／Enter で先へ進めず、
+   * ボタン（選択肢 or けってい）だけが送り操作になる。
+   */
+  const choices = Array.isArray(currentStep?.choices) ? currentStep.choices : null;
+  const isNameStep = currentStep?.nameInput === true;
+  /*
+   * 選択肢だけの step（`bubble` なし）。ロボのセリフと選択肢は同時に出さない
+   * 方針のため、選択肢はセリフの次の独立 step として置かれる。この step では
+   * ロボ・吹き出しを描画せず、選択ウィンドウだけを出す。
+   */
+  const isChoiceOnlyStep = !isBubbleStep && choices !== null;
+  /* 吹き出しの背後に敷く全画面の一枚絵（目覚めの主観視点など）。 */
+  const backdrop = typeof currentStep?.backdrop === 'string' ? currentStep.backdrop : null;
+  /*
+   * 一枚絵の表示制御。
+   *   - `shownBackdrop`: いま描画している画像パス。step が `backdrop` を
+   *     失ってもすぐには消さず、フェードアウト（`isBackdropLeaving`）を
+   *     挟んでから外す（主観視点 → 下の画面が、ゆっくり切り替わる）。
+   *   - `backdropFailed`: 画像が読み込めないときは黒地ごと出さない。画像を
+   *     まだ置いていない開発中でも、下のマップが隠れないようにする。
+   * リセットは他の state と同じくレンダー中の条件付き setState で行う。
+   */
+  const [shownBackdrop, setShownBackdrop] = useState(backdrop);
+  const [isBackdropLeaving, setIsBackdropLeaving] = useState(false);
+  const [backdropFailed, setBackdropFailed] = useState(false);
+  if (backdrop && backdrop !== shownBackdrop) {
+    setShownBackdrop(backdrop);
+    setIsBackdropLeaving(false);
+    setBackdropFailed(false);
+  }
+  if (activeId && !backdrop && shownBackdrop && !isBackdropLeaving) {
+    setIsBackdropLeaving(true);
+  }
+  if (!activeId && shownBackdrop) {
+    setShownBackdrop(null);
+    setIsBackdropLeaving(false);
+  }
+  /*
    * 吹き出しを持たず `point` だけを出す「到着待ち」step（`waitForArrival`）。
    * ロボ・吹き出しは出さず、指差しリングだけを素通しレイヤーに重ねて対象の
    * タップを促す。クリック／Enter では進めず、対象ランドマークへ到着したとき
    * （`MapScreen` が `advance`）にだけ次へ進む。
    */
   const isPointerOnlyStep = !isBubbleStep && activePoint !== null;
-  const playerName = playerData.name || FALLBACK_PLAYER_NAME;
+  const storedPlayerName = usePlayerStore((s) => s.playerName);
+  const playerName = storedPlayerName || playerData.name || FALLBACK_PLAYER_NAME;
   const text = rawText.replaceAll('{playerName}', playerName);
   const tokens = useMemo(() => tokenizeFurigana(text), [text]);
 
@@ -130,13 +198,31 @@ function RoboBubble({ variant = 'map' }) {
    * 早送り・スキップ判定で最新値を参照するための ref。レンダー中ではなく
    * effect で同期する（`react-hooks/refs` ＝レンダー中の ref 更新禁止に従う）。
    */
+  const hasInteraction = choices !== null || isNameStep;
   const tokensRef = useRef(tokens);
   const visibleCountRef = useRef(visibleCount);
+  const hasInteractionRef = useRef(hasInteraction);
   const intervalRef = useRef(null);
   useEffect(() => {
     tokensRef.current = tokens;
     visibleCountRef.current = visibleCount;
-  }, [tokens, visibleCount]);
+    hasInteractionRef.current = hasInteraction;
+  }, [tokens, visibleCount, hasInteraction]);
+
+  /*
+   * 一枚絵のフェードアウト完了待ち。`isBackdropLeaving` が立ったら
+   * `BACKDROP_FADE_MS` 後に描画を外す。
+   */
+  useEffect(() => {
+    if (!isBackdropLeaving) {
+      return undefined;
+    }
+    const timerId = setTimeout(() => {
+      setShownBackdrop(null);
+      setIsBackdropLeaving(false);
+    }, BACKDROP_FADE_MS);
+    return () => clearTimeout(timerId);
+  }, [isBackdropLeaving]);
 
   /*
    * 読み上げアニメーション本体。`stepKey` ごとに 0 から1トークンずつ増やす。
@@ -162,7 +248,8 @@ function RoboBubble({ variant = 'map' }) {
   /*
    * クリック／タップ／Enter の共通ハンドラ。
    *   - 表示が途中: 読み上げを止めて全文を即表示（早送り）
-   *   - 表示が完了: 次の吹き出しへ進める
+   *   - 表示が完了: 次の吹き出しへ進める。ただし選択肢・名前入力を持つ
+   *     step では進めない（ボタン側だけが送り操作になる）
    * ref 経由で最新値を読むため依存なしで安定。
    */
   const handleAdvance = useCallback(() => {
@@ -171,7 +258,7 @@ function RoboBubble({ variant = 'map' }) {
         clearInterval(intervalRef.current);
       }
       setVisibleCount(tokensRef.current.length);
-    } else {
+    } else if (!hasInteractionRef.current) {
       useCutsceneStore.getState().advance();
     }
   }, []);
@@ -184,11 +271,24 @@ function RoboBubble({ variant = 'map' }) {
    * 標準ショートカット（リロード等）は素通しする。
    */
   useEffect(() => {
-    if (!activeId || !isBubbleStep || isWaitStep) {
+    if (!activeId || (!isBubbleStep && !isChoiceOnlyStep) || isWaitStep) {
       return undefined;
     }
     const handleKeyDown = (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      /*
+       * 名前入力欄などのフォーカス中は横取りしない。文字入力・変換・Enter
+       * 確定を入力欄自身のハンドラに任せる。
+       */
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA')
+      ) {
         return;
       }
       if (event.key === 'Enter') {
@@ -201,9 +301,9 @@ function RoboBubble({ variant = 'map' }) {
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [activeId, isBubbleStep, isWaitStep, handleAdvance]);
+  }, [activeId, isBubbleStep, isChoiceOnlyStep, isWaitStep, handleAdvance]);
 
-  if (!activeId || (!isBubbleStep && !isPointerOnlyStep)) {
+  if (!activeId || (!isBubbleStep && !isPointerOnlyStep && !isChoiceOnlyStep)) {
     return null;
   }
 
@@ -245,6 +345,32 @@ function RoboBubble({ variant = 'map' }) {
     );
   });
 
+  /* 読み上げが末尾まで終わったか。選択肢・名前入力はこの後にだけ出す。 */
+  const isRevealed = visibleCount >= tokens.length;
+
+  /* 選択肢ラベルの `漢字《ふりがな》` 記法をルビ付きノードへ変換する。 */
+  const renderFurigana = (label) =>
+    tokenizeFurigana(label).map((token, index) =>
+      token.type === 'ruby' ? (
+        <ruby key={index}>
+          {token.base}
+          <rt>{token.ruby}</rt>
+        </ruby>
+      ) : (
+        <span key={index}>{token.value}</span>
+      ),
+    );
+
+  /*
+   * 名前入力（`NameEntryPanel`）の確定。`playerStore` に保存して（以降の
+   * `{playerName}` が置き換わる）次の step へ進む。空チェックはパネル側の
+   * 「けってい」の disabled が担う。
+   */
+  const handleNameSubmit = (name) => {
+    usePlayerStore.getState().setPlayerName(name);
+    useCutsceneStore.getState().advance();
+  };
+
   return (
     <div
       className={layerClassName}
@@ -253,6 +379,19 @@ function RoboBubble({ variant = 'map' }) {
       tabIndex={0}
       aria-label="つぎへ"
     >
+      {shownBackdrop && !backdropFailed && (
+        <img
+          className={
+            isBackdropLeaving
+              ? `${styles.backdrop} ${styles.backdropLeaving}`
+              : styles.backdrop
+          }
+          src={shownBackdrop}
+          alt=""
+          draggable={false}
+          onError={() => setBackdropFailed(true)}
+        />
+      )}
       {activePoint && <CutscenePointer key={activePoint} targetId={activePoint} />}
       {demoDrag && (
         <CutsceneDragDemo
@@ -262,19 +401,41 @@ function RoboBubble({ variant = 'map' }) {
           cardId={demoDrag.cardId}
         />
       )}
-      <div className={styles.group}>
-        <img
-          className={styles.icon}
-          src={ROBO_ICON_SRC}
-          alt="ロボ"
-          draggable={false}
-        />
-        <div className={styles.bubble}>
-          <div className={styles.body}>
-            <p className={styles.text}>{textNodes}</p>
+      {isBubbleStep && (
+        <div className={styles.group}>
+          <img
+            className={styles.icon}
+            src={ROBO_ICON_SRC}
+            alt="ロボ"
+            draggable={false}
+          />
+          <div className={styles.bubble}>
+            <div className={styles.body}>
+              <p className={styles.text}>{textNodes}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+      {choices && isRevealed && (
+        <div className={styles.choicesWindow}>
+          {choices.map((choice, index) => (
+            <button
+              key={index}
+              type="button"
+              className={styles.choiceButton}
+              onClick={(event) => {
+                event.stopPropagation();
+                useCutsceneStore.getState().chooseOption(choice);
+              }}
+            >
+              {renderFurigana(choice.label)}
+            </button>
+          ))}
+        </div>
+      )}
+      {isNameStep && isRevealed && (
+        <NameEntryPanel onSubmit={handleNameSubmit} />
+      )}
     </div>
   );
 }

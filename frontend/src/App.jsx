@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TitleScreen from './features/title/TitleScreen.jsx';
+import StoryScreen from './features/story/StoryScreen.jsx';
+import WakeUpOverlay from './features/story/WakeUpOverlay.jsx';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
@@ -13,10 +15,16 @@ import stagesData from './data/stagesLoader.js';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
- * でステージ1の入り口にあたるマップ画面（`MapScreen`＝`map_1`）へ遷移する。
+ * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居を最後まで見終える
+ * （`handleStoryFinish`）と、ステージ1の入り口にあたるマップ画面
+ * （`MapScreen`＝`map_1`）へ遷移する。このときマップの上に「目覚め」演出
+ * （`WakeUpOverlay`）を重ね、2 秒の暗転ののち、気絶から目を覚ますように
+ * ゆっくりと平原を現す（完了で `handleWakeUpEnd` がオーバーレイを外す）。
+ * 併せて目覚めの会話カットシーン（`opening-wake`）を発火し、フロチャロボ
+ * との初対面 → 名前入力 → ステージ1への誘導ガイドへと続ける。
  * マップ画面では、ランドマーク詳細パネルの「たたかう」ボタン、
  * またはマップ右上のデバッグ用「バトルデモ」ボタンが押されると、対応する
  * `stageId` を保持しつつ戦闘画面（`BattleScreen`）に遷移する。テスト用途
@@ -55,6 +63,8 @@ function App() {
   const [screen, setScreen] = useState('title');
   const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
   const [pendingStageId, setPendingStageId] = useState(null);
+  /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
+  const [isWakingUp, setIsWakingUp] = useState(false);
 
   /*
    * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
@@ -89,7 +99,9 @@ function App() {
    * 登録する。input/textarea へのフォーカス中と修飾キー同時押しは無視する
    * （`UnlockSelectButton` の Space キーと同じガード方針）。
    *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
-   *         まとめてリフレッシュ。最初の状態からガイドを見直せるようにする。
+   *         まとめてリフレッシュし、オープニング紙芝居（`StoryScreen`）まで
+   *         巻き戻す。紙芝居 → 目覚め → ロボとの会話 → チュートリアルの流れを
+   *         最初から通しで見直せるようにする。
    *   - T : タイトル画面（`TitleScreen`）へ戻る。
    *   - C : カットシーン・フロー画面（`CutsceneFlowScreen`、開発用）を開閉する。
    *         開く直前の画面を `prevScreenRef` に退避し、画面内の「戻る」で復帰する。
@@ -129,6 +141,12 @@ function App() {
       }
       useCutsceneStore.getState().resetSeen();
       useProgressStore.getState().resetProgress();
+      /*
+       * 巻き戻し後はオープニング紙芝居から通しでやり直す。目覚め演出の
+       * 途中だった場合に備えてオーバーレイのフラグも下ろしておく。
+       */
+      setIsWakingUp(false);
+      setScreen('story');
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -155,7 +173,24 @@ function App() {
   }, []);
 
   const handleStartGame = useCallback(() => {
+    setScreen('story');
+  }, []);
+
+  const handleStoryFinish = useCallback(() => {
+    setIsWakingUp(true);
     setScreen('map');
+    /*
+     * 目覚めの会話（`opening-wake`、フロチャロボとの初対面）を発火する。
+     * ここで先に再生を始めておくと、MapScreen マウント時の `enterMapArea`
+     * ガイドは「再生中」で no-op になり、順番が入れ替わらない。ステージ1への
+     * 誘導ガイドは `opening-wake` の `nextTrigger` が会話終了後に連鎖発火する。
+     * 会話は `WakeUpOverlay` の暗転の下で始まり、目が開くと同時に見える。
+     */
+    useCutsceneStore.getState().fireTrigger({ type: 'wakeUp' });
+  }, []);
+
+  const handleWakeUpEnd = useCallback(() => {
+    setIsWakingUp(false);
   }, []);
 
   const handleOpenEditor = useCallback(() => {
@@ -201,6 +236,8 @@ function App() {
   let currentScreen;
   if (screen === 'title') {
     currentScreen = <TitleScreen onStart={handleStartGame} />;
+  } else if (screen === 'story') {
+    currentScreen = <StoryScreen onFinish={handleStoryFinish} />;
   } else if (screen === 'battle') {
     currentScreen = (
       <BattleScreen
@@ -231,6 +268,7 @@ function App() {
   return (
     <>
       {currentScreen}
+      {isWakingUp && screen === 'map' && <WakeUpOverlay onEnd={handleWakeUpEnd} />}
       {pendingStageId !== null && (
         <BattleTransition
           targetStageId={pendingStageId}
