@@ -7,7 +7,11 @@
     "steps": [
       {
         "backdrop": "/story/robo_wakeup.png",
-        "bubble": "おーい！大丈夫《だいじょうぶ》かい？"
+        "bubble": "おーい！大丈夫《だいじょうぶ》かい？",
+        "choices": [
+          { "label": "うん" },
+          { "label": "ここは...?" }
+        ]
       },
       {
         "backdrop": "/story/robo_wakeup.png",
