@@ -78,6 +78,18 @@ const useProgressStore = create(
   unlockingWorld: null,
   seenCardIds: [],
   seenSlotTypeIds: [],
+  hasSeenOpeningStory: false,
+
+  /**
+   * オープニング紙芝居（`StoryScreen`）を最後まで見たことを記録する。
+   *
+   * カットシーンの `seenIds` と同様の視聴履歴で、`App` が紙芝居の完了時
+   * （`handleStoryFinish`）に呼ぶ。以降タイトル画面で「スタート」を押しても
+   * 紙芝居はスキップされ、マップへ直行する。localStorage に永続化される
+   * ため、リロード後も再表示されない（R キーの全リセット＝`resetProgress`
+   * で初期化され、再び最初から見られる）。
+   */
+  markOpeningStorySeen: () => set({ hasSeenOpeningStory: true }),
 
   /**
    * プレイヤーが戦闘で「初めて出てきた」カードを既出として記録する。
@@ -257,8 +269,9 @@ const useProgressStore = create(
    * を空にし、解放アニメ関連の `pendingUnlockStageId` / `isUnlockAnimating` も
    * `null` / `false` に戻す。既出カード・既出マス（`seenCardIds` /
    * `seenSlotTypeIds`）を残すと、リセット後に説明ヘルプでまだ出会っていない
-   * はずのカードやマスの説明が見えてしまうため、一緒に消す。
-   * `unlockAllStages`（全解放）と対になる「全リセット」。
+   * はずのカードやマスの説明が見えてしまうため、一緒に消す。オープニング
+   * 紙芝居の視聴記録（`hasSeenOpeningStory`）も戻し、リセット後は紙芝居から
+   * 通しで見直せるようにする。`unlockAllStages`（全解放）と対になる「全リセット」。
    */
   resetProgress: () =>
     set({
@@ -270,6 +283,7 @@ const useProgressStore = create(
       isUnlockAnimating: false,
       pendingWorldUnlock: null,
       unlockingWorld: null,
+      hasSeenOpeningStory: false,
     }),
 
   /**
@@ -393,6 +407,7 @@ const useProgressStore = create(
         unlockedWorlds: state.unlockedWorlds,
         seenCardIds: state.seenCardIds,
         seenSlotTypeIds: state.seenSlotTypeIds,
+        hasSeenOpeningStory: state.hasSeenOpeningStory,
       }),
     },
   ),

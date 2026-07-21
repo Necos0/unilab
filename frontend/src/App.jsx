@@ -21,7 +21,10 @@ import stagesData from './data/stagesLoader.js';
  * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow' | 'plaza'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
- * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居を最後まで見終える
+ * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居はカットシーンと
+ * 同様に視聴履歴を持ち（`progressStore.hasSeenOpeningStory`、localStorage
+ * 永続）、視聴済みなら紙芝居・目覚め演出を飛ばしてマップへ直行する
+ * （R キーの全リセットで履歴も消え、再び最初から見られる）。紙芝居を最後まで見終える
  * （`handleStoryFinish`）と、ステージ1の入り口にあたるマップ画面
  * （`MapScreen`＝`map_1`）へ遷移する。このときマップの上に「目覚め」演出
  * （`WakeUpOverlay`）を重ね、2 秒の暗転ののち、気絶から目を覚ますように
@@ -212,10 +215,24 @@ function App() {
   }, []);
 
   const handleStartGame = useCallback(() => {
+    /*
+     * オープニング紙芝居はカットシーンと同様に視聴履歴を持つ
+     * （`progressStore.hasSeenOpeningStory`、localStorage 永続）。視聴済み
+     * なら紙芝居・目覚め演出を飛ばしてマップへ直行する。目覚めの会話
+     * （`opening-wake`）が未視聴の場合（紙芝居直後に中断した等）は、
+     * `fireTrigger` がそのままマップ上で会話を開始する（視聴済みなら
+     * no-op）。
+     */
+    if (useProgressStore.getState().hasSeenOpeningStory) {
+      setScreen('map');
+      useCutsceneStore.getState().fireTrigger({ type: 'wakeUp' });
+      return;
+    }
     setScreen('story');
   }, []);
 
   const handleStoryFinish = useCallback(() => {
+    useProgressStore.getState().markOpeningStorySeen();
     setIsWakingUp(true);
     setScreen('map');
     /*
