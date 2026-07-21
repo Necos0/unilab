@@ -1,0 +1,59 @@
+/*
+ * 敵出現バナー。敵エリア（position: relative）の下端に横帯で重ねる。
+ *   - 縦位置（bottom: 0.5rem）は banner フェーズ中まだ透明な敵 HP バーの
+ *     あたり＝スプライトの真下。flex レイアウト上スプライトはこの帯の上で
+ *     終わるため、大型の敵（sizeRatio 1.0）でも本体とは被らない
+ *   - タイトル画面や HelpButton と同じ RPG 調（金枠 #f0c040＋暗い半透明地＋
+ *     DotGothic16）で世界観を揃える
+ *   - アニメーションは「ポップイン（250ms）→ 静止 → フェードアウト
+ *     （250ms、1350ms 遅延開始）」の 2 本立て。合計 1600ms は
+ *     `BattleScreen` の banner フェーズ時間と同期させている
+ *   - transform と opacity でプロパティが衝突しないよう、ポップインは
+ *     両方・フェードアウトは opacity のみを動かし、`forwards` で
+ *     アンマウントまで透明状態を保持する
+ */
+.banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.5rem;
+  z-index: 12;
+  display: flex;
+  justify-content: center;
+  padding: 0.9rem 1rem;
+  background: rgba(22, 17, 32, 0.85);
+  border-top: 2px solid #f0c040;
+  border-bottom: 2px solid #f0c040;
+  animation:
+    encounterBannerIn 250ms cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    encounterBannerOut 250ms ease-in 1350ms forwards;
+}
+
+.text {
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #f7e9c0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+@keyframes encounterBannerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes encounterBannerOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

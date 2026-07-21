@@ -311,3 +311,77 @@
   80%  { transform: translateY(4px);  }
   100% { transform: translateY(0);    }
 }
+
+/* ============================================================
+   バトル入場演出（イントロ）
+   フェーズ進行は BattleScreen.jsx の introPhase 状態機械が担い、
+   ここでは各フェーズで付与されるクラスの見た目だけを定義する。
+   ============================================================ */
+
+/* 入場演出中（introPhase !== 'done'）は全ユーザー操作をブロックする。
+   スキップ用の .introSkipLayer だけが pointer-events を再付与して押せる */
+.root.intro {
+  pointer-events: none;
+}
+
+/* 演出スキップ用の透明レイヤー。画面全体を覆う最前面の button で、
+   どこをタップしても入場演出を終了できる */
+.introSkipLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: transparent;
+  border: none;
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* enemyEnter・banner フェーズ中に UI 群（HP バー・roboPanel・左上／右上
+   ボタン）を隠しておくクラス。レイアウトは保ったまま透明にする */
+.introUiHidden {
+  opacity: 0;
+}
+
+/* uiEnter フェーズで隠していた UI 群を下からスライドイン＋フェードで
+   登場させる。終了状態＝自然状態なので、'done' でクラスが外れても
+   見た目は変わらない */
+.introUiEnter {
+  animation: introUiSlideIn 400ms ease-out both;
+}
+
+/* enemyEnter フェーズで敵スプライトの表示枠（EnemySprite の .root）に
+   付与するスライドイン。右から入って少し行き過ぎて戻るバウンド付き。
+   transform はレイアウト寸法に影響しないため、useResponsiveSpriteZoom の
+   枠計測とは干渉しない */
+.introEnemyEnter {
+  animation: introEnemySlideIn 650ms cubic-bezier(0.25, 1, 0.4, 1) both;
+}
+
+@keyframes introEnemySlideIn {
+  0% {
+    transform: translateX(70%);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-4%);
+    opacity: 1;
+  }
+  80% {
+    transform: translateX(2%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes introUiSlideIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

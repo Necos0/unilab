@@ -1,34 +1,72 @@
 /*
- * 画面遷移用の黒オーバーレイ。
+ * エンカウント演出用オーバーレイ。
  *   - viewport 全体を覆う（fixed + inset:0）
  *   - z-index は手札・フローチャートコントロール（z-index:10 前後）より十分上
  *   - 遷移中のクリックをブロックするため pointer-events を有効にする
- *   - 不透明度は `fadeIn` / `fadeOut` のキーフレーム終了状態を `forwards` で
- *     保持することで、JS 側の phase 切替と CSS アニメーションを同期させる
+ *   - 演出は 3 段階：白フラッシュ 2 回（.flash）→ 円形の視界が中央へ閉じる
+ *     アイリスイン（.iris）→ バトル画面上での黒フェードアウト（.fadeOut）
+ *   - アイリス全閉状態・フェード終了状態は `forwards` で保持することで、
+ *     JS 側の phase 切替と CSS アニメーションを同期させる
  */
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #000;
-  opacity: 0;
   pointer-events: auto;
+  overflow: hidden;
 }
 
-.fadeIn {
-  animation: battleTransitionFadeIn 350ms ease-in forwards;
-}
-
+/* フェードアウト段のみオーバーレイ自体を黒地にし、透明化していく */
 .fadeOut {
+  background: #000;
   animation: battleTransitionFadeOut 350ms ease-out forwards;
 }
 
-@keyframes battleTransitionFadeIn {
-  from {
+/* 白い全画面フラッシュ。180ms の明滅を 2 回繰り返す（計 360ms） */
+.flashLayer {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: encounterFlash 180ms ease-in-out 2;
+}
+
+/*
+ * アイリスイン用の「視界の穴」。画面中央に置いた円形要素の外側を、巨大な
+ * box-shadow の広がり（240vmax）で黒く塗り潰す。幅・高さを 240vmax → 0 に
+ * 縮めることで、視界が中央の一点へ閉じていくように見える。CSS の clip-path
+ * では「円の外側だけ塗る」反転指定ができないため、この方式を採る。
+ */
+.irisHole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 240vmax #000;
+  animation: encounterIris 450ms ease-in forwards;
+}
+
+@keyframes encounterFlash {
+  0% {
     opacity: 0;
   }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes encounterIris {
+  from {
+    width: 240vmax;
+    height: 240vmax;
+  }
   to {
-    opacity: 1;
+    width: 0;
+    height: 0;
   }
 }
 

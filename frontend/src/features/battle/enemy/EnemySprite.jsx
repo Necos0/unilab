@@ -64,11 +64,15 @@ import useBattleStore from '../../../stores/battleStore';
  *     props (object): React プロパティ。
  *         enemyId (string): 敵識別子。
  *         state (string): アニメーション状態名。既定値 `"idle"`。
+ *         className (string, optional): 表示枠 `.root` に追加するクラス名。
+ *             バトル入場演出（スライドイン）など、親側の一時的な演出クラスを
+ *             載せるための口。`transform` 系のアニメーションはレイアウト寸法に
+ *             影響しないため、`useResponsiveSpriteZoom` の枠計測とは干渉しない。
  *
  * Returns:
  *     JSX.Element | null: スプライト画像を内包する要素、または未定義時 null。
  */
-function EnemySprite({ enemyId, state = 'idle' }) {
+function EnemySprite({ enemyId, state = 'idle', className }) {
   const enemy = enemiesData.enemies.find((e) => e.id === enemyId);
   const animation = enemy?.animations?.[state];
 
@@ -106,7 +110,10 @@ function EnemySprite({ enemyId, state = 'idle' }) {
   const src = getEnemyFramePath(enemyId, state, frameIndex);
 
   return (
-    <div ref={containerRef} className={styles.root}>
+    <div
+      ref={containerRef}
+      className={[styles.root, className].filter(Boolean).join(' ')}
+    >
       <img
         className={`${styles.sprite} ${isFlashing ? styles.flashing : ''} ${isFading ? styles.fading : ''} ${isDimmed ? styles.dimmed : ''}`}
         style={zoom !== 1 ? { zoom } : undefined}

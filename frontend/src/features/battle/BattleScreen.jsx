@@ -31,7 +31,19 @@ import RoboBubble from '../cutscene/RoboBubble';
 import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
 import BattleFailOverlay from './BattleFailOverlay';
+import EncounterBanner from './EncounterBanner';
 import enemiesData from '../../data/enemies.json';
+
+/*
+ * バトル入場演出（イントロ）の各フェーズの表示時間（ms）と遷移先。
+ *   enemyEnter: 敵スプライトが右からスライドインする（CSS 650ms + 余白）
+ *   banner:     「〇〇が あらわれた!」バナー（EncounterBanner の
+ *               ポップイン 250ms + 静止 + フェードアウト 250ms と同期）
+ *   uiEnter:    HP バー・フローチャート・手札がスライドインする（CSS 400ms + 余白）
+ * 最終フェーズ 'done' で通常の戦闘画面になる。
+ */
+const INTRO_PHASE_DURATIONS_MS = { enemyEnter: 700, banner: 1600, uiEnter: 450 };
+const INTRO_NEXT_PHASE = { enemyEnter: 'banner', banner: 'uiEnter', uiEnter: 'done' };
 
 
 /**
@@ -274,6 +286,25 @@ function CrossIcon() {
  * `onClearedExitToMap` が未指定（呼び出し側がこの分岐を扱わない場合）は、
  * フォールバックとして `onExitToMap` を使う。
  *
+ * バトル入場演出（イントロ）の組み込み：
+ *   - マウント直後はローカル state `introPhase` が `'enemyEnter'` から始まり、
+ *     `INTRO_PHASE_DURATIONS_MS` / `INTRO_NEXT_PHASE` に従って
+ *     `'banner'` → `'uiEnter'` → `'done'` へ自動進行する
+ *   - `'enemyEnter'`: 敵スプライトだけが右からスライドイン（`EnemySprite` の
+ *     `className` プロップ経由で `.introEnemyEnter` を付与）。HP バー・
+ *     roboPanel・左上／右上ボタンは `.introUiHidden`（opacity: 0）で隠す
+ *   - `'banner'`: 敵エリア下端（まだ透明な敵 HP バーの位置＝スプライトの
+ *     真下）に `EncounterBanner`（「〇〇が あらわれた!」）をマウントする。
+ *     スプライトは flex レイアウト上この帯の上で終わるため本体とは被らない
+ *   - `'uiEnter'`: 隠していた UI 群に `.introUiEnter` を付与し、下からの
+ *     スライドイン＋フェードで登場させる
+ *   - 演出中（`'done'` 以外）は root に `.intro` が付き pointer-events を
+ *     全遮断する。同時に透明な `.introSkipLayer` ボタンを最前面に置き、
+ *     どこをタップしても即 `'done'` に飛ばして演出をスキップできる
+ *   - 入場ガイドのカットシーン（`enterBattle` トリガー）は演出完了
+ *     （`introPhase === 'done'`）まで遅延させ、演出とロボのセリフが
+ *     重ならないようにする
+ *
  * Args:
  *     props (object): React プロパティ。
  *         stageId (string): 戦うステージの ID。`stages.json` のキーに対応。
@@ -342,6 +373,32 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
 
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
+  /*
+   * バトル入場演出のフェーズ進行。マウント直後は 'enemyEnter' から始まり、
+   * setTimeout で INTRO_NEXT_PHASE の順（enemyEnter → banner → uiEnter →
+   * done）に自動で進む。演出中は root に `.intro` が付いて全操作をブロック
+   * しつつ、透明な `.introSkipLayer` ボタンだけがクリック可能で、タップ
+   * すると即 'done' に飛ばして演出をスキップできる（タイマーは cleanup で
+   * 破棄される）。リトライ（retryFromFail）では再マウントされないため、
+   * イントロが再生されるのはステージ入場時の 1 回だけ。
+   */
+  const [introPhase, setIntroPhase] = useState('enemyEnter');
+  useEffect(() => {
+    if (introPhase === 'done') return undefined;
+    const timer = setTimeout(
+      () => setIntroPhase(INTRO_NEXT_PHASE[introPhase]),
+      INTRO_PHASE_DURATIONS_MS[introPhase],
+    );
+    return () => clearTimeout(timer);
+  }, [introPhase]);
+  const isIntroActive = introPhase !== 'done';
+  const isIntroUiHidden = introPhase === 'enemyEnter' || introPhase === 'banner';
+  const introUiClass = isIntroUiHidden
+    ? styles.introUiHidden
+    : introPhase === 'uiEnter'
+      ? styles.introUiEnter
+      : null;
+
   const [isShielded, setIsShielded] = useState(false);
   const prevGuardShieldRef = useRef(0);
   useEffect(() => {
@@ -383,7 +440,9 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
 
   /*
    * 自動ガイド（カットシーン）のトリガー発火。
-   *   - 入場時: バトル画面マウントで `enterBattle`
+   *   - 入場時: 入場演出（イントロ）完了（`introPhase === 'done'`）で `enterBattle`。
+   *     マウント直後ではなく演出後に発火することで、ロボの解説が「敵が出て
+   *     きた後」に始まり、演出とセリフが重ならない
    *   - 勝利時: `victoryPhase === 'cleared'`（CLEAR! 演出が出た瞬間）で `defeatEnemy`
    *   - 敗北時: `failPhase === 'shown'` で `battleLost`
    * いずれも `cutsceneStore` 側で表示済み判定・吹き出し有無を確認するため、
@@ -391,18 +450,23 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    */
   const fireTrigger = useCutsceneStore((s) => s.fireTrigger);
   useEffect(() => {
-    const store = useCutsceneStore.getState();
     /*
-     * バトル開始待ち step（`waitForBattle`）を再生中なら、まず進めて（＝末尾
-     * step なので終了して指差しリングを消し）、そのうえで入場ガイドを発火する。
-     * 先に閉じておかないと `fireTrigger` が「再生中」で no-op になる。
+     * バトル開始待ち step（`waitForBattle`）を再生中なら、マウント時点で
+     * 進めて（＝末尾 step なので終了して指差しリングを消し）おく。イントロ
+     * 完了まで放置すると、マップ画面向けの吹き出しがイントロ中も残って
+     * しまう。先に閉じておかないと後段の `fireTrigger` も「再生中」で
+     * no-op になる。
      */
+    const store = useCutsceneStore.getState();
     const currentStep = store.activeId ? store.steps[store.stepIndex] : null;
     if (currentStep?.waitForBattle === resolvedStageId) {
       store.advance();
     }
+  }, [resolvedStageId]);
+  useEffect(() => {
+    if (introPhase !== 'done') return;
     fireTrigger({ type: 'enterBattle', stageId: resolvedStageId });
-  }, [fireTrigger, resolvedStageId]);
+  }, [introPhase, fireTrigger, resolvedStageId]);
   useEffect(() => {
     if (victoryPhase === 'cleared') {
       fireTrigger({ type: 'defeatEnemy', stageId: resolvedStageId });
@@ -503,6 +567,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
 
   const rootClassName = [
     styles.root,
+    isIntroActive && styles.intro,
     isExpanded && styles.expanded,
     isTransitioning && styles.transitioning,
     isExecuting && styles.executing,
@@ -519,7 +584,30 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       onDragEnd={handleDragEnd}
     >
       <section className={rootClassName}>
-        <HelpButton onClick={() => setIsHelpOpen(true)} />
+        {isIntroActive && (
+          /*
+           * 入場演出のスキップレイヤー。root の `.intro` が pointer-events を
+           * 全て切る中で、この透明ボタンだけ auto を再付与して最前面に置き、
+           * 画面のどこをタップしても演出を飛ばせるようにする。
+           */
+          <button
+            type="button"
+            className={styles.introSkipLayer}
+            onClick={() => setIntroPhase('done')}
+            aria-label="えんしゅつを スキップ"
+          />
+        )}
+        {/*
+          * 左上ヘルプ・右上マップ戻りボタンは、入場演出中は非表示にして
+          * uiEnter フェーズで他の UI と一緒にスライドインさせる。ラッパー div
+          * は高さ 0 の flex アイテムで、レイアウトには影響しない。
+          */}
+        <div className={introUiClass ?? undefined}>
+          <HelpButton onClick={() => setIsHelpOpen(true)} />
+          {victoryPhase !== 'cleared' && failPhase !== 'shown' && !isExpanded && (
+            <BackToMapButton onClick={onExitToMap} />
+          )}
+        </div>
         {isCardHelpOpen && (
           /*
            * key で pending の切り替わりごとに再マウントする。`openCardHelp` →
@@ -540,12 +628,23 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             onClose={closeCardHelp}
           />
         )}
-        {victoryPhase !== 'cleared' && failPhase !== 'shown' && !isExpanded && <BackToMapButton onClick={onExitToMap} />}
         <div className={styles.enemyArea}>
-          <EnemySprite enemyId={stage.enemyId} state={enemySpriteState} />
+          <EnemySprite
+            enemyId={stage.enemyId}
+            state={enemySpriteState}
+            className={introPhase === 'enemyEnter' ? styles.introEnemyEnter : undefined}
+          />
+          {/*
+            * 出現バナー。banner フェーズ中はまだ透明な敵 HP バーの位置
+            * （敵エリア下端＝スプライトの真下）に重ね、敵スプライト本体とは
+            * 被らないようにする。
+            */}
+          {introPhase === 'banner' && enemy && (
+            <EncounterBanner enemyName={enemy.displayName} />
+          )}
           <div
             data-cutscene-point="enemyHpBar"
-            className={`${styles.enemyHpBox} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''} ${isEnemyReflected ? styles.shakenVert : ''}`}
+            className={`${styles.enemyHpBox} ${introUiClass ?? ''} ${isEnemyFading ? styles.fading : ''} ${isEnemyDimmed ? styles.dimmed : ''} ${isEnemyHit ? styles.hit : ''} ${isEnemyReflected ? styles.shakenVert : ''}`}
             onAnimationEnd={() => {
               setConsumedEnemyDamageId(lastEnemyDamageId);
               setConsumedEnemyReflectId(lastEnemyReflectId);
@@ -560,6 +659,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             data-cutscene-point="playerHpBar"
             className={[
               styles.playerHpBox,
+              introUiClass,
               isPlayerHit && styles.hit,
               isPlayerHealed && styles.healed,
               isShielded && styles.shielded,
@@ -608,7 +708,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             <BattleFailOverlay onExitToMap={onExitToMap} onRetry={retryFromFail} />
           )}
         </div>
-        <div className={styles.roboPanel}>
+        <div className={[styles.roboPanel, introUiClass].filter(Boolean).join(' ')}>
           <div className={styles.flowchartArea}>
             <FlowchartArea stage={stage} />
             <div className={styles.flowchartControls}>
