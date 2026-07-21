@@ -20,7 +20,8 @@
       },
       {
         "backdrop": "/story/robo_wakeup.png",
-        "bubble": "{playerName}か、グレートな名前《なまえ》だね！ぼくは フロチャロボ。よろしくね！"
+        "bubble": "{playerName}か、グレートな名前《なまえ》だね！ぼくは ビット。よろしくね！",
+        "revealRoboName": true
       },
       {
         "bubble": "実《じつ》は、魔物《まもの》たちに ぼくたちの街《まち》が 奪《うば》われてしまったんだ…。"

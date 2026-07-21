@@ -66,6 +66,15 @@
   gap: 1.25rem;
 }
 
+/* アイコンと名前プレートを縦に積むラッパー */
+.iconColumn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .icon {
   flex: 0 0 auto;
   width: 138px;
@@ -75,6 +84,20 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
   /* 画像のドラッグ（ゴースト表示）を抑止。範囲選択はグローバルで無効化済み */
   -webkit-user-drag: none;
+}
+
+/* アイコン下の名前プレート。自己紹介前は「???」、以降は「ビット」。
+   HelpButton 等と同じ RPG 調（金枠＋暗い半透明地＋DotGothic16）で揃える */
+.iconName {
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #f7e9c0;
+  background: rgba(22, 17, 32, 0.78);
+  border: 1px solid #f0c040;
+  border-radius: 999px;
+  padding: 0.1rem 0.7rem;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 
 .bubble {
@@ -270,8 +293,8 @@
   z-index: 0;
 }
 
-/* ロボと文言は黄色の面（`::before`）より前面に置く */
-.layer.map .icon,
+/* ロボ（アイコン＋名前プレート）と文言は黄色の面（`::before`）より前面に置く */
+.layer.map .iconColumn,
 .layer.map .bubble {
   position: relative;
   z-index: 1;

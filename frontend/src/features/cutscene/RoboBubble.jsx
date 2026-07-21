@@ -7,6 +7,7 @@ import CutsceneDragDemo from './CutsceneDragDemo';
 import NameEntryPanel from './NameEntryPanel';
 import tokenizeFurigana from './tokenizeFurigana';
 import playerData from '../../data/player.json';
+import cutscenesData from '../../data/cutscenes.json';
 
 /*
  * `{playerName}` が解決できないときに使う仮のプレイヤー名。
@@ -19,6 +20,24 @@ const FALLBACK_PLAYER_NAME = 'のあ';
  * ロボのアイコン画像。public 配下を絶対パスで参照する（他スプライトと同様）。
  */
 const ROBO_ICON_SRC = '/sprites/robo/robo.png';
+
+/*
+ * ロボの名前と、自己紹介前の伏せ表示。アイコン下の名前プレートに出す。
+ * 名前はオープニング会話の自己紹介 step（`revealRoboName: true`）で明かされる。
+ */
+const ROBO_NAME = 'ビット';
+const ROBO_NAME_HIDDEN = '???';
+
+/*
+ * `revealRoboName: true` の step（ロボの自己紹介）を含むカットシーン ID の
+ * 一覧。これらのどれかを視聴済みなら、以降のすべての会話で名前プレートに
+ * 「ビット」を出してよい（`cutscenes.json` から起動時に一度だけ計算する）。
+ */
+const NAME_REVEAL_CUTSCENE_IDS = Object.entries(cutscenesData)
+  .filter(([, def]) =>
+    (def.steps ?? []).some((step) => step.revealRoboName === true),
+  )
+  .map(([id]) => id);
 
 /*
  * 読み上げアニメーションで1トークン（1文字 or ルビ1組）を表示する間隔（ms）。
@@ -95,7 +114,11 @@ const BACKDROP_FADE_MS = 700;
  * のは `BattleScreen` の監視（カードがスロットに入ったら `advance`）だけになる。
  *
  * 見た目は共通で、ロボのアイコンを吹き出しの左外に置き、その右側に
- * しっぽ付きのスピーチバブルで文言を出す。`variant` では画面内の縦位置
+ * しっぽ付きのスピーチバブルで文言を出す。アイコンの下には名前プレートを
+ * 添え、ロボが自己紹介する step（`revealRoboName: true`、オープニング会話の
+ * 「ぼくは ビット」）より前は「???」、そこへ進んだ以降とその会話の視聴後は
+ * 「ビット」を表示する（正体を明かす演出。`seenIds` 永続化により
+ * リロード後も名前は保たれる）。`variant` では画面内の縦位置
  * だけを切り替える:
  *   - `"map"`   : 画面上側の左に置く。
  *   - `"battle"`: 画面上側（敵エリア）の左に、やや小さい幅で置く。
@@ -117,6 +140,23 @@ function RoboBubble({ variant = 'map' }) {
    * 見えてしまうのを防ぐ）。解除された瞬間に再レンダーされて現れる。
    */
   const isInputLocked = useCutsceneStore((s) => s.isInputLocked);
+  /*
+   * アイコン下の名前プレート表示。ロボが自己紹介する step
+   * （`revealRoboName: true`）より前は「???」、そこへ進んだ瞬間から
+   * 「ビット」を出す。判定は次のどちらか:
+   *   - 再生中のカットシーンに revealRoboName step があり、現在位置が
+   *     そこ以降（自己紹介のセリフと同時に名前が入る）
+   *   - 自己紹介を含むカットシーンを視聴済み（`seenIds` は localStorage
+   *     永続なので、リロード後の会話でも名前は「???」に戻らない）
+   */
+  const seenIds = useCutsceneStore((s) => s.seenIds);
+  const revealStepIndex = steps.findIndex(
+    (step) => step.revealRoboName === true,
+  );
+  const isRoboNameKnown =
+    NAME_REVEAL_CUTSCENE_IDS.some((id) => seenIds.includes(id)) ||
+    (revealStepIndex >= 0 && stepIndex >= revealStepIndex);
+  const roboLabel = isRoboNameKnown ? ROBO_NAME : ROBO_NAME_HIDDEN;
 
   /*
    * 現在の step。`bubble` を持つ step だけロボの吹き出しを描画する。
@@ -436,12 +476,15 @@ function RoboBubble({ variant = 'map' }) {
       )}
       {isBubbleStep && (
         <div className={styles.group}>
-          <img
-            className={styles.icon}
-            src={ROBO_ICON_SRC}
-            alt="ロボ"
-            draggable={false}
-          />
+          <div className={styles.iconColumn}>
+            <img
+              className={styles.icon}
+              src={ROBO_ICON_SRC}
+              alt="ロボ"
+              draggable={false}
+            />
+            <span className={styles.iconName}>{roboLabel}</span>
+          </div>
           <div className={styles.bubble}>
             <div className={styles.body}>
               <p className={styles.text}>{textNodes}</p>
