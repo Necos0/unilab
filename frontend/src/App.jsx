@@ -223,12 +223,18 @@ function App() {
      * ガイドは「再生中」で no-op になり、順番が入れ替わらない。ステージ1への
      * 誘導ガイドは `opening-wake` の `nextTrigger` が会話終了後に連鎖発火する。
      * 会話は `WakeUpOverlay` の暗転の下で始まり、目が開くと同時に見える。
+     * 演出が終わるまでは会話送りの入力をロックし、黒画面の下で Enter に
+     * よってセリフが見えないまま進んでしまうのを防ぐ（`isInputLocked`）。
      */
-    useCutsceneStore.getState().fireTrigger({ type: 'wakeUp' });
+    const cutscene = useCutsceneStore.getState();
+    cutscene.setInputLocked(true);
+    cutscene.fireTrigger({ type: 'wakeUp' });
   }, []);
 
   const handleWakeUpEnd = useCallback(() => {
     setIsWakingUp(false);
+    /* 目覚め演出が終わったので、ロボの会話を送れるように入力ロックを解く */
+    useCutsceneStore.getState().setInputLocked(false);
   }, []);
 
   const handleOpenEditor = useCallback(() => {

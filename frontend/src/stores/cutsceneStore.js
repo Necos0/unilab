@@ -47,6 +47,10 @@ import parseStageId from '../features/map/parseStageId';
  *   - `pendingSlotHelpId` (string|null): いま開くべきマス説明モーダルの対象
  *     マス種別 ID。`openSlotHelp` step に進むと立つ。閉じ方・進み方は
  *     `pendingCardHelpId` と同じ（`consumeCardHelp()` が両方を扱う）。
+ *   - `isInputLocked` (boolean): 会話送りの入力（クリック／Enter）を一時的に
+ *     無効化するフラグ。目覚め演出（`WakeUpOverlay`）の間、黒画面の下で
+ *     再生中の会話が見えないまま送られてしまうのを防ぐ。`RoboBubble` が
+ *     参照し、立っている間は早送り・送りの両方を無視する。
  *
  * 公開アクション:
  *   - `fireTrigger(event)` : イベントに一致するカットシーンを探して再生開始。
@@ -57,6 +61,7 @@ import parseStageId from '../features/map/parseStageId';
  *     `nextTrigger` があれば続けて `fireTrigger` し、次のカットシーンへ連鎖する
  *     （例: オープニング会話 → ステージ1への誘導ガイド）。
  *   - `consumeCardHelp()`  : モーダルを閉じた合図。次の step へ進む。
+ *   - `setInputLocked(locked)`: 会話送り入力の無効化フラグを切り替える。
  *   - `resetSeen()`        : 表示済み記録を全消去（開発・テスト用）。
  */
 
@@ -161,6 +166,21 @@ const useCutsceneStore = create((set, get) => ({
   stepIndex: 0,
   pendingCardHelpId: null,
   pendingSlotHelpId: null,
+  isInputLocked: false,
+
+  /**
+   * 会話送り入力（クリック／Enter）の無効化フラグを切り替える。
+   *
+   * 目覚め演出（`WakeUpOverlay`）の開始時に `App` が true を、演出完了時に
+   * false をセットする。立っている間、`RoboBubble` は早送り・送りの入力を
+   * すべて無視する（黒画面の下で会話が見えないまま進むのを防ぐ）。
+   *
+   * Args:
+   *     locked (boolean): true で入力を無効化、false で解除。
+   */
+  setInputLocked: (locked) => {
+    set({ isInputLocked: locked });
+  },
 
   /**
    * イベントに一致するカットシーンを探し、条件を満たせば再生を開始する。
@@ -351,6 +371,9 @@ const useCutsceneStore = create((set, get) => ({
       stepIndex: 0,
       pendingCardHelpId: null,
       pendingSlotHelpId: null,
+      /* 目覚め演出の途中で R リセットされた場合に備え、入力ロックも解除する
+         （`WakeUpOverlay` が onEnd を呼ばずに外れると解除の機会が無いため） */
+      isInputLocked: false,
     });
   },
 
@@ -371,6 +394,7 @@ const useCutsceneStore = create((set, get) => ({
       stepIndex: 0,
       pendingCardHelpId: null,
       pendingSlotHelpId: null,
+      isInputLocked: false,
     });
   },
 
@@ -417,6 +441,7 @@ const useCutsceneStore = create((set, get) => ({
       stepIndex: 0,
       pendingCardHelpId: null,
       pendingSlotHelpId: null,
+      isInputLocked: false,
     });
   },
 }));

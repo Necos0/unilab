@@ -48,7 +48,10 @@ const BACKDROP_FADE_MS = 700;
  * などのショートカット）を `stopImmediatePropagation` で遮断する。ブラウザ標準の
  * 修飾キー操作（Ctrl/Cmd/Alt 併用、リロード等）は妨げない。例外として R
  * （開発用の全リセット）だけは App のハンドラへ素通しし、会話の途中でも
- * 初めからやり直せるようにする。
+ * 初めからやり直せるようにする。さらに `cutsceneStore.isInputLocked` が
+ * 立っている間（目覚め演出 `WakeUpOverlay` の再生中）は、クリック／Enter の
+ * 早送り・送りをすべて無視する（キーの遮断自体は続け、演出が終わって
+ * ロックが解けてから通常どおり飛ばせるようになる）。
  *
  * 吹き出し内の `{playerName}` は実際のプレイヤー名へ置換し（`playerStore` の
  * 入力済みの名前を最優先、無ければ `player.json` → 「のあ」の順）、
@@ -259,8 +262,15 @@ function RoboBubble({ variant = 'map' }) {
    *   - 表示が完了: 次の吹き出しへ進める。ただし選択肢・名前入力を持つ
    *     step では進めない（ボタン側だけが送り操作になる）
    * ref 経由で最新値を読むため依存なしで安定。
+   * 入力ロック中（`isInputLocked`、目覚め演出 `WakeUpOverlay` の間）は
+   * 早送り・送りとも無視する。黒画面の下で再生中の会話が、見えないまま
+   * Enter で進んでしまうのを防ぐ（演出が終わると `App` が解除し、以降は
+   * 通常どおり飛ばせる）。
    */
   const handleAdvance = useCallback(() => {
+    if (useCutsceneStore.getState().isInputLocked) {
+      return;
+    }
     if (visibleCountRef.current < tokensRef.current.length) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

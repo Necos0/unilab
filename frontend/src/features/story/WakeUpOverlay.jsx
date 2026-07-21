@@ -13,13 +13,6 @@ const HOLD_MS = 2000;
  */
 const FADE_MS = 5000;
 
-/*
- * クリックで演出全体をスキップできるようにするか。開発中の暫定として
- * 本番ビルドでも true にしている。リリース時に false へ戻すと最後まで
- * 見せる演出に戻る。
- */
-const IS_SKIPPABLE = true;
-
 /**
  * 紙芝居後の「目覚め」演出オーバーレイ。
  *
@@ -34,9 +27,10 @@ const IS_SKIPPABLE = true;
  *      開いて平原が現れる。完了したら `onEnd` を呼ぶ。
  *
  * オーバーレイは `MapSwitchTransition` と同じく `position: fixed` ＋
- * 最上位 z-index で全面を覆い、演出中のクリックをブロックする。ただし
- * `IS_SKIPPABLE`（開発中の暫定で有効）のときは、クリックで演出を打ち切って
- * 即座に `onEnd` を呼べる。
+ * 最上位 z-index で全面を覆い、演出中のポインタ操作をブロックする。演出は
+ * スキップ不可で、クリックしても何も起きない。キー入力（Enter による会話
+ * 送り）の遮断は `cutsceneStore.isInputLocked` が担い、`App` が演出の
+ * 開始で立てて `onEnd` で解除する（`RoboBubble` 側が参照して無視する）。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -66,13 +60,7 @@ function WakeUpOverlay({ onEnd }) {
   const className = [styles.overlay, isFading && styles.fading]
     .filter(Boolean)
     .join(' ');
-  return (
-    <div
-      className={className}
-      onClick={IS_SKIPPABLE ? () => onEndRef.current?.() : undefined}
-      aria-hidden="true"
-    />
-  );
+  return <div className={className} aria-hidden="true" />;
 }
 
 export default WakeUpOverlay;
