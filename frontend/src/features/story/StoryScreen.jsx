@@ -125,6 +125,13 @@ function StoryScreen({ onFinish }) {
       if (event.ctrlKey || event.metaKey || event.altKey) {
         return;
       }
+      /*
+       * R（開発用の全リセット）は遮断せず App のハンドラへ通す。紙芝居の
+       * 途中でも 1 枚目からやり直せるようにする（送りには使わない）。
+       */
+      if (event.code === 'KeyR') {
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!event.repeat) {

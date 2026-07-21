@@ -29,8 +29,14 @@ const RING_PADDING = 10;
  * レイヤー（次の吹き出しへ送る操作）を邪魔しない。
  *
  * 対象要素が存在しない（別画面・まだマウントされていない等）ときは何も
- * 描画しない。`targetId` が変わるたびに測り直し、ウィンドウのリサイズ・
- * スクロールにも追従する。
+ * 描画しない。位置は requestAnimationFrame のループで毎フレーム測り直す。
+ * 対象はマウント直後に動くことがあるため（例: バトル画面のフローチャートは
+ * マウント後に React Flow の `fitView` で拡大率・位置が確定する。ほかにも
+ * フローチャートの拡大切替・ウィンドウリサイズ・遅れて現れるボタン等）、
+ * 「一度だけ測る」方式ではリングが古い位置に取り残される。毎フレームの
+ * 計測は getBoundingClientRect 1 回だけで、カットシーンの point step の間
+ * しか走らないため負荷は無視できる。位置が変わらないフレームでは state を
+ * 更新せず、再レンダーも起こさない。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -47,23 +53,34 @@ function CutscenePointer({ targetId }) {
     if (!targetId) {
       return undefined;
     }
+    let rafId;
     /*
-     * 対象要素を測って state に反映する。レイアウト確定後に呼ぶため初回は
-     * requestAnimationFrame 経由で1フレーム遅らせる。リサイズ・スクロール時
-     * にも同じ関数で測り直して追従する（capture フェーズでスクロールを拾う）。
+     * 対象要素を毎フレーム測って追従する。DOMRect は毎回新しいオブジェクト
+     * になるため、値が同じなら前の state を返して無駄な再レンダーを避ける。
      */
     const measure = () => {
       const el = document.querySelector(`[${POINT_ATTR}="${targetId}"]`);
-      setRect(el ? el.getBoundingClientRect() : null);
+      const next = el ? el.getBoundingClientRect() : null;
+      setRect((prev) => {
+        if (prev === next) {
+          return prev;
+        }
+        if (
+          prev &&
+          next &&
+          prev.top === next.top &&
+          prev.left === next.left &&
+          prev.width === next.width &&
+          prev.height === next.height
+        ) {
+          return prev;
+        }
+        return next;
+      });
+      rafId = requestAnimationFrame(measure);
     };
-    const rafId = requestAnimationFrame(measure);
-    window.addEventListener('resize', measure);
-    window.addEventListener('scroll', measure, true);
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('scroll', measure, true);
-    };
+    rafId = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(rafId);
   }, [targetId]);
 
   if (!rect) {

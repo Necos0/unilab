@@ -22,9 +22,7 @@
         "bubble": "実《じつ》は、魔物《まもの》たちに ぼくたちの街《まち》が 奪《うば》われてしまったんだ…。"
       },
       {
-        "bubble": "街《まち》を 取《と》り戻《もど》すのを 手伝《てつだ》ってくれないか？"
-      },
-      {
+        "bubble": "街《まち》を 取《と》り戻《もど》すのを 手伝《てつだ》ってくれないか？",
         "choices": [
           { "label": "はい", "goto": "agree" },
           { "label": "いいえ", "goto": "refuse" }
@@ -32,9 +30,7 @@
       },
       {
         "id": "refuse",
-        "bubble": "そんなこと 言《い》わずにさあ、たのむよ〜！"
-      },
-      {
+        "bubble": "そんなこと 言《い》わずにさあ、たのむよ〜！",
         "choices": [
           { "label": "はい", "goto": "agree" },
           { "label": "いいえ", "goto": "refuse2" }
@@ -42,9 +38,7 @@
       },
       {
         "id": "refuse2",
-        "bubble": "たのむ！この通《とお》り！！"
-      },
-      {
+        "bubble": "たのむ！この通《とお》り！！",
         "choices": [{ "label": "はい", "goto": "agree" }]
       },
       {
@@ -94,7 +88,7 @@
       { "openCardHelp": "attack" },
       { "bubble": "攻撃カードをマスに置いてみよう。"},
       { "bubble": "こうやって マスに 入《い》れてね！", "demoDrag": { "from": "attackCard", "to": "slot-1" }, "waitForCardInSlot": true },
-      { "bubble": "ここを押して実行しよう!", "point": "executeButton" }
+      { "bubble": "ここを押して実行しよう!", "point": "executeButton", "waitForExecute": true }
     ]
   },
 
@@ -113,8 +107,7 @@
     "once": true,
     "trigger": { "type": "exitStage", "stageId": "1-1" },
     "steps": [
-      { "bubble": "次《つぎ》は 1-2 だ。" },
-      { "bubble": "{playerName}、ついて こい！", "point": "landmark-1-2" }
+      { "bubble": "次《つぎ》は 1-2 だ！{playerName}、ついてこい！", "point": "scroll-1-2" }
     ]
   },
 
@@ -123,29 +116,10 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "1-2" },
     "steps": [
-      { "bubble": "この 敵《てき》は こうげきして くるぞ。", "point": "enemyCard" },
-      { "bubble": "『ぼうぎょ』カードで 身《み》を 守《まも》れ！", "point": "guardCard" }
-    ]
-  },
-
-  "stage1-2-lost": {
-    "category": "tutorial",
-    "once": true,
-    "trigger": { "type": "battleLost", "stageId": "1-2" },
-    "steps": [
-      { "bubble": "うっ、やられたか…。" },
-      { "bubble": "でも へこむな！" },
-      { "bubble": "カードを 入《い》れかえれば まだ いける。もう 一度《いちど》だ！", "point": "cardSwap" }
-    ]
-  },
-
-  "stage1-2-defeat": {
-    "category": "tutorial",
-    "once": true,
-    "trigger": { "type": "defeatEnemy", "stageId": "1-2" },
-    "steps": [
-      { "bubble": "グレート！" },
-      { "bubble": "その 調子《ちょうし》で どんどん ステージを 進《すす》もう！" }
+      { "bubble": "この敵《てき》は 攻撃《こうげき》してくるぞ！", "point": "slot-2" },
+      { "bubble": "「防御《ぼうぎょ》カード」で 身《み》を 守《まも》るんだ！", "point": "guardCard" },
+      { "openCardHelp": "monster" },
+      { "openCardHelp": "guard" }
     ]
   },
 
@@ -154,8 +128,9 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "1-3" },
     "steps": [
-      { "bubble": "『かいふく』カードを 見《み》つけたぞ。" },
-      { "bubble": "HP が へったら これで 立《た》てなおせる！" }
+      { "bubble": "敵《てき》の 攻撃《こうげき》を 2回《かい》 受《う》けてしまうと、{playerName}の HPが 0に なってしまう。これは グレートじゃない…" },
+      { "bubble": "そんな時《とき》は 「回復《かいふく》カード」を 使《つか》おう！", "point": "healCard" },
+      { "openCardHelp": "heal" }
     ]
   },
 
@@ -164,8 +139,19 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "1-4" },
     "steps": [
-      { "bubble": "次《つぎ》は 『カウンター』カードだ。" },
-      { "bubble": "敵《てき》の こうげきを はねかえす、たよれる 一枚《いちまい》だぞ。" }
+      { "bubble": "このカードは 「カウンターカード」！", "point": "reflectCard" },
+      { "bubble": "敵《てき》の 攻撃《こうげき》を 跳《は》ね返《かえ》すことが できるぞ！" },
+      { "openCardHelp": "reflect" }
+    ]
+  },
+
+  "stage1-4-defeat": {
+    "category": "tutorial",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "1-4" },
+    "steps": [
+      { "bubble": "超絶《ちょうぜつ》グレート！！" },
+      { "bubble": "ステージ1 クリアだ！" }
     ]
   },
 
@@ -174,9 +160,16 @@
     "once": true,
     "trigger": { "type": "exitStage", "stageId": "1-4" },
     "steps": [
-      { "playAnimation": "unlockStage", "params": { "world": "2" } },
-      { "bubble": "グレート！ステージ2が 開《ひら》いたぞ！" },
-      { "bubble": "次《つぎ》の マップへ 行《い》こう、{playerName}！", "point": "mapButton" }
+      { "bubble": "ここを 押《お》して ステージ2に 進《すす》もう！", "point": "mapButton" }
+    ]
+  },
+
+  "map-stage2-enter": {
+    "category": "tutorial",
+    "once": true,
+    "trigger": { "type": "enterMapArea", "stageId": "2-1" },
+    "steps": [
+      { "bubble": "ここからの 敵《てき》は 手強《てごわ》いぞ！" }
     ]
   },
 
@@ -185,17 +178,30 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "2-3" },
     "steps": [
-      { "bubble": "この ステージには 専用《せんよう》の スロットが ある。" },
-      { "bubble": "決《き》まった カードしか 入《はい》らないから、よく 見《み》て 使《つか》おう。" }
+      { "bubble": "このマスは 「種類指定《しゅるいしてい》マス」！", "point": "slot-3" },
+      { "bubble": "回復《かいふく》カードしか 当《あ》てはめられないぞ！", "point": "slot-3" },
+      { "bubble": "このマスは 「倍率《ばいりつ》マス」！", "point": "slot-7" },
+      { "bubble": "カードの 効果《こうか》が 書《か》かれている 数字倍《すうじばい》されるぞ！", "point": "slot-7" },
+      { "openSlotHelp": "acceptOnly" },
+      { "openSlotHelp": "multiplier" }
     ]
   },
 
-  "stage2-4-exit": {
+  "stage2-4-enter": {
     "category": "tutorial",
     "once": true,
-    "trigger": { "type": "exitStage", "stageId": "2-4" },
+    "trigger": { "type": "enterBattle", "stageId": "2-4" },
     "steps": [
-      { "playAnimation": "unlockStage", "params": { "world": "3" } }
+      { "bubble": "ステージ2の ボスだ！強敵《きょうてき》だが、君《きみ》なら できる！" }
+    ]
+  },
+
+  "stage2-4-defeat": {
+    "category": "tutorial",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "2-4" },
+    "steps": [
+      { "bubble": "超絶《ちょうぜつ》グレート！！" }
     ]
   },
 
@@ -204,28 +210,19 @@
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "3-1" },
     "steps": [
-      { "bubble": "ここからは 『くりかえし』、for だ。" },
-      { "bubble": "同《おな》じ 動《うご》きを 何度《なんど》も じっこう できる。" },
-      { "bubble": "グレート だろ？" }
+      { "bubble": "これは 「条件《じょうけん》マス」！", "point": "cond-1" },
+      { "bubble": "マスに 書《か》いてある 質問《しつもん》の 答《こた》えによって 進《すす》む道《みち》が 変《か》わるぞ！", "point": "cond-1" },
+      { "openSlotHelp": "condition" }
     ]
   },
 
-  "stage4-3-enter": {
+  "stage3-4-enter": {
     "category": "tutorial",
     "once": true,
-    "trigger": { "type": "enterBattle", "stageId": "4-3" },
+    "trigger": { "type": "enterBattle", "stageId": "3-4" },
     "steps": [
-      { "bubble": "『パワーアップ』カードだ。" },
-      { "bubble": "これを 使《つか》うと こうげきが もっと 強《つよ》くなるぞ！" }
-    ]
-  },
-
-  "stage3-4-exit": {
-    "category": "tutorial",
-    "once": true,
-    "trigger": { "type": "exitStage", "stageId": "3-4" },
-    "steps": [
-      { "playAnimation": "unlockStage", "params": { "world": "4" } }
+      { "bubble": "ここを 突破《とっぱ》できれば、魔物《まもの》たちの ボスがいる ステージに 行《い》ける！" },
+      { "bubble": "ぼくと 力《ちから》を 合《あ》わせて 倒《たお》そう！！" }
     ]
   }
 }

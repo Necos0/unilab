@@ -17,6 +17,7 @@ import findShortestPath from '../features/map/findShortestPath';
  *                                       経路を求めて `segments` にセット）
  *   - `advanceSegment()`             : 1 セグメント分のアニメ完了時に呼び、`segments`
  *                                       先頭を消費して `currentLocation` を進める
+ *   - `reset()`                      : 全状態を未初期化に戻す（開発用の全リセット）
  */
 
 const SEGMENT = 'segment';
@@ -200,6 +201,25 @@ const useMapStore = create((set, get) => ({
         segments: rest,
         isMoving: rest.length > 0,
       };
+    }),
+
+  /**
+   * 全状態を未初期化（マウント前と同じ）に戻す。開発用の全リセット（R キー）
+   * から呼ぶ。
+   *
+   * `mapDef` を null に戻すことで、次に `MapScreen` がマウントされたときの
+   * 初期化 effect が最初のマップ（`DEFAULT_MAP_ID`）の開始地点から
+   * `initializeMap` し直す。別マップへ移動済み・移動中でも、初めからの
+   * やり直しで必ず最初の平原の入り口に戻る。
+   */
+  reset: () =>
+    set({
+      mapDef: null,
+      currentMapId: null,
+      currentLocation: null,
+      isMoving: false,
+      segments: [],
+      adjacency: null,
     }),
 }));
 

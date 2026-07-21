@@ -17,6 +17,21 @@
   border: none;
   cursor: pointer;
   transition: transform 0.15s ease;
+  /*
+   * 初表示（ステージ1クリア → ワールド解放シネマ後）のフェードイン。
+   * マウントのたびに走るが、0.6 秒の軽い演出なので通常の画面遷移でも
+   * 気にならない。
+   */
+  animation: travelButtonFadeIn 0.6s ease-out both;
+}
+
+@keyframes travelButtonFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .button:hover {

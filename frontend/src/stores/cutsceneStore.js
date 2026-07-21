@@ -13,13 +13,17 @@ import parseStageId from '../features/map/parseStageId';
  *     `nameInput`（プレイヤー名の入力フォーム）や `backdrop`（吹き出しの
  *     背後に敷く全画面の一枚絵）を持てる。
  *   - `choices`（主人公の返事の選択肢）: `{label, goto?}` の配列で、`goto` は
- *     飛び先 step の `id`。ロボのセリフと同時には出さない方針のため、
- *     `bubble` を持たない独立 step として置き、セリフ → 選択肢の交互で
- *     進める。
+ *     飛び先 step の `id`。通常は `bubble` と同じ step に置き、セリフの
+ *     読み上げ後に吹き出しパネルの右上へ選択ウィンドウを重ねて出す
+ *     （`bubble` 無しの選択肢だけの step も可）。
  *   - `openCardHelp`（カード説明モーダル誘導）: その step に進むと
  *     `pendingCardHelpId` を立て、`BattleScreen` が `HelpWindow` を開く。
  *     吹き出しの「あいだ」に挟めるので、説明の途中で特定カードのモーダルを
  *     見せてから次の吹き出しへ続けられる。
+ *   - `openSlotHelp`（マス説明モーダル誘導）: `openCardHelp` のマス版。
+ *     その step に進むと `pendingSlotHelpId` を立て、`BattleScreen` が
+ *     `HelpWindow` を「マス」カテゴリの該当タブで開く（例: 種類指定マス
+ *     `acceptOnly`、倍率マス `multiplier`、条件マス `condition`）。
  * `playAnimation`（再生アニメ）のみを持つ step は再生対象から除外する
  * （データとしては将来フェーズ用に温存される）。
  *
@@ -40,6 +44,9 @@ import parseStageId from '../features/map/parseStageId';
  *     カード ID。`openCardHelp` step に進むと立ち、`BattleScreen` が
  *     `HelpWindow` を開く。モーダルを閉じると `consumeCardHelp()` で
  *     クリアして次の step へ進む。
+ *   - `pendingSlotHelpId` (string|null): いま開くべきマス説明モーダルの対象
+ *     マス種別 ID。`openSlotHelp` step に進むと立つ。閉じ方・進み方は
+ *     `pendingCardHelpId` と同じ（`consumeCardHelp()` が両方を扱う）。
  *
  * 公開アクション:
  *   - `fireTrigger(event)` : イベントに一致するカットシーンを探して再生開始。
@@ -124,12 +131,36 @@ function findCutscene(event) {
   return null;
 }
 
+/**
+ * step が持つヘルプモーダル誘導を `pending*HelpId` の組へ変換する。
+ *
+ * `openCardHelp`（カード説明）と `openSlotHelp`（マス説明）のどちらを
+ * 持つかに応じて対応する ID を立て、持たない側（および両方持たない step）
+ * は null にする。`fireTrigger` の初期化と `goToStep` の遷移で共通に使う。
+ *
+ * Args:
+ *     step (object|undefined): 対象の step。undefined も許容する。
+ *
+ * Returns:
+ *     {pendingCardHelpId: string|null, pendingSlotHelpId: string|null}:
+ *         その step で開くべきヘルプモーダルの対象 ID の組。
+ */
+function helpIdsFromStep(step) {
+  return {
+    pendingCardHelpId:
+      typeof step?.openCardHelp === 'string' ? step.openCardHelp : null,
+    pendingSlotHelpId:
+      typeof step?.openSlotHelp === 'string' ? step.openSlotHelp : null,
+  };
+}
+
 const useCutsceneStore = create((set, get) => ({
   seenIds: loadSeenIds(),
   activeId: null,
   steps: [],
   stepIndex: 0,
   pendingCardHelpId: null,
+  pendingSlotHelpId: null,
 
   /**
    * イベントに一致するカットシーンを探し、条件を満たせば再生を開始する。
@@ -163,6 +194,7 @@ const useCutsceneStore = create((set, get) => ({
         typeof step.bubble === 'string' ||
         Array.isArray(step.choices) ||
         typeof step.openCardHelp === 'string' ||
+        typeof step.openSlotHelp === 'string' ||
         typeof step.waitForArrival === 'string' ||
         typeof step.waitForBattle === 'string',
     );
@@ -174,15 +206,11 @@ const useCutsceneStore = create((set, get) => ({
     if (isOnce && get().seenIds.includes(id)) {
       return;
     }
-    const firstStep = steps[0];
     set({
       activeId: id,
       steps,
       stepIndex: 0,
-      pendingCardHelpId:
-        firstStep && typeof firstStep.openCardHelp === 'string'
-          ? firstStep.openCardHelp
-          : null,
+      ...helpIdsFromStep(steps[0]),
     });
   },
 
@@ -229,9 +257,10 @@ const useCutsceneStore = create((set, get) => ({
   /**
    * 指定インデックスの step へ移動する。末尾を超える場合は `finish()`。
    *
-   * 移動先が `openCardHelp` step なら `pendingCardHelpId` を立てて
-   * カード説明モーダルを開かせ、`bubble` step なら `pendingCardHelpId` を
-   * null に戻す。`advance()` と `consumeCardHelp()` の共通の遷移処理。
+   * 移動先が `openCardHelp` / `openSlotHelp` step なら対応する
+   * `pendingCardHelpId` / `pendingSlotHelpId` を立てて説明モーダルを開かせ、
+   * `bubble` step ならどちらも null に戻す。`advance()` と
+   * `consumeCardHelp()` の共通の遷移処理。
    *
    * Args:
    *     index (number): 移動先の step インデックス。
@@ -242,11 +271,9 @@ const useCutsceneStore = create((set, get) => ({
       get().finish();
       return;
     }
-    const step = steps[index];
     set({
       stepIndex: index,
-      pendingCardHelpId:
-        typeof step.openCardHelp === 'string' ? step.openCardHelp : null,
+      ...helpIdsFromStep(steps[index]),
     });
   },
 
@@ -277,6 +304,7 @@ const useCutsceneStore = create((set, get) => ({
       stepIndex: 0,
       seenIds: nextSeen,
       pendingCardHelpId: null,
+      pendingSlotHelpId: null,
     });
     if (nextTrigger) {
       get().fireTrigger(nextTrigger);
@@ -284,21 +312,26 @@ const useCutsceneStore = create((set, get) => ({
   },
 
   /**
-   * カード説明モーダルを閉じた合図。`pendingCardHelpId` をクリアし、いま
-   * 開いていたモーダルがカットシーンの `openCardHelp` step によるものなら
-   * 次の step へ進める。
+   * カード・マス説明モーダルを閉じた合図。`pendingCardHelpId` /
+   * `pendingSlotHelpId` をクリアし、いま開いていたモーダルがカットシーンの
+   * `openCardHelp` / `openSlotHelp` step によるものなら次の step へ進める。
    *
    * `BattleScreen` がモーダルを閉じるときに呼ぶ。再生中で現在 step が
-   * `openCardHelp` の場合だけ `advance` 相当の遷移を行い、それ以外（手動で
-   * 開いたヘルプ等）は単に `pendingCardHelpId` を null に戻すだけにする。
+   * `openCardHelp` / `openSlotHelp` の場合だけ `advance` 相当の遷移を行い、
+   * それ以外（手動で開いたヘルプ等）は単に両 ID を null に戻すだけにする。
    */
   consumeCardHelp: () => {
     const { activeId, steps, stepIndex } = get();
     const current = steps[stepIndex];
-    if (activeId && current && typeof current.openCardHelp === 'string') {
+    if (
+      activeId &&
+      current &&
+      (typeof current.openCardHelp === 'string' ||
+        typeof current.openSlotHelp === 'string')
+    ) {
       get().goToStep(stepIndex + 1);
     } else {
-      set({ pendingCardHelpId: null });
+      set({ pendingCardHelpId: null, pendingSlotHelpId: null });
     }
   },
 
@@ -317,6 +350,7 @@ const useCutsceneStore = create((set, get) => ({
       steps: [],
       stepIndex: 0,
       pendingCardHelpId: null,
+      pendingSlotHelpId: null,
     });
   },
 
@@ -336,6 +370,7 @@ const useCutsceneStore = create((set, get) => ({
       steps: [],
       stepIndex: 0,
       pendingCardHelpId: null,
+      pendingSlotHelpId: null,
     });
   },
 
@@ -381,6 +416,7 @@ const useCutsceneStore = create((set, get) => ({
       steps: [],
       stepIndex: 0,
       pendingCardHelpId: null,
+      pendingSlotHelpId: null,
     });
   },
 }));

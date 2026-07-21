@@ -15,6 +15,12 @@ import styles from './MapTravelButton.module.css';
  * 配置は CSS の `position: absolute` で SVG マップ上に重ねる。ホバー時は
  * 拡大・ふちの暖色グロー・背景明度アップで「押せる／選べる」感を強める。
  *
+ * 表示条件は `MapScreen` 側が持つ（ワールド 2 以降が解放されるまでは
+ * マウントされない）。初表示が「ステージ1クリア → ワールド解放シネマ後」に
+ * なるため、マウント時に CSS のフェードインで現れる。ルート要素の
+ * `data-cutscene-point="mapButton"` はカットシーンの指差し誘導
+ * （「ここを押してステージ2に進もう！」）の対象目印。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         onClick (function): ボタンクリック時に呼び出すハンドラ。引数なし。
@@ -30,6 +36,7 @@ function MapTravelButton({ onClick }) {
       onClick={onClick}
       aria-label="マップ移動"
       title="マップ移動"
+      data-cutscene-point="mapButton"
     >
       <img
         src="/icons/map_travel.png"

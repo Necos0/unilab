@@ -99,6 +99,15 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
   );
 
   /*
+   * 解放済みワールド（ワールド 2 以降）。右上の「マップ移動」ボタンは
+   * ステージ1（ワールド 1）クリアで初めて出す段取りのため、1 つも解放されて
+   * いない間は表示しない。解放シネマ再生中（`pendingWorldUnlock` 非 null）も
+   * 隠しておき、シネマ完了と同時にフェードインで現れて `exitStage`
+   * カットシーン（「ここを押してステージ2に進もう！」）が指差せるようにする。
+   */
+  const unlockedWorlds = useProgressStore((state) => state.unlockedWorlds);
+
+  /*
    * マップ座標エディタ（開発用）。編集中は表示マップを `draft` に差し替えて
    * 道・背景をライブ更新し、ランドマーク／プレイヤーの代わりに座標ハンドル
    * （`MapEditorLayer`）と操作パネル（`MapEditorPanel`）を出す。
@@ -276,9 +285,11 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
               onSelectStage={onStartBattleDemo}
             />
             <UnlockSelectButton />
-            {currentMapId !== OVERWORLD_MAP_ID && (
-              <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
-            )}
+            {currentMapId !== OVERWORLD_MAP_ID &&
+              unlockedWorlds.length > 0 &&
+              pendingWorldUnlock === null && (
+                <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
+              )}
             <CutsceneFlowEntryButton onClick={onOpenCutsceneFlow} />
             <GalleryEntryButton onClick={onOpenGallery} />
             <EditorEntryButton onClick={onOpenEditor} />

@@ -121,25 +121,39 @@ function renderFurigana(text) {
  *             カットシーンから「攻撃カードの説明を見せる」のように特定カードへ
  *             直接開きたいときに渡す。指定カードが既出のときだけそのタブを
  *             初期選択にし、未指定・未出・存在しない ID のときは従来どおり
- *             「最初の既出カード」（全部未出なら先頭）を選ぶ。カテゴリは
- *             常に「カード」から始まる。
+ *             「最初の既出カード」（全部未出なら先頭）を選ぶ。
+ *         initialSlotTypeId (string, optional): 最初に開くマス種別の ID。
+ *             カットシーンから「種類指定マスの説明を見せる」のように特定マスへ
+ *             直接開きたいときに渡す。指定マスが既出のときはカテゴリを
+ *             「マス」に切り替えてそのタブを初期選択にする。未指定・未出・
+ *             存在しない ID のときはカテゴリ「カード」から始まる
+ *             （`initialCardId` と同じフォールバック方針）。
  *
  * Returns:
  *     JSX.Element: 暗幕＋ウィンドウ全体を表す要素。
  */
-function HelpWindow({ onClose, initialCardId }) {
+function HelpWindow({ onClose, initialCardId, initialSlotTypeId }) {
   const cards = cardHelpData.cards;
   const slotTypes = slotHelpData.slots;
   const seenCardIds = useProgressStore((s) => s.seenCardIds);
   const seenSlotTypeIds = useProgressStore((s) => s.seenSlotTypeIds);
 
-  /* 'cards'（カードのせつめい）か 'slots'（マスのせつめい）か。 */
-  const [category, setCategory] = useState('cards');
+  /*
+   * 'cards'（カードのせつめい）か 'slots'（マスのせつめい）か。既出の
+   * `initialSlotTypeId` が渡されたとき（カットシーンのマス説明誘導）だけ
+   * 「マス」から始め、それ以外は「カード」から始まる。
+   */
+  const [category, setCategory] = useState(() =>
+    initialSlotTypeId && seenSlotTypeIds.includes(initialSlotTypeId)
+      ? 'slots'
+      : 'cards',
+  );
 
   /*
    * カテゴリごとの選択中タブ。初期値は「最初の既出項目」（カードは
-   * `initialCardId` が既出ならそれを優先。カットシーンからの「このカードの
-   * 説明を見せる」誘導用）。全部未出なら先頭（伏せ字表示）にフォールバック。
+   * `initialCardId`、マスは `initialSlotTypeId` が既出ならそれを優先。
+   * カットシーンからの「この説明を見せる」誘導用）。全部未出なら先頭
+   * （伏せ字表示）にフォールバック。
    */
   const [activeCardId, setActiveCardId] = useState(() => {
     if (initialCardId && seenCardIds.includes(initialCardId)) {
@@ -147,11 +161,15 @@ function HelpWindow({ onClose, initialCardId }) {
     }
     return cards.find((card) => seenCardIds.includes(card.id))?.id ?? cards[0].id;
   });
-  const [activeSlotTypeId, setActiveSlotTypeId] = useState(
-    () =>
+  const [activeSlotTypeId, setActiveSlotTypeId] = useState(() => {
+    if (initialSlotTypeId && seenSlotTypeIds.includes(initialSlotTypeId)) {
+      return initialSlotTypeId;
+    }
+    return (
       slotTypes.find((slot) => seenSlotTypeIds.includes(slot.id))?.id ??
-      slotTypes[0].id,
-  );
+      slotTypes[0].id
+    );
+  });
 
   const isCards = category === 'cards';
   const items = isCards ? cards : slotTypes;

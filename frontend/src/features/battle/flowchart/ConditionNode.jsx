@@ -131,8 +131,13 @@ function ConditionNode({ id, data }) {
 
   const text = data.label ?? data.expression ?? '';
   const fontSizePx = Math.max(8, Math.min(12, 50 / Math.sqrt(text.length)));
+  /*
+   * `data-cutscene-point={id}`（例: `cond-1`）はカットシーンの指差し誘導
+   * （`CutscenePointer`）の対象にするための目印。`SlotNode` の同属性と
+   * 同じ仕組みで、step 側の `point` に条件ノード id を書くと枠取りされる。
+   */
   return (
-    <div className={className}>
+    <div className={className} data-cutscene-point={id}>
       <Handle
         type="target"
         position={Position.Left}

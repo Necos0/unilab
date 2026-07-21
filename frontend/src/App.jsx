@@ -10,6 +10,8 @@ import CharacterGallery from './editer/CharacterGallery.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
+import useMapStore from './stores/mapStore.js';
+import usePlayerStore from './stores/playerStore.js';
 import stagesData from './data/stagesLoader.js';
 
 /**
@@ -65,11 +67,17 @@ function App() {
   const [pendingStageId, setPendingStageId] = useState(null);
   /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
   const [isWakingUp, setIsWakingUp] = useState(false);
+  /*
+   * 紙芝居（`StoryScreen`）の再マウント用キー。R キーの全リセットで増やし、
+   * すでに紙芝居表示中に R を押した場合でも 1 枚目から確実にやり直す。
+   */
+  const [storyRunId, setStoryRunId] = useState(0);
 
   /*
    * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
-   * が終わってから出したい。開放アニメが走る場合はここに対象ステージ ID を
-   * 退避し、アニメ完了（`isUnlockAnimating` が true→false）を検知して発火する。
+   * （またはワールド解放シネマ）が終わってから出したい。演出が走る場合は
+   * ここに対象ステージ ID を退避し、完了（`isUnlockAnimating` /
+   * `pendingWorldUnlock` の true→終了）を検知して発火する。
    */
   const pendingExitStageIdRef = useRef(null);
   /*
@@ -95,13 +103,39 @@ function App() {
   }, [isUnlockAnimating]);
 
   /*
+   * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリア時は、次ワールド解放シネマ
+   * （`WorldUnlockCutscene`）が終わってから `exitStage` カットシーンを出す。
+   * シネマ完了（`pendingWorldUnlock` が非 null → null）を検知して発火する
+   * （例: 1-4 クリア後の「ここを押してステージ2に進もう！」誘導。1-4 以外の
+   * ワールド最終ステージには `exitStage` の定義が無いため no-op になる）。
+   */
+  const pendingWorldUnlock = useProgressStore((s) => s.pendingWorldUnlock);
+  const wasWorldUnlockingRef = useRef(false);
+  useEffect(() => {
+    if (
+      wasWorldUnlockingRef.current &&
+      pendingWorldUnlock === null &&
+      pendingExitStageIdRef.current !== null
+    ) {
+      useCutsceneStore
+        .getState()
+        .fireTrigger({ type: 'exitStage', stageId: pendingExitStageIdRef.current });
+      pendingExitStageIdRef.current = null;
+    }
+    wasWorldUnlockingRef.current = pendingWorldUnlock !== null;
+  }, [pendingWorldUnlock]);
+
+  /*
    * 開発用ショートカット。マップ・バトルどちらの画面でも効くようグローバルに
    * 登録する。input/textarea へのフォーカス中と修飾キー同時押しは無視する
    * （`UnlockSelectButton` の Space キーと同じガード方針）。
-   *   - R : ガイドの表示履歴（`seenIds`）とステージの開放状況（`progressStore`）を
-   *         まとめてリフレッシュし、オープニング紙芝居（`StoryScreen`）まで
-   *         巻き戻す。紙芝居 → 目覚め → ロボとの会話 → チュートリアルの流れを
-   *         最初から通しで見直せるようにする。
+   *   - R : ゲームの状態をすべて初期化して、オープニング紙芝居（`StoryScreen`）
+   *         まで巻き戻す。対象はガイドの表示履歴（`seenIds`）と再生中の
+   *         カットシーン・ステージの開放状況（`progressStore`）・マップの
+   *         現在位置（`mapStore`）・プレイヤー名（`playerStore`）。紙芝居 →
+   *         目覚め → ロボとの会話（名前入力）→ チュートリアルの流れを完全な
+   *         初期状態から通しで見直せる。ロボの会話中・紙芝居表示中でも効く
+   *         （`RoboBubble` / `StoryScreen` のキー遮断は R だけ素通しする）。
    *   - T : タイトル画面（`TitleScreen`）へ戻る。
    *   - C : カットシーン・フロー画面（`CutsceneFlowScreen`、開発用）を開閉する。
    *         開く直前の画面を `prevScreenRef` に退避し、画面内の「戻る」で復帰する。
@@ -141,11 +175,15 @@ function App() {
       }
       useCutsceneStore.getState().resetSeen();
       useProgressStore.getState().resetProgress();
+      useMapStore.getState().reset();
+      usePlayerStore.getState().resetName();
       /*
        * 巻き戻し後はオープニング紙芝居から通しでやり直す。目覚め演出の
-       * 途中だった場合に備えてオーバーレイのフラグも下ろしておく。
+       * 途中だった場合に備えてオーバーレイのフラグも下ろし、紙芝居表示中
+       * だった場合に備えて `storyRunId` で `StoryScreen` を再マウントする。
        */
       setIsWakingUp(false);
+      setStoryRunId((runId) => runId + 1);
       setScreen('story');
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -215,14 +253,14 @@ function App() {
     const progress = useProgressStore.getState();
     /*
      * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
-     * （`WorldUnlockCutscene`）が走るときは、吹き出し無しの全自動演出に任せ、
-     * `exitStage` カットシーンは出さない。
+     * （`WorldUnlockCutscene`）が走るときは、シネマ完了後に `exitStage` を
+     * 出す（上の `pendingWorldUnlock` 監視 useEffect が発火する）。
      * それ以外で次ステージの開放アニメーションが走るなら、`exitStage` は
-     * アニメ完了後に出す（上の useEffect が発火する）。開放アニメも無ければ
-     * ここで即時発火する。
+     * アニメ完了後に出す（`isUnlockAnimating` 監視の useEffect が発火する）。
+     * どちらの演出も無ければここで即時発火する。
      */
     if (progress.pendingWorldUnlock !== null) {
-      /* ワールド解放シネマが演出を担当するため何もしない。 */
+      pendingExitStageIdRef.current = clearedStageId;
     } else if (progress.pendingUnlockStageId !== null) {
       pendingExitStageIdRef.current = clearedStageId;
     } else {
@@ -237,7 +275,7 @@ function App() {
   if (screen === 'title') {
     currentScreen = <TitleScreen onStart={handleStartGame} />;
   } else if (screen === 'story') {
-    currentScreen = <StoryScreen onFinish={handleStoryFinish} />;
+    currentScreen = <StoryScreen key={storyRunId} onFinish={handleStoryFinish} />;
   } else if (screen === 'battle') {
     currentScreen = (
       <BattleScreen

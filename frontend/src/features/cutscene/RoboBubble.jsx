@@ -44,9 +44,11 @@ const BACKDROP_FADE_MS = 700;
  *
  * 再生中は「クリック／タップ」と「Enter」だけを受け付け、それ以外の操作を
  * 禁止する。全面レイヤーが下の画面のポインタ操作を物理的にブロックし、加えて
- * window の keydown を capture フェーズで監視して Enter 以外のキー（R/T/Space
+ * window の keydown を capture フェーズで監視して Enter 以外のキー（T/Space
  * などのショートカット）を `stopImmediatePropagation` で遮断する。ブラウザ標準の
- * 修飾キー操作（Ctrl/Cmd/Alt 併用、リロード等）は妨げない。
+ * 修飾キー操作（Ctrl/Cmd/Alt 併用、リロード等）は妨げない。例外として R
+ * （開発用の全リセット）だけは App のハンドラへ素通しし、会話の途中でも
+ * 初めからやり直せるようにする。
  *
  * 吹き出し内の `{playerName}` は実際のプレイヤー名へ置換し（`playerStore` の
  * 入力済みの名前を最優先、無ければ `player.json` → 「のあ」の順）、
@@ -56,13 +58,13 @@ const BACKDROP_FADE_MS = 700;
  * ストーリー会話向けの step 拡張を 3 つ描画できる（いずれも吹き出しの
  * 「外」に独立した UI として出し、ロボのセリフと混ざらないようにする）:
  *   - `choices`（`{label, goto?}` の配列）: 主人公の返事の選択肢。ロボの
- *     セリフと同時には表示せず、`bubble` を持たない独立 step として置いて
- *     「セリフ → 選択肢」の交互で進める。この step ではロボ・吹き出しを
- *     描画せず、RPG ふうの選択ウィンドウだけを出し、クリックで
- *     `chooseOption`（`goto` があれば分岐）する。レイヤーのクリック／Enter
- *     では先へ進めない。ラベルは「はい」「いいえ」のような無機質な返答に
- *     限定し、主人公の性格を決めつけない（プレイヤーが主人公に入り込める
- *     ようにする）。
+ *     セリフ（`bubble`）と同じ step に置き、読み上げが終わると吹き出し
+ *     パネルの右上に RPG ふうの選択ウィンドウを重ねて出す。クリックで
+ *     `chooseOption`（`goto` があれば分岐）し、選択肢がある間はレイヤーの
+ *     クリック／Enter では先へ進めない（早送りのみ）。`bubble` を持たない
+ *     選択肢だけの step も置ける（その場合は選択ウィンドウのみ表示）。
+ *     ラベルは「はい」「いいえ」のような無機質な返答に限定し、主人公の
+ *     性格を決めつけない（プレイヤーが主人公に入り込めるようにする）。
  *   - `nameInput`: プレイヤー名の入力。読み上げ後に、ひらがな表をマウスで
  *     選ぶ `NameEntryPanel`（RPG によくある名前入力画面）を画面中央に出し、
  *     確定で `playerStore` に保存して次へ進む。
@@ -76,10 +78,11 @@ const BACKDROP_FADE_MS = 700;
  * `cutsceneStore` の現在 step（`steps[stepIndex].point`）から取得し、吹き出しを
  * 送るたびに指す相手が切り替わる。
  *
- * 吹き出しを持たない step（`openCardHelp` のカード説明モーダル誘導）の上では
- * 何も描画せず（`null`）、キー入力の横取りもしない。モーダルの表示・閉じは
- * `BattleScreen` が `cutsceneStore.pendingCardHelpId` を見て担い、閉じると
- * カットシーンが次の step へ進む。
+ * 吹き出しを持たない step（`openCardHelp` のカード説明モーダル誘導と
+ * `openSlotHelp` のマス説明モーダル誘導）の上では何も描画せず（`null`）、
+ * キー入力の横取りもしない。モーダルの表示・閉じは `BattleScreen` が
+ * `cutsceneStore.pendingCardHelpId` / `pendingSlotHelpId` を見て担い、
+ * 閉じるとカットシーンが次の step へ進む。
  *
  * 例外として、`waitForCardInSlot` を持つ「操作待ち」step では、吹き出し（ヒント）
  * は出しつつ全面レイヤーを素通し（`pointer-events: none`）にし、キー横取りも止める。
@@ -123,12 +126,17 @@ function RoboBubble({ variant = 'map' }) {
    */
   const demoDrag = currentStep?.demoDrag ?? null;
   /*
-   * プレイヤーの操作待ち step。`waitForCardInSlot` を持つ step では、吹き出し
-   * （ヒント）は出しつつ全面レイヤーを「素通し」にして、下のカードを実際に
-   * ドラッグできるようにする。クリック／Enter での送りも止め、次へ進めるのは
-   * `BattleScreen` 側の監視（カードがスロットに入ったら `advance`）だけにする。
+   * プレイヤーの操作待ち step。`waitForCardInSlot`（カードをスロットへ置く
+   * 待ち）または `waitForExecute`（実行ボタンを押す待ち）を持つ step では、
+   * 吹き出し（ヒント）は出しつつ全面レイヤーを「素通し」にして、下の画面を
+   * 実際に操作できるようにする。クリック／Enter での送りも止め、次へ進める
+   * のは `BattleScreen` 側の監視（カードが入った／実行が始まったら
+   * `advance`）だけにする。ヒントを見て押したクリックがカットシーン送りに
+   * 吸われて「押したのに効かない」とならないようにするための仕組み。
    */
-  const isWaitStep = currentStep?.waitForCardInSlot === true;
+  const isWaitStep =
+    currentStep?.waitForCardInSlot === true ||
+    currentStep?.waitForExecute === true;
   /*
    * 主人公の返事の選択肢（`choices`）と名前入力（`nameInput`）。どちらかを
    * 持つ step では、読み上げ完了後もレイヤーのクリック／Enter で先へ進めず、
@@ -289,6 +297,13 @@ function RoboBubble({ variant = 'map' }) {
           target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA')
       ) {
+        return;
+      }
+      /*
+       * R（開発用の全リセット）は遮断せず App のハンドラへ通す。会話の
+       * 途中でも初めからやり直せるようにする。
+       */
+      if (event.code === 'KeyR') {
         return;
       }
       if (event.key === 'Enter') {

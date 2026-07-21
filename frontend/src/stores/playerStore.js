@@ -55,6 +55,7 @@ function savePlayerName(name) {
  *
  * 公開アクション:
  *   - `setPlayerName(name)`: 名前を保存し localStorage へ永続化する。
+ *   - `resetName()`        : 名前を未入力（空文字）へ戻す（開発用の全リセット）。
  */
 const usePlayerStore = create((set) => ({
   playerName: loadPlayerName(),
@@ -68,6 +69,15 @@ const usePlayerStore = create((set) => ({
   setPlayerName: (name) => {
     savePlayerName(name);
     set({ playerName: name });
+  },
+
+  /**
+   * プレイヤー名を未入力（空文字）へ戻す。開発用の全リセット（R キー）から
+   * 呼び、オープニングの名前入力を含めて最初からやり直せるようにする。
+   */
+  resetName: () => {
+    savePlayerName('');
+    set({ playerName: '' });
   },
 }));
 

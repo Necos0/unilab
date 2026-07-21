@@ -435,20 +435,39 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   }, [isWaitingForCardInSlot, hasPlayerCardInSlot, advanceCutscene]);
 
   /*
-   * カットシーンの `openCardHelp` step による誘導表示。カットシーンがその step
-   * に進むと `cutsceneStore.pendingCardHelpId` が立つので、その対象カードを
-   * 初期タブにしたカード説明モーダルを開く。`isHelpOpen`（ヘルプボタンからの
-   * 手動表示）か `pendingCardHelpId` のどちらかで開く派生計算にして、effect 内
+   * カットシーンの「実行待ち」step（`waitForExecute`）の進行。「ここを押して
+   * 実行しよう!」のヒントは素通しレイヤーで出し、プレイヤーが実際に実行
+   * ボタンを押して実行が始まった（`isExecuting`）時点で次の step へ進める
+   * （末尾 step なのでカットシーンが終了する）。ヒントを見て押したクリックが
+   * カットシーン送りに吸われず、1回目のクリックでそのまま実行される。
+   */
+  const isWaitingForExecute = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.waitForExecute === true,
+  );
+  useEffect(() => {
+    if (isWaitingForExecute && isExecuting) {
+      advanceCutscene();
+    }
+  }, [isWaitingForExecute, isExecuting, advanceCutscene]);
+
+  /*
+   * カットシーンの `openCardHelp` / `openSlotHelp` step による誘導表示。
+   * カットシーンがその step に進むと `cutsceneStore.pendingCardHelpId`
+   * （カード）または `pendingSlotHelpId`（マス）が立つので、その対象を
+   * 初期タブにした説明モーダルを開く。`isHelpOpen`（ヘルプボタンからの
+   * 手動表示）かどちらかの pending で開く派生計算にして、effect 内
    * setState（`react-hooks/set-state-in-effect`）を避ける。モーダルを閉じると
    * `consumeCardHelp()` を呼び、カットシーン由来なら次の step（次の吹き出し）へ
-   * 進める。手動表示のときは `pendingCardHelpId` が null なので呼ばない。
+   * 進める。手動表示のときは両 pending が null なので呼ばない。
    */
   const pendingCardHelpId = useCutsceneStore((s) => s.pendingCardHelpId);
+  const pendingSlotHelpId = useCutsceneStore((s) => s.pendingSlotHelpId);
   const consumeCardHelp = useCutsceneStore((s) => s.consumeCardHelp);
-  const isCardHelpOpen = isHelpOpen || pendingCardHelpId !== null;
+  const isCardHelpOpen =
+    isHelpOpen || pendingCardHelpId !== null || pendingSlotHelpId !== null;
   const closeCardHelp = () => {
     setIsHelpOpen(false);
-    if (pendingCardHelpId !== null) {
+    if (pendingCardHelpId !== null || pendingSlotHelpId !== null) {
       consumeCardHelp();
     }
   };
@@ -502,8 +521,22 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       <section className={rootClassName}>
         <HelpButton onClick={() => setIsHelpOpen(true)} />
         {isCardHelpOpen && (
+          /*
+           * key で pending の切り替わりごとに再マウントする。`openCardHelp` →
+           * `openSlotHelp` のように誘導 step が連続すると、モーダルは開いた
+           * ままタブだけ切り替える必要があるが、初期タブは useState の
+           * 初期化でしか決まらないため、key を変えて初期化し直す。
+           */
           <HelpWindow
+            key={
+              pendingCardHelpId !== null
+                ? `card-${pendingCardHelpId}`
+                : pendingSlotHelpId !== null
+                  ? `slot-${pendingSlotHelpId}`
+                  : 'manual'
+            }
             initialCardId={pendingCardHelpId}
+            initialSlotTypeId={pendingSlotHelpId}
             onClose={closeCardHelp}
           />
         )}
