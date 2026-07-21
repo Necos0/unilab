@@ -33,6 +33,7 @@ import VictoryClearOverlay from './VictoryClearOverlay';
 import BattleFailOverlay from './BattleFailOverlay';
 import EncounterBanner from './EncounterBanner';
 import enemiesData from '../../data/enemies.json';
+import isBossStage from './isBossStage';
 
 /*
  * バトル入場演出（イントロ）の各フェーズの表示時間（ms）と遷移先。
@@ -41,8 +42,12 @@ import enemiesData from '../../data/enemies.json';
  *               ポップイン 250ms + 静止 + フェードアウト 250ms と同期）
  *   uiEnter:    HP バー・フローチャート・手札がスライドインする（CSS 400ms + 余白）
  * 最終フェーズ 'done' で通常の戦闘画面になる。
+ * ボスステージ（*-4）では敵の入場をゆっくり大きく（CSS 850ms）、バナーを
+ * 長く（EncounterBanner のボス用アニメーション 2400ms）取った専用の時間割
+ * `BOSS_INTRO_PHASE_DURATIONS_MS` を使う。
  */
 const INTRO_PHASE_DURATIONS_MS = { enemyEnter: 700, banner: 1600, uiEnter: 450 };
+const BOSS_INTRO_PHASE_DURATIONS_MS = { enemyEnter: 900, banner: 2400, uiEnter: 450 };
 const INTRO_NEXT_PHASE = { enemyEnter: 'banner', banner: 'uiEnter', uiEnter: 'done' };
 
 
@@ -304,6 +309,12 @@ function CrossIcon() {
  *   - 入場ガイドのカットシーン（`enterBattle` トリガー）は演出完了
  *     （`introPhase === 'done'`）まで遅延させ、演出とロボのセリフが
  *     重ならないようにする
+ *   - ボスステージ（`isBossStage`、各ワールドの *-4）ではボス専用の派手な
+ *     演出に切り替わる: 敵の入場がゆっくり大きく（`.introEnemyEnterBoss`）、
+ *     バナー表示と同時に敵エリアが激しく揺れ（`.introBossShake`）、赤い
+ *     ビネット（`.introBossVignette`）が明滅し、バナー自体も赤基調で長い
+ *     ボス版（`EncounterBanner` の `isBoss`）になる。フェーズ時間も
+ *     `BOSS_INTRO_PHASE_DURATIONS_MS` で長めに取る
  *
  * Args:
  *     props (object): React プロパティ。
@@ -383,14 +394,18 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * イントロが再生されるのはステージ入場時の 1 回だけ。
    */
   const [introPhase, setIntroPhase] = useState('enemyEnter');
+  const isBoss = isBossStage(resolvedStageId);
   useEffect(() => {
     if (introPhase === 'done') return undefined;
+    const durations = isBoss
+      ? BOSS_INTRO_PHASE_DURATIONS_MS
+      : INTRO_PHASE_DURATIONS_MS;
     const timer = setTimeout(
       () => setIntroPhase(INTRO_NEXT_PHASE[introPhase]),
-      INTRO_PHASE_DURATIONS_MS[introPhase],
+      durations[introPhase],
     );
     return () => clearTimeout(timer);
-  }, [introPhase]);
+  }, [introPhase, isBoss]);
   const isIntroActive = introPhase !== 'done';
   const isIntroUiHidden = introPhase === 'enemyEnter' || introPhase === 'banner';
   const introUiClass = isIntroUiHidden
@@ -628,19 +643,35 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             onClose={closeCardHelp}
           />
         )}
-        <div className={styles.enemyArea}>
+        <div
+          className={[
+            styles.enemyArea,
+            /* ボス戦はバナー表示と同時に敵エリアを激しく揺らす */
+            introPhase === 'banner' && isBoss && styles.introBossShake,
+          ].filter(Boolean).join(' ')}
+        >
           <EnemySprite
             enemyId={stage.enemyId}
             state={enemySpriteState}
-            className={introPhase === 'enemyEnter' ? styles.introEnemyEnter : undefined}
+            className={
+              introPhase === 'enemyEnter'
+                ? isBoss
+                  ? styles.introEnemyEnterBoss
+                  : styles.introEnemyEnter
+                : undefined
+            }
           />
           {/*
             * 出現バナー。banner フェーズ中はまだ透明な敵 HP バーの位置
             * （敵エリア下端＝スプライトの真下）に重ね、敵スプライト本体とは
-            * 被らないようにする。
+            * 被らないようにする。ボス戦は赤基調の長いボス版バナーに加え、
+            * 敵エリア全体へ赤いビネット（縁の明滅）を重ねる。
             */}
+          {introPhase === 'banner' && isBoss && (
+            <div className={styles.introBossVignette} aria-hidden="true" />
+          )}
           {introPhase === 'banner' && enemy && (
-            <EncounterBanner enemyName={enemy.displayName} />
+            <EncounterBanner enemyName={enemy.displayName} isBoss={isBoss} />
           )}
           <div
             data-cutscene-point="enemyHpBar"

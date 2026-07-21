@@ -47,6 +47,18 @@
   animation: encounterIris 450ms ease-in forwards;
 }
 
+/* ボス戦（*-4）用のフラッシュ。赤い明滅を 160ms × 3 回（計 480ms）。
+   キーフレームは通常版 encounterFlash を共用し、色と回数だけ変える */
+.flashLayerBoss {
+  background: #e03828;
+  animation: encounterFlash 160ms ease-in-out 3;
+}
+
+/* ボス戦用のアイリス。通常より遅く（650ms）閉じて重さを出す */
+.irisHoleBoss {
+  animation-duration: 650ms;
+}
+
 @keyframes encounterFlash {
   0% {
     opacity: 0;

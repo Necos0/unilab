@@ -16,17 +16,28 @@ import styles from './EncounterBanner.module.css';
  * カタカナ表記のため、ふりがな（ルビ）は不要（漢字入りの敵名を追加する
  * 場合は `tokenizeFurigana` の導入を検討すること）。
  *
+ * ボスステージ（`isBoss`）では文言が「ボスの 〇〇が あらわれた!!」に
+ * 変わり、赤基調・大きめの文字・赤いグロー明滅つきのボス版スタイル
+ * （`.bannerBoss`）で、通常より長い時間（2400ms）表示される。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         enemyName (string): 表示する敵の名前（例: "スライム"）。
+ *         isBoss (boolean): ボスステージなら true。既定は false。
  *
  * Returns:
  *     JSX.Element: 敵エリアに絶対配置されるバナー要素。
  */
-function EncounterBanner({ enemyName }) {
+function EncounterBanner({ enemyName, isBoss = false }) {
+  const className = isBoss
+    ? `${styles.banner} ${styles.bannerBoss}`
+    : styles.banner;
+  const message = isBoss
+    ? `ボスの ${enemyName}が あらわれた!!`
+    : `${enemyName}が あらわれた!`;
   return (
-    <div className={styles.banner} role="status">
-      <span className={styles.text}>{enemyName}が あらわれた!</span>
+    <div className={className} role="status">
+      <span className={styles.text}>{message}</span>
     </div>
   );
 }

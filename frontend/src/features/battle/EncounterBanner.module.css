@@ -38,6 +38,37 @@
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
 }
 
+/*
+ * ボス版バナー。赤基調＋大きめの文字＋赤いグローの明滅で威圧感を出す。
+ * アニメーションは「ポップイン（300ms）→ グロー明滅（800ms × 3）→
+ * フェードアウト（300ms、2100ms 遅延開始）」で合計 2400ms。
+ * `BattleScreen` の BOSS_INTRO_PHASE_DURATIONS_MS.banner と同期させている。
+ */
+.bannerBoss {
+  background: rgba(40, 10, 14, 0.9);
+  border-top: 3px solid #e03828;
+  border-bottom: 3px solid #e03828;
+  animation:
+    encounterBannerIn 300ms cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    encounterBossGlow 800ms ease-in-out 3,
+    encounterBannerOut 300ms ease-in 2100ms forwards;
+}
+
+.bannerBoss .text {
+  font-size: clamp(1.3rem, 5vw, 2rem);
+  letter-spacing: 3px;
+  color: #ffe3c0;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 0 12px rgba(224, 56, 40, 0.8);
+}
+
+@keyframes encounterBossGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(224, 56, 40, 0); }
+  50%  { box-shadow: 0 0 28px 6px rgba(224, 56, 40, 0.7); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 56, 40, 0); }
+}
+
 @keyframes encounterBannerIn {
   from {
     opacity: 0;
