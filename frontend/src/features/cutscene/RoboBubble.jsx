@@ -51,7 +51,9 @@ const BACKDROP_FADE_MS = 700;
  * 初めからやり直せるようにする。さらに `cutsceneStore.isInputLocked` が
  * 立っている間（目覚め演出 `WakeUpOverlay` の再生中）は、クリック／Enter の
  * 早送り・送りをすべて無視する（キーの遮断自体は続け、演出が終わって
- * ロックが解けてから通常どおり飛ばせるようになる）。
+ * ロックが解けてから通常どおり飛ばせるようになる）。選択肢ウィンドウと
+ * 名前入力パネルもロック中は描画せず、黒が晴れていく途中で操作 UI だけが
+ * 透けて見えないようにする（ロック解除の瞬間に現れる）。
  *
  * 吹き出し内の `{playerName}` は実際のプレイヤー名へ置換し（`playerStore` の
  * 入力済みの名前を最優先、無ければ `player.json` → 「のあ」の順）、
@@ -109,6 +111,12 @@ function RoboBubble({ variant = 'map' }) {
   const activeId = useCutsceneStore((s) => s.activeId);
   const steps = useCutsceneStore((s) => s.steps);
   const stepIndex = useCutsceneStore((s) => s.stepIndex);
+  /*
+   * 入力ロック（目覚め演出 `WakeUpOverlay` の間）。ロック中は選択肢・
+   * 名前入力の UI を出さない（黒が晴れていく途中で選択肢だけ透けて
+   * 見えてしまうのを防ぐ）。解除された瞬間に再レンダーされて現れる。
+   */
+  const isInputLocked = useCutsceneStore((s) => s.isInputLocked);
 
   /*
    * 現在の step。`bubble` を持つ step だけロボの吹き出しを描画する。
@@ -441,7 +449,7 @@ function RoboBubble({ variant = 'map' }) {
           </div>
         </div>
       )}
-      {choices && isRevealed && (
+      {choices && isRevealed && !isInputLocked && (
         <div className={styles.choicesWindow}>
           {choices.map((choice, index) => (
             <button
@@ -458,7 +466,7 @@ function RoboBubble({ variant = 'map' }) {
           ))}
         </div>
       )}
-      {isNameStep && isRevealed && (
+      {isNameStep && isRevealed && !isInputLocked && (
         <NameEntryPanel onSubmit={handleNameSubmit} />
       )}
     </div>
