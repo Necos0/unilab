@@ -8,6 +8,7 @@ import BattleTransition from './features/battle/BattleTransition.jsx';
 import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
 import CharacterGallery from './editer/CharacterGallery.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
+import PlazaScreen from './features/plaza/PlazaScreen.jsx';
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
 import useMapStore from './stores/mapStore.js';
@@ -17,7 +18,7 @@ import stagesData from './data/stagesLoader.js';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow' | 'plaza'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
  * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居を最後まで見終える
@@ -250,6 +251,10 @@ function App() {
     setScreen('cutsceneflow');
   }, []);
 
+  const handleOpenPlaza = useCallback(() => {
+    setScreen('plaza');
+  }, []);
+
   const handleExitCutsceneFlow = useCallback(() => {
     setScreen(prevScreenRef.current);
   }, []);
@@ -296,6 +301,8 @@ function App() {
     currentScreen = <SpriteSheetEditor onExit={handleExitToMap} />;
   } else if (screen === 'gallery') {
     currentScreen = <CharacterGallery onExit={handleExitToMap} />;
+  } else if (screen === 'plaza') {
+    currentScreen = <PlazaScreen onExitToMap={handleExitToMap} />;
   } else {
     currentScreen = (
       <MapScreen
@@ -304,6 +311,7 @@ function App() {
         onOpenEditor={handleOpenEditor}
         onOpenGallery={handleOpenGallery}
         onOpenCutsceneFlow={handleOpenCutsceneFlow}
+        onOpenPlaza={handleOpenPlaza}
         demoStageIds={stagesData.demoStageIds}
       />
     );

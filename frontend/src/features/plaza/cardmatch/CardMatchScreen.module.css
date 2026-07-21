@@ -1,0 +1,170 @@
+/*
+ * カードあわせ（神経衰弱）画面。
+ *   - 戦闘画面と同じ暗色ベース（#0b0b10）＋ DotGothic16 で世界観を揃える
+ *   - 盤面は 4×4 グリッド。縦横どちらの画面でもはみ出さないよう、幅を
+ *     「画面幅・画面の高さから逆算した値」の小さい方でキャップする
+ *   - クリアオーバーレイは画面全体を覆う半透明黒 + RPG 調パネル
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100dvh;
+  background: #0b0b10;
+  color: #f5f5f5;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  overflow: hidden;
+  position: relative;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+}
+
+.header {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
+  font-weight: 700;
+  color: #f7e9c0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 2px;
+}
+
+.exitButton {
+  padding: 0.4rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #f7e9c0;
+  background: rgba(22, 17, 32, 0.78);
+  border: 2px solid #f0c040;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.exitButton:hover {
+  filter: brightness(1.18);
+}
+
+.moveCounter {
+  font-size: 0.9rem;
+  color: #cfc9e0;
+  font-variant-numeric: tabular-nums;
+}
+
+.moveCount {
+  font-size: 1.1rem;
+  color: #f7e9c0;
+}
+
+.hint {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #a9a9b3;
+}
+
+/* 4×4 の盤面。高さ（ヘッダー等を除いた残り）からも幅を逆算し、
+   縦長・横長どちらの画面でも 16 枚全部が収まるようにする */
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.4rem, 1.5vw, 0.75rem);
+  width: min(92vw, calc((100dvh - 9rem) * 0.75), 560px);
+}
+
+.clearOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  animation: clearFadeIn 0.3s ease-out;
+}
+
+.clearPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem 2.25rem;
+  background: rgba(22, 17, 32, 0.95);
+  border: 3px solid #f0c040;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.clearText {
+  margin: 0;
+  font-size: clamp(1.8rem, 7vw, 2.6rem);
+  font-weight: 700;
+  color: #f7e9c0;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 4px;
+}
+
+.clearStats {
+  margin: 0;
+  font-size: 1rem;
+  color: #cfc9e0;
+  font-variant-numeric: tabular-nums;
+}
+
+.newRecord {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffd75e;
+  animation: newRecordPulse 0.9s ease-in-out infinite;
+}
+
+.clearButtons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.clearButton {
+  padding: 0.6rem 1.1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f7e9c0;
+  background: rgba(46, 36, 66, 0.9);
+  border: 2px solid #f0c040;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.clearButton:hover {
+  filter: brightness(1.18);
+}
+
+.clearButton:active {
+  transform: translateY(2px);
+}
+
+@keyframes clearFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes newRecordPulse {
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1);    }
+}

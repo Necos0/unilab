@@ -7,6 +7,7 @@ import PlayerSprite from './PlayerSprite';
 import MapOverlay from './MapOverlay';
 import BattleDemoButton from './BattleDemoButton';
 import UnlockSelectButton from './UnlockSelectButton';
+import PlazaEntryButton from './PlazaEntryButton';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
 import FullscreenToggleButton from './FullscreenToggleButton';
@@ -73,6 +74,8 @@ const OVERWORLD_MAP_ID = 'map_0';
  *             呼ぶ関数（引数なし）。App 側でキャラクター一覧画面へ切り替える。
  *         onOpenCutsceneFlow (function): 右下の「カットシーン一覧」ボタン押下時に
  *             呼ぶ関数（引数なし）。App 側でカットシーン・フロー画面へ切り替える。
+ *         onOpenPlaza (function): 右下の「あそびのひろば」ボタン（テスト用）
+ *             押下時に呼ぶ関数（引数なし）。App 側でひろば画面へ切り替える。
  *         demoStageIds (Array<string>): バトルデモドロップダウンに並べる
  *             ステージ ID 配列。`stagesLoader.js` 経由で `stages.json` の
  *             `demoStageIds` から流れてくる。
@@ -80,7 +83,7 @@ const OVERWORLD_MAP_ID = 'map_0';
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, onOpenCutsceneFlow, demoStageIds }) {
+function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, onOpenCutsceneFlow, onOpenPlaza, demoStageIds }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -290,6 +293,7 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
               pendingWorldUnlock === null && (
                 <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
               )}
+            <PlazaEntryButton onClick={onOpenPlaza} />
             <CutsceneFlowEntryButton onClick={onOpenCutsceneFlow} />
             <GalleryEntryButton onClick={onOpenGallery} />
             <EditorEntryButton onClick={onOpenEditor} />

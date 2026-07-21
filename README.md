@@ -305,6 +305,15 @@ unilab/
             │   ├── CutsceneFlowEntryButton.jsx        ← マップ右下「カットシーン一覧」起動ボタン
             │   ├── CutsceneFlowEntryButton.module.css
             │   └── buildCutsceneFlow.js       ← cutscenes/stages を突き合わせフロー構造を組む(純関数)
+            ├── plaza/            ← あそびのひろば(ミニゲームのハブ画面)
+            │   ├── PlazaScreen.jsx        ← ひろば画面ルート(ミニゲーム選択とゲーム画面の切替)
+            │   ├── PlazaScreen.module.css
+            │   └── cardmatch/    ← ミニゲーム「カードあわせ」(神経衰弱)
+            │       ├── CardMatchScreen.jsx     ← ゲーム画面ルート(盤面状態・ペア判定・クリア表示)
+            │       ├── CardMatchScreen.module.css
+            │       ├── MatchCard.jsx           ← めくれるカード 1 枚(表裏の 3D 回転)
+            │       ├── MatchCard.module.css
+            │       └── shuffleArray.js         ← 配列をランダムに並べ替える(純関数)
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)
                 ├── MapScreen.module.css
@@ -329,6 +338,8 @@ unilab/
                 ├── MapSwitchTransition.module.css
                 ├── BattleDemoButton.jsx           ← デバッグ用:戦闘デモへ飛ぶドロップダウン
                 ├── BattleDemoButton.module.css
+                ├── PlazaEntryButton.jsx           ← テスト用:あそびのひろばへ飛ぶボタン
+                ├── PlazaEntryButton.module.css
                 ├── CoordinateGrid.jsx             ← デバッグ用:座標調整の格子オーバーレイ
                 ├── CoordinateGrid.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション

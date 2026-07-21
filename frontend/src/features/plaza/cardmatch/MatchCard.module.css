@@ -1,0 +1,96 @@
+/*
+ * カードあわせのカード 1 枚。
+ *   - .card（button）は perspective を持つ外枠。グリッドのセル幅いっぱいに
+ *     広がり、カードらしい縦長比（3:4）を保つ
+ *   - .inner が rotateY で回転する本体。表（.front）と裏（.back）を
+ *     backface-visibility: hidden で重ね、.flipped で 180 度回す
+ *   - .matched はそろった瞬間の金色グロー＋小さく弾むアニメーション
+ */
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  perspective: 600px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card:disabled {
+  cursor: default;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease;
+}
+
+.inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.inner.matched {
+  animation: matchBounce 0.45s ease;
+}
+
+.back,
+.front {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 裏面。HelpButton 等と同じ RPG 調（金枠＋暗い半透明地）で揃える */
+.back {
+  background: rgba(22, 17, 32, 0.92);
+  border: 2px solid #f0c040;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.card:not(:disabled):hover .back {
+  filter: brightness(1.2);
+}
+
+.backMark {
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 700;
+  color: #f7e9c0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* 表面。明るい台紙の上に敵スプライトを載せる */
+.front {
+  background: #f5efdc;
+  border: 2px solid #b89b5e;
+  transform: rotateY(180deg);
+  padding: 8%;
+}
+
+.inner.matched .front {
+  border-color: #f0c040;
+  box-shadow: 0 0 12px 2px rgba(240, 192, 64, 0.75);
+}
+
+.faceImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+@keyframes matchBounce {
+  0%   { transform: rotateY(180deg) scale(1);    }
+  40%  { transform: rotateY(180deg) scale(1.12); }
+  70%  { transform: rotateY(180deg) scale(0.96); }
+  100% { transform: rotateY(180deg) scale(1);    }
+}

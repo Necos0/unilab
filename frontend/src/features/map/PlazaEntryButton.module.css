@@ -1,0 +1,36 @@
+/* マップ画面右下、カットシーン一覧ボタンのひとつ上に重ねる
+   「あそびのひろば」遷移ボタン（テスト用）。ミニゲームの入口と分かるよう
+   金色のアクセントにし、他のデバッグボタンと同じ控えめなトーンで並べる。 */
+.button {
+  position: absolute;
+  bottom: 8.55rem;
+  right: 0.75rem;
+  z-index: 10;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffe9b0;
+  background: rgba(28, 22, 12, 0.72);
+  border: 1px solid rgba(240, 192, 64, 0.6);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.button:hover {
+  transform: scale(1.05);
+  background: rgba(46, 36, 20, 0.85);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(240, 192, 64, 0.55);
+}
+
+.button:active {
+  transform: scale(1.01);
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(255, 220, 130, 0.85);
+  outline-offset: 2px;
+}

@@ -1,0 +1,137 @@
+/*
+ * あそびのひろば（ミニゲームのハブ画面）。
+ *   - 夕暮れの広場をイメージした縦グラデーション背景に、RPG 調
+ *     （金枠 #f0c040＋暗い半透明地＋DotGothic16）のパネルを並べる
+ *   - ミニゲームは横並びのカードで一覧し、増えたら折り返す
+ *   - 「マップへもどる」は戦闘画面の BackToMapButton と同様に左上へ絶対配置
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
+  height: 100dvh;
+  background: linear-gradient(180deg, #1a1430 0%, #2c1f42 55%, #46305a 100%);
+  color: #f5f5f5;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  overflow: hidden;
+  position: relative;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.exitButton {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #f7e9c0;
+  background: rgba(22, 17, 32, 0.78);
+  border: 2px solid #f0c040;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.exitButton:hover {
+  filter: brightness(1.18);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.roboIcon {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  -webkit-user-drag: none;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  font-weight: 700;
+  color: #f7e9c0;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 4px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #cfc9e0;
+}
+
+.gameList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.gameCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: min(240px, 42vw);
+  padding: 1.25rem 1rem;
+  background: rgba(22, 17, 32, 0.85);
+  border: 3px solid #f0c040;
+  border-radius: 1rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.gameCard.comingSoon {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.gameName {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f7e9c0;
+  letter-spacing: 2px;
+}
+
+.gameDescription {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #cfc9e0;
+  text-align: center;
+}
+
+.playButton {
+  margin-top: 0.4rem;
+  padding: 0.55rem 1.6rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1430;
+  background: #f0c040;
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #a8842a;
+  transition: filter 0.15s, transform 0.08s;
+}
+
+.playButton:hover {
+  filter: brightness(1.1);
+}
+
+.playButton:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #a8842a;
+}
