@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import findShortestPath from '../features/map/findShortestPath';
+import useProgressStore from './progressStore';
 
 /**
  * マップ画面の状態を一元管理する Zustand ストア。
@@ -80,14 +81,15 @@ const useMapStore = create((set, get) => ({
    * マップ定義からストアを初期化する。
    *
    * `currentLocation` は `mapDef.startId` に設定し（要件 3-1, 3-3）、
-   * 隣接リストをこの 1 回だけ構築する。
+   * 隣接リストをこの 1 回だけ構築する。位置は「続きから」再開用に
+   * `progressStore.setLastPosition` へも保存する（localStorage 永続）。
    *
    * Args:
    *     mapId (string): `maps.json` のキー（例: `"map_1"`）。
    *     mapDef (object): `maps.json` の 1 マップ分。
    *         `landmarks` と `edges` と `startId` を持つ。
    */
-  initializeMap: (mapId, mapDef) =>
+  initializeMap: (mapId, mapDef) => {
     set(() => ({
       mapDef,
       currentMapId: mapId,
@@ -95,7 +97,9 @@ const useMapStore = create((set, get) => ({
       isMoving: false,
       segments: [],
       adjacency: buildAdjacency(mapDef.edges),
-    })),
+    }));
+    useProgressStore.getState().setLastPosition(mapId, mapDef.startId);
+  },
 
   /**
    * 別のマップへ切り替える。
@@ -127,6 +131,8 @@ const useMapStore = create((set, get) => ({
       segments: [],
       adjacency: buildAdjacency(mapDef.edges),
     });
+    /* 「続きから」再開用に位置を永続化する */
+    useProgressStore.getState().setLastPosition(mapId, locationId ?? mapDef.startId);
   },
 
   /**
@@ -189,19 +195,24 @@ const useMapStore = create((set, get) => ({
    * ノードに進める。残りが空なら `isMoving=false` に戻して静止状態へ。
    * 残りが残っていれば `isMoving=true` のまま `PlayerSprite` 側が次
    * セグメントを連続再生する（要件 5-5）。
+   *
+   * 進んだ位置は「続きから」再開用に `progressStore.setLastPosition` へも
+   * 保存する。移動の途中（分岐点 junction）で終了した場合も、その地点から
+   * 再開できる。
    */
-  advanceSegment: () =>
-    set((state) => {
-      if (state.segments.length === 0) {
-        return {};
-      }
-      const [head, ...rest] = state.segments;
-      return {
-        currentLocation: head.to,
-        segments: rest,
-        isMoving: rest.length > 0,
-      };
-    }),
+  advanceSegment: () => {
+    const state = get();
+    if (state.segments.length === 0) {
+      return;
+    }
+    const [head, ...rest] = state.segments;
+    set({
+      currentLocation: head.to,
+      segments: rest,
+      isMoving: rest.length > 0,
+    });
+    useProgressStore.getState().setLastPosition(state.currentMapId, head.to);
+  },
 
   /**
    * 全状態を未初期化（マウント前と同じ）に戻す。開発用の全リセット（R キー）

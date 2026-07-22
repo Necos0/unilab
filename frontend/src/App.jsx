@@ -14,6 +14,7 @@ import useCutsceneStore from './stores/cutsceneStore.js';
 import useMapStore from './stores/mapStore.js';
 import usePlayerStore from './stores/playerStore.js';
 import stagesData from './data/stagesLoader.js';
+import mapsData from './data/maps.json';
 
 /**
  * アプリケーションのルートコンポーネント。
@@ -224,6 +225,26 @@ function App() {
      * no-op）。
      */
     if (useProgressStore.getState().hasSeenOpeningStory) {
+      /*
+       * 「続きから」の位置復元。前回終了時のマップ位置（`progressStore.
+       * lastPosition`、localStorage 永続）があれば、MapScreen マウント前に
+       * `switchMap` でそのマップ・地点へ勇者を配置しておく。ここで mapDef を
+       * セットしておくと MapScreen の初期化 effect（最初のマップの入口で
+       * `initializeMap`）はスキップされる。保存されていた地点 ID がマップ
+       * 定義に存在しない場合（マップ改訂後など）は、そのマップの入口
+       * （`startId`）へフォールバックする。
+       */
+      const last = useProgressStore.getState().lastPosition;
+      const lastDef = last ? mapsData.maps[last.mapId] : null;
+      if (lastDef) {
+        const isKnownNode = [
+          ...(lastDef.landmarks ?? []),
+          ...(lastDef.junctions ?? []),
+        ].some((node) => node.id === last.locationId);
+        useMapStore
+          .getState()
+          .switchMap(last.mapId, lastDef, isKnownNode ? last.locationId : undefined);
+      }
       setScreen('map');
       useCutsceneStore.getState().fireTrigger({ type: 'wakeUp' });
       return;

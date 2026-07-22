@@ -79,6 +79,24 @@ const useProgressStore = create(
   seenCardIds: [],
   seenSlotTypeIds: [],
   hasSeenOpeningStory: false,
+  lastPosition: null,
+
+  /**
+   * マップ上の最後の位置を記録する（「続きから」再開用）。
+   *
+   * `mapStore` が位置の変わる瞬間（マップ初期化・マップ切替・移動 1 区間の
+   * 確定）に呼ぶ。localStorage に永続化され、タイトル画面の「スタート」で
+   * `App.handleStartGame` が読み出して、前回終了時にいたマップ・地点から
+   * 再開させる。`locationId` は通常ランドマーク ID だが、移動途中で終了した
+   * 場合は分岐点（junction）の ID になることもある。全体マップ（`map_0`、
+   * `startId: null`）にいた場合は `locationId: null`。
+   *
+   * Args:
+   *     mapId (string): 現在のマップ ID（例: `"map_1"`）。
+   *     locationId (string|null): 現在立っているノード ID。
+   */
+  setLastPosition: (mapId, locationId) =>
+    set({ lastPosition: { mapId, locationId: locationId ?? null } }),
 
   /**
    * オープニング紙芝居（`StoryScreen`）を最後まで見たことを記録する。
@@ -284,6 +302,8 @@ const useProgressStore = create(
       pendingWorldUnlock: null,
       unlockingWorld: null,
       hasSeenOpeningStory: false,
+      /* 「続きから」の保存位置も消し、次回スタートは最初のマップの入口から */
+      lastPosition: null,
     }),
 
   /**
@@ -408,6 +428,7 @@ const useProgressStore = create(
         seenCardIds: state.seenCardIds,
         seenSlotTypeIds: state.seenSlotTypeIds,
         hasSeenOpeningStory: state.hasSeenOpeningStory,
+        lastPosition: state.lastPosition,
       }),
     },
   ),
