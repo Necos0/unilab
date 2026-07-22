@@ -9,14 +9,6 @@ import styles from './Card.module.css';
  * パラメータとして `stages.json` 側で定義される）。`monster` を含む全
  * カード ID で同じ描画フローを共有する。
  *
- * 拡張子の決定（`ext`）：原則すべてのカードで `.png` を読むが、`counter`
- * カードのみ暫定で `.svg` を読む。これはデザイン班からピクセルアートの
- * `counter.png` が届くまでの間、シンプルなプレースホルダー SVG
- * （`public/cards/counter.svg`）でゲーム開発を継続するための一時的な
- * 分岐である。本番アセット（`counter.png`）が用意できた段階で、この
- * 三項演算を削除して `const src = `/cards/${card.id}.png`` の 1 行に
- * 戻し、`counter.svg` をリポジトリから削除する。
- *
  * `card.power` は省略可能。`reflect` / `counter` のように威力値の概念を
  * 持たないカードでは `stages.json` 側で `power` を定義せず、
  * `<span>{undefined}</span>` を React が描画しない挙動を利用して、自然に
@@ -33,8 +25,7 @@ import styles from './Card.module.css';
  *     JSX.Element: カードを表す要素。
  */
 function Card({ card }) {
-  const ext = card.id === 'counter' ? 'svg' : 'png';
-  const src = `/cards/${card.id}.${ext}`;
+  const src = `/cards/${card.id}.png`;
 
   return (
     <div className={styles.root}>

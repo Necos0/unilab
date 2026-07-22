@@ -35,13 +35,6 @@ function preloadImage(src) {
  *   - スロットにロック配置されたカード画像（`slots[].lockedCard.id`）
  *   - フローチャート用アイコン（start / goal / play / reset）
  *
- * **カード画像の拡張子解決**（`loop-counter` 暫定対応）：原則すべてのカードで
- * `/cards/<id>.png` を読むが、`counter` カードのみ `Card.jsx` の拡張子分岐と
- * 整合させるため `/cards/counter.svg` を読む。デザイン班から本番 `counter.png`
- * が届いた段階で、両 for ループの三項演算を削除して `.png` 直接結合に戻し、
- * `public/cards/counter.svg` を削除する（剥がし箇所は `Card.jsx` の 1 箇所 +
- * 本ファイルの 2 箇所、合計 3 箇所）。
- *
  * Args:
  *     stage (object): `stages.json` の 1 ステージ分定義。
  *
@@ -61,14 +54,12 @@ function collectBattleAssetUrls(stage) {
   }
 
   for (const card of stage.cards ?? []) {
-    const ext = card.id === 'counter' ? 'svg' : 'png';
-    urls.add(`/cards/${card.id}.${ext}`);
+    urls.add(`/cards/${card.id}.png`);
   }
 
   for (const slot of stage.slots ?? []) {
     if (slot.lockedCard?.id) {
-      const ext = slot.lockedCard.id === 'counter' ? 'svg' : 'png';
-      urls.add(`/cards/${slot.lockedCard.id}.${ext}`);
+      urls.add(`/cards/${slot.lockedCard.id}.png`);
     }
   }
 
