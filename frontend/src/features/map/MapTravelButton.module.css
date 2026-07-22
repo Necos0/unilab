@@ -34,6 +34,37 @@
   }
 }
 
+/*
+ * 初登場（デビュー）演出。ワールド解放シネマ直後の初回マウントだけ
+ * `MapTravelButton` がこのクラスを付け、小さく縮んだ状態からポンと
+ * 弾んで現れる。長さ（0.9s）は JS 側の `TRAVEL_BUTTON_DEBUT_MS` と共有し、
+ * App がロボの誘導セリフ（「このマップを押して次のステージに進もう！」）を
+ * アニメ完了後に発火させるタイミング合わせに使う。
+ * 100% キーフレームをあえて書かないことで、最終区間は素のスタイルへ
+ * 補間され、アニメ完了後（fill 適用中）もホバー時の transform 変化を
+ * 邪魔しない。
+ */
+.debut {
+  animation: travelButtonDebut 0.9s ease-out both;
+}
+
+@keyframes travelButtonDebut {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(-0.75rem);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  75% {
+    transform: scale(0.9);
+  }
+  90% {
+    transform: scale(1.05);
+  }
+}
+
 .button:hover {
   transform: scale(1.08);
 }

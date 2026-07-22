@@ -276,7 +276,9 @@ const useProgressStore = create(
    * `*-1` は常に解放扱いのため、各ワールドの最終ステージ自体は
    * `cleared` 扱いにならず「未クリアだが解放済み」状態になる。
    * 同時に、全体マップ（`map_0`）の各領域＝ワールド単位の「ステージN」を
-   * すべて解放するため、登場する全ワールド番号を `unlockedWorlds` に入れる。
+   * すべて解放するため、登場する全ワールド番号を `unlockedWorlds` に入れる
+   * （常に解放扱いのワールド 1 は除く。`setProgressUpToStage` と同じ理由で、
+   * 入れるとマップ移動ボタンの表示条件が崩れる）。
    * 解放アニメは抑止したいので `pendingUnlockStageId` はリセットし、
    * `isUnlockAnimating` も `false` に戻す。
    */
@@ -311,7 +313,12 @@ const useProgressStore = create(
    *
    * `targetStageId` より前のステージ（前ワールド、または同ワールドで番号が
    * 小さい）をすべて `clearedStageIds` に入れ、到達したワールドまで（全体マップ
-   * に領域 `map_N` を持つもの）を `unlockedWorlds` に入れる。`targetStageId`
+   * に領域 `map_N` を持つもの）を `unlockedWorlds` に入れる。ワールド 1 は
+   * `isWorldUnlocked` が常に解放扱いにするため配列には入れない。通常プレイの
+   * `markStageCleared` もワールド 2 以降しか追加しないので、これを崩すと
+   * 「マップ移動ボタンはワールド解放後に出す」という `MapScreen` の表示条件
+   * （`unlockedWorlds.length > 0`）がワールド 1 への巻き戻しでも真になって
+   * しまい、ボタンが消えなくなる。`targetStageId`
    * 自身は「これから初めて挑む」状態＝未クリアのまま残すので、選んだステージ
    * から再生されるカットシーンや初回挑戦の挙動をテストできる。既出カード
    * （`seenCardIds`）は「クリア済みステージ＋対象ステージ」に登場するカード
@@ -346,7 +353,7 @@ const useProgressStore = create(
       );
     });
     const unlockedWorlds = [];
-    for (let world = 1; world <= targetWorld; world += 1) {
+    for (let world = 2; world <= targetWorld; world += 1) {
       if (mapsData.maps?.[`map_${world}`]) {
         unlockedWorlds.push(String(world));
       }
@@ -394,7 +401,9 @@ const useProgressStore = create(
       if (!parsed) {
         continue;
       }
-      worlds.add(parsed.world);
+      if (parsed.world !== '1') {
+        worlds.add(parsed.world);
+      }
       if (parsed.number <= 1) {
         continue;
       }

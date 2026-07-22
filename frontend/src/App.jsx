@@ -15,6 +15,7 @@ import useMapStore from './stores/mapStore.js';
 import usePlayerStore from './stores/playerStore.js';
 import stagesData from './data/stagesLoader.js';
 import mapsData from './data/maps.json';
+import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
 
 /**
  * アプリケーションのルートコンポーネント。
@@ -111,8 +112,12 @@ function App() {
    * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリア時は、次ワールド解放シネマ
    * （`WorldUnlockCutscene`）が終わってから `exitStage` カットシーンを出す。
    * シネマ完了（`pendingWorldUnlock` が非 null → null）を検知して発火する
-   * （例: 1-4 クリア後の「ここを押してステージ2に進もう！」誘導。1-4 以外の
-   * ワールド最終ステージには `exitStage` の定義が無いため no-op になる）。
+   * （例: 1-4 クリア後の「このマップを押して次のステージに進もう！」誘導。
+   * 1-4 以外のワールド最終ステージには `exitStage` の定義が無いため no-op に
+   * なる）。シネマ明けはマップ移動ボタンの初登場アニメ（`MapTravelButton` の
+   * `.debut`）が走るため、その長さ分（`TRAVEL_BUTTON_DEBUT_MS`）だけ待って
+   * から発火し、「ボタンがポンと現れる → ロボがそれを指差して誘導する」の
+   * 順につなげる。
    */
   const pendingWorldUnlock = useProgressStore((s) => s.pendingWorldUnlock);
   const wasWorldUnlockingRef = useRef(false);
@@ -122,10 +127,13 @@ function App() {
       pendingWorldUnlock === null &&
       pendingExitStageIdRef.current !== null
     ) {
-      useCutsceneStore
-        .getState()
-        .fireTrigger({ type: 'exitStage', stageId: pendingExitStageIdRef.current });
+      const exitStageId = pendingExitStageIdRef.current;
       pendingExitStageIdRef.current = null;
+      setTimeout(() => {
+        useCutsceneStore
+          .getState()
+          .fireTrigger({ type: 'exitStage', stageId: exitStageId });
+      }, TRAVEL_BUTTON_DEBUT_MS);
     }
     wasWorldUnlockingRef.current = pendingWorldUnlock !== null;
   }, [pendingWorldUnlock]);

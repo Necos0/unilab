@@ -165,7 +165,7 @@
     "once": true,
     "trigger": { "type": "exitStage", "stageId": "1-4" },
     "steps": [
-      { "bubble": "ここを 押《お》して、いっしょに ステージ2へ 進《すす》もう！", "point": "mapButton" }
+      { "bubble": "この マップを 押《お》して、次《つぎ》の ステージに 進《すす》もう！", "point": "mapButton" }
     ]
   },
 

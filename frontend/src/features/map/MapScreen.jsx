@@ -105,10 +105,27 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
    * 解放済みワールド（ワールド 2 以降）。右上の「マップ移動」ボタンは
    * ステージ1（ワールド 1）クリアで初めて出す段取りのため、1 つも解放されて
    * いない間は表示しない。解放シネマ再生中（`pendingWorldUnlock` 非 null）も
-   * 隠しておき、シネマ完了と同時にフェードインで現れて `exitStage`
-   * カットシーン（「ここを押してステージ2に進もう！」）が指差せるようにする。
+   * 隠しておき、シネマ完了と同時に初登場アニメで現れて `exitStage`
+   * カットシーン（「このマップを押して次のステージに進もう！」）が
+   * 指差せるようにする。
    */
   const unlockedWorlds = useProgressStore((state) => state.unlockedWorlds);
+
+  /*
+   * マップ移動ボタンの初登場（デビュー）演出フラグ。ワールド解放シネマの
+   * 終了ハンドラ（`handleWorldUnlockEnd`）で立て、直後にマウントされる
+   * `MapTravelButton` へ「弾む登場アニメ」を指示する。`useEffect` で
+   * `pendingWorldUnlock` の変化を監視する方式にしないのは、ボタンが
+   * null になった同じレンダーでマウントされ、effect より先に
+   * `isDebut=false` を確定させてしまうため（演出が出ない）。
+   * アニメ完了（`onDebutEnd`）で下ろし、以降の再マウント（全体マップから
+   * 戻ってきた時など）は通常の軽いフェードインに戻す。
+   */
+  const [isTravelButtonDebut, setIsTravelButtonDebut] = useState(false);
+
+  const handleTravelButtonDebutEnd = useCallback(() => {
+    setIsTravelButtonDebut(false);
+  }, []);
 
   /*
    * マップ座標エディタ（開発用）。編集中は表示マップを `draft` に差し替えて
@@ -238,6 +255,14 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
   }, []);
 
   const handleWorldUnlockEnd = useCallback(() => {
+    /*
+     * シネマ明けに再マウントされるマップ移動ボタンへデビュー演出を指示する。
+     * `finishWorldUnlockCutscene`（ボタンのマウント条件が立つ）より先に
+     * フラグを立てておくことで、マウント時点で `isDebut=true` が渡る。
+     * 初解放（ステージ1クリア）以外のシネマ明けにも弾む登場を再生するが、
+     * 「次はこのボタンで移動する」ことへの視線誘導として毎回出してよい。
+     */
+    setIsTravelButtonDebut(true);
     useProgressStore.getState().finishWorldUnlockCutscene();
   }, []);
 
@@ -291,7 +316,11 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
             {currentMapId !== OVERWORLD_MAP_ID &&
               unlockedWorlds.length > 0 &&
               pendingWorldUnlock === null && (
-                <MapTravelButton onClick={() => travelToMap(OVERWORLD_MAP_ID)} />
+                <MapTravelButton
+                  onClick={() => travelToMap(OVERWORLD_MAP_ID)}
+                  isDebut={isTravelButtonDebut}
+                  onDebutEnd={handleTravelButtonDebutEnd}
+                />
               )}
             <PlazaEntryButton onClick={onOpenPlaza} />
             <CutsceneFlowEntryButton onClick={onOpenCutsceneFlow} />
