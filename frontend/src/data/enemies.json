@@ -271,6 +271,24 @@
       }
     },
     {
+      "id": "dragon_final",
+      "displayName": "しんのドラゴン",
+      "maxHp": 9999,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 3,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
       "id": "goldenbird",
       "displayName": "ゴールデンバード",
       "maxHp": 80,

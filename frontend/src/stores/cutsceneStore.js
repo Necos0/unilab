@@ -216,7 +216,19 @@ const useCutsceneStore = create((set, get) => ({
         typeof step.openCardHelp === 'string' ||
         typeof step.openSlotHelp === 'string' ||
         typeof step.waitForArrival === 'string' ||
-        typeof step.waitForBattle === 'string',
+        typeof step.waitForBattle === 'string' ||
+        /*
+         * 盤面変身 step（最終ボス第二形態）。吹き出しを持たず、`BattleScreen`
+         * がこの step に進んだのを検知してフローチャート・手札の変身演出＋
+         * 差し替えを行い、完了後に advance で次の吹き出しへ進める。
+         */
+        step.boardTransform === true ||
+        /*
+         * ボス復活再開 step（フェイクアウト会話の末尾）。吹き出しを持たず、
+         * `BattleScreen` がこの step で `resumeReviveSequence`（白フラッシュ
+         * 〜第二形態復活）を呼んで会話を終了させる。
+         */
+        step.reviveBoss === true,
     );
     const hasBubble = steps.some((step) => typeof step.bubble === 'string');
     if (!hasBubble) {
@@ -407,7 +419,13 @@ const useCutsceneStore = create((set, get) => ({
    * 小さい）のものだけを `seenIds` にまとめて上書き保存する。`targetStageId`
    * 以降（同ステージを含む）のカットシーンは未視聴のまま残し、選んだ地点から
    * テストで再生できるようにする。`trigger.stageId` を持たない（またはパース
-   * できない）カットシーンは対象外で未視聴のまま。再生中があれば閉じる。
+   * できない）カットシーン（オープニングの目覚め会話 `opening-wake` など）は
+   * 「どのステージよりも前に出るもの」とみなして常に視聴済みに含める。
+   * これを未視聴のまま残すと、自己紹介（`revealRoboName`）を含む
+   * `opening-wake` が視聴済みにならず、スキップ後の全会話でロボの名前
+   * プレートが「???」のままになってしまう（`RoboBubble` は「自己紹介を
+   * 含むカットシーンを視聴済みか」で名前の表示を判定するため）。
+   * 再生中があれば閉じる。
    * `setProgressUpToStage`（progressStore）と対で「到達ステージ選択」を構成する。
    *
    * Args:
@@ -424,7 +442,8 @@ const useCutsceneStore = create((set, get) => ({
         const stageId = def.trigger?.stageId;
         const parsed = stageId ? parseStageId(stageId) : null;
         if (!parsed) {
-          return false;
+          /* stageId 無し＝オープニング等、どのステージよりも前。常に視聴済み */
+          return true;
         }
         const world = Number(parsed.world);
         return (

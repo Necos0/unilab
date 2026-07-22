@@ -31,6 +31,10 @@ import RoboBubble from '../cutscene/RoboBubble';
 import stagesData from '../../data/stagesLoader.js';
 import VictoryClearOverlay from './VictoryClearOverlay';
 import BattleFailOverlay from './BattleFailOverlay';
+import BossReviveOverlay from './BossReviveOverlay';
+import BoardTransformEffect from './BoardTransformEffect';
+import AccelerationEffect from './AccelerationEffect';
+import FinaleOverlay from './FinaleOverlay';
 import EncounterBanner from './EncounterBanner';
 import enemiesData from '../../data/enemies.json';
 import isBossStage from './isBossStage';
@@ -49,6 +53,15 @@ import isBossStage from './isBossStage';
 const INTRO_PHASE_DURATIONS_MS = { enemyEnter: 700, banner: 1600, uiEnter: 450 };
 const BOSS_INTRO_PHASE_DURATIONS_MS = { enemyEnter: 900, banner: 2400, uiEnter: 450 };
 const INTRO_NEXT_PHASE = { enemyEnter: 'banner', banner: 'uiEnter', uiEnter: 'done' };
+
+/*
+ * 盤面変身（最終ボス第二形態、カットシーンの `boardTransform` step）の時間割。
+ * 金色の光が SWAP_MS で最も強くなった瞬間に盤面を第二形態へ差し替え、
+ * TOTAL_MS で光が引き切ったらカットシーンを次の吹き出しへ進める。
+ * BoardTransformEffect.module.css の `@keyframes` と同期させること。
+ */
+const BOARD_TRANSFORM_SWAP_MS = 700;
+const BOARD_TRANSFORM_TOTAL_MS = 1600;
 
 
 /**
@@ -352,7 +365,18 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const reflectActive = useBattleStore((s) => s.reflectActive);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const failPhase = useBattleStore((s) => s.failPhase);
+  const revivePhase = useBattleStore((s) => s.revivePhase);
+  const isSecondPhase = useBattleStore((s) => s.isSecondPhase);
+  const overrideEnemyId = useBattleStore((s) => s.overrideEnemyId);
   const retryFromFail = useBattleStore((s) => s.retryFromFail);
+  const resumeReviveSequence = useBattleStore((s) => s.resumeReviveSequence);
+  /*
+   * ボス第二形態（最終ボス 4-4）：復活シーケンス中に store が
+   * `initializeBattle(stage.secondPhase)` を実行して `isSecondPhase` が立つ。
+   * 以降、盤面の描画・リセット・実行（StartNode → `startExecution`）には
+   * 第二形態のステージ定義を渡す。
+   */
+  const activeStage = isSecondPhase && stage.secondPhase ? stage.secondPhase : stage;
   const isEnemyFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
   const isEnemyDimmed = failPhase === 'shown';
   const lastPlayerDamageId = useBattleStore(
@@ -443,13 +467,13 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const markSlotTypesSeen = useProgressStore((s) => s.markSlotTypesSeen);
   useEffect(() => {
     markCardsSeen([
-      ...(stage.cards ?? []).map((card) => card.id),
-      ...(stage.slots ?? [])
+      ...(activeStage.cards ?? []).map((card) => card.id),
+      ...(activeStage.slots ?? [])
         .map((slot) => slot.lockedCard?.id)
         .filter(Boolean),
     ]);
-    markSlotTypesSeen(stage.slotTypeIds ?? []);
-  }, [markCardsSeen, markSlotTypesSeen, stage]);
+    markSlotTypesSeen(activeStage.slotTypeIds ?? []);
+  }, [markCardsSeen, markSlotTypesSeen, activeStage]);
 
   useEffect(() => () => collapseFlowchart(), [collapseFlowchart]);
 
@@ -492,6 +516,37 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       fireTrigger({ type: 'battleLost', stageId: resolvedStageId });
     }
   }, [failPhase, fireTrigger, resolvedStageId]);
+  /*
+   * ボス復活（第二形態突入）時のカットシーン発火。復活演出の白フェードが
+   * 明け切った瞬間（`revivePhase` が `'risen'` → null に戻った瞬間）に
+   * `bossRevive` トリガーを投げ、ロボが新しいカードとフローチャートを
+   * 紹介する会話（cutscenes.json の `stage4-4-revive`）を始める。
+   * 「前回値が 'risen' だったか」を ref で見ることで、マウント直後の
+   * null と区別する。
+   */
+  const prevRevivePhaseRef = useRef(null);
+  useEffect(() => {
+    const prev = prevRevivePhaseRef.current;
+    prevRevivePhaseRef.current = revivePhase;
+    if (prev === 'risen' && revivePhase === null) {
+      fireTrigger({ type: 'bossRevive', stageId: resolvedStageId });
+    }
+  }, [revivePhase, fireTrigger, resolvedStageId]);
+  /*
+   * フェイクアウト会話の発火。第一形態が倒れて静止した（`revivePhase` が
+   * `'down'`）タイミングで `bossDown` トリガーを投げ、ロボの「やった！
+   * 倒した！」（cutscenes.json の `stage4-4-fakeout`）を流す。復活シーケンス
+   * は会話末尾の `reviveBoss` step（下の effect）が再開するまで停止したまま。
+   * 万一対応する会話が定義されていない（トリガーが何も再生しなかった）場合は
+   * ここで即座に復活を再開し、進行不能にならないようにする。
+   */
+  useEffect(() => {
+    if (revivePhase !== 'down') return;
+    fireTrigger({ type: 'bossDown', stageId: resolvedStageId });
+    if (!useCutsceneStore.getState().activeId) {
+      resumeReviveSequence(stage);
+    }
+  }, [revivePhase, fireTrigger, resolvedStageId, resumeReviveSequence, stage]);
 
   /*
    * カットシーンの「操作待ち」step（`waitForCardInSlot`）の進行。プレイヤーが
@@ -530,6 +585,52 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   }, [isWaitingForExecute, isExecuting, advanceCutscene]);
 
   /*
+   * カットシーンの「盤面変身」step（`boardTransform`、最終ボス第二形態）。
+   * ロボの決意のセリフの後にこの step へ進むと、フローチャート＋手札パネルに
+   * 金色の変身エフェクト（`BoardTransformEffect`）を重ね、光が最も強くなる
+   * 瞬間（BOARD_TRANSFORM_SWAP_MS）に `initializeBattle(stage.secondPhase)` で
+   * 盤面を第二形態（無限ループのチャート＋ひっさつカード）へ差し替える。
+   * 光が引き切ったら（BOARD_TRANSFORM_TOTAL_MS）カットシーンを進め、
+   * 「見て！新しいフローチャート…」の吹き出しへ続ける。第二形態を持たない
+   * ステージでこの step が来た場合（データ誤り）は何もせず即進める。
+   */
+  const isBoardTransformStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.boardTransform === true,
+  );
+  useEffect(() => {
+    if (!isBoardTransformStep) return undefined;
+    if (!stage.secondPhase) {
+      advanceCutscene();
+      return undefined;
+    }
+    const swapTimer = setTimeout(
+      () => initializeBattle(stage.secondPhase),
+      BOARD_TRANSFORM_SWAP_MS,
+    );
+    const doneTimer = setTimeout(() => advanceCutscene(), BOARD_TRANSFORM_TOTAL_MS);
+    return () => {
+      clearTimeout(swapTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [isBoardTransformStep, stage, initializeBattle, advanceCutscene]);
+
+  /*
+   * カットシーンの「ボス復活再開」step（`reviveBoss`、フェイクアウト会話の
+   * 末尾）。「やった！倒した！」と油断させた直後にこの step へ進み、停止して
+   * いた復活シーケンスの後半（白フラッシュ→第二形態）を再開する。会話は
+   * ここで終わり（末尾 step なので advance で finish）、白フラッシュが
+   * 画面を覆っている間に吹き出しが消える。
+   */
+  const isReviveBossStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.reviveBoss === true,
+  );
+  useEffect(() => {
+    if (!isReviveBossStep) return;
+    resumeReviveSequence(stage);
+    advanceCutscene();
+  }, [isReviveBossStep, resumeReviveSequence, stage, advanceCutscene]);
+
+  /*
    * カットシーンの `openCardHelp` / `openSlotHelp` step による誘導表示。
    * カットシーンがその step に進むと `cutsceneStore.pendingCardHelpId`
    * （カード）または `pendingSlotHelpId`（マス）が立つので、その対象を
@@ -551,9 +652,27 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     }
   };
 
-  const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
+  /*
+   * 表示する敵の ID。復活シーケンスの白フラッシュ以降は、盤面がまだ第一
+   * 形態のままでも見た目だけ先に第二形態（`overrideEnemyId`、例:
+   * `dragon_final`）へ差し替える。盤面変身（`initializeBattle`）後は
+   * `overrideEnemyId` が null に戻り、`activeStage`（第二形態）側の ID で
+   * 同じ敵が表示され続ける。
+   */
+  const displayEnemyId = overrideEnemyId ?? activeStage.enemyId;
+  const enemy = enemiesData.enemies.find((e) => e.id === displayEnemyId);
   const hasDeadAnim = Boolean(enemy?.animations?.dead);
-  const enemySpriteState = victoryPhase && hasDeadAnim ? 'dead' : 'idle';
+  /*
+   * 復活シーケンスの 'dying'（倒れるアニメ）・'down'（倒れたまま静止して
+   * フェイクアウト会話中）・'flash'（白フラッシュ中。白が半透明の間に
+   * 第一形態が立ち姿へ戻って一瞬見えてしまうのを防ぐ）は、勝利時と同じ
+   * dead アニメ・姿勢で表示する。第二形態（`overrideEnemyId`）への
+   * 差し替えは白が完全に覆った瞬間（'risen'）に行われる。
+   */
+  const isReviveDeadPose =
+    revivePhase === 'dying' || revivePhase === 'down' || revivePhase === 'flash';
+  const enemySpriteState =
+    (victoryPhase || isReviveDeadPose) && hasDeadAnim ? 'dead' : 'idle';
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -651,7 +770,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
           ].filter(Boolean).join(' ')}
         >
           <EnemySprite
-            enemyId={stage.enemyId}
+            enemyId={displayEnemyId}
             state={enemySpriteState}
             className={
               introPhase === 'enemyEnter'
@@ -732,7 +851,11 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
           </div>
           <DamageFloater />
           <ReflectDamageFloater />
-          {victoryPhase === 'cleared' && (
+          {/*
+            * 勝利オーバーレイ：第二形態（最終ボス）を倒したときは通常の
+            * CLEAR! ではなく、画面が白く光るフィナーレ演出を出す。
+            */}
+          {victoryPhase === 'cleared' && !isSecondPhase && (
             <VictoryClearOverlay onExitToMap={handleClearedExitToMap} />
           )}
           {failPhase === 'shown' && (
@@ -741,18 +864,44 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
         </div>
         <div className={[styles.roboPanel, introUiClass].filter(Boolean).join(' ')}>
           <div className={styles.flowchartArea}>
-            <FlowchartArea stage={stage} />
+            {/*
+              * key で形態の切り替わり時に React Flow ごと再マウントし、
+              * 第二形態の盤面（無限ループのフローチャート）へ確実に
+              * 差し替える（ノード・エッジ・フィット計算を作り直す）。
+              */}
+            <FlowchartArea
+              key={isSecondPhase ? 'second-phase' : 'first-phase'}
+              stage={activeStage}
+            />
+            {/*
+              * 無限ループ実行の加速エフェクト。表示条件（第二形態＋実行中＋
+              * 加速開始後）と強度の購読はコンポーネント側が持つ。
+              */}
+            <AccelerationEffect />
             <div className={styles.flowchartControls}>
               <div className={styles.topRow}>
                 <ZoomButton />
-                <ResetButton stage={stage} />
+                <ResetButton stage={activeStage} />
               </div>
             </div>
           </div>
           <div className={styles.playerArea}>
             <Hand />
           </div>
+          {isBoardTransformStep && <BoardTransformEffect />}
         </div>
+        {/*
+          * 復活オーバーレイ。'down'（フェイクアウト会話中）は描画しない：
+          * 透明ブロッカーを重ねると RoboBubble のクリック送りが吸われて
+          * 会話が進められなくなる（会話中の入力制御は RoboBubble 自身の
+          * 全面レイヤーが担う）。
+          */}
+        {revivePhase !== null && revivePhase !== 'down' && (
+          <BossReviveOverlay phase={revivePhase} />
+        )}
+        {victoryPhase === 'cleared' && isSecondPhase && (
+          <FinaleOverlay onExitToMap={handleClearedExitToMap} />
+        )}
         <RoboBubble variant="battle" />
       </section>
       <DragOverlay className={styles.dragOverlayWrapper}>

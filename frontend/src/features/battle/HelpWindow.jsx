@@ -16,6 +16,26 @@ const LOCKED_LABELS = {
 };
 
 /**
+ * タブ表示用のラベルを作る。カード名の末尾の「カード」を取り除く。
+ *
+ * タブは幅が狭く「攻撃《こうげき》カード」のような正式名だと末尾が
+ * 見切れるため、タブ上では「攻撃《こうげき》」のように種類名だけを出す
+ * （どうせ全タブがカードなので情報も落ちない）。伏せ字ラベル
+ * 「？？？カード」も「？？？」になる。マス側の名前（「〜マス」）は
+ * 末尾が「カード」ではないので変化しない。説明欄の見出し（正式名）には
+ * 使わないこと。
+ *
+ * Args:
+ *     name (string): カード・マスの正式名（`漢字《ふりがな》` 記法可）。
+ *
+ * Returns:
+ *     string: タブ用ラベル。
+ */
+function toTabLabel(name) {
+  return name.replace(/カード$/, '');
+}
+
+/**
  * 未出のカード・マスの説明欄に出す共通の案内文。
  */
 const LOCKED_DESCRIPTIONS = {
@@ -30,8 +50,10 @@ const LOCKED_DESCRIPTIONS = {
  * ガード青／回復緑／反射橙）と同じ色割りに揃えることで、ヘルプ画面と実戦の
  * 演出が同じ「意味の色」で結びつくようにする。敵攻撃（monster）だけは
  * フロート演出との対応ではなく、カード画像（`monster.png`）の紫の枠色に
- * 合わせて「敵のカード」であることを示す。各カードの枠・名前・タブの
- * 強調色として CSS 変数（`--accent`）経由で使う。
+ * 合わせて「敵のカード」であることを示す。ひっさつ（finisher。最終ボス
+ * 第二形態の専用カード）は「特別な一枚」を示す金色で、カウンタペアスロット
+ * の金色アウトライン（`SlotNode` の #ffd54a）と揃える。各カードの枠・名前・
+ * タブの強調色として CSS 変数（`--accent`）経由で使う。
  */
 const CARD_ACCENTS = {
   attack: '#e0563b',
@@ -39,6 +61,7 @@ const CARD_ACCENTS = {
   heal: '#3ad430',
   reflect: '#f0a040',
   monster: '#a86ae0',
+  finisher: '#ffd54a',
 };
 
 /**
@@ -247,7 +270,7 @@ function HelpWindow({ onClose, initialCardId, initialSlotTypeId }) {
                     disabled={!seen}
                     onClick={() => seen && setActiveId(item.id)}
                   >
-                    {seen ? renderFurigana(item.name) : lockedLabel}
+                    {seen ? renderFurigana(toTabLabel(item.name)) : toTabLabel(lockedLabel)}
                   </button>
                 );
               })}

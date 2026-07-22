@@ -223,6 +223,30 @@ const EDGE_PHASE_MS = 400;
 const GUARD_TO_HP_DELAY_MS = 250;
 const VICTORY_FADE_DURATION_MS = 500;
 const LOOP_MAX_VISITS = 100;
+/*
+ * 加速実行（最終ボス第二形態）の定数。実行中のフェーズ消化数から進行度
+ * t（0〜1、ACCEL_RAMP_PHASES で 1 に到達）を取り、easeInQuad（t²）で速度
+ * 倍率を 1 倍 → ACCEL_MAX_SPEED 倍へ引き上げる。序盤はほぼ等速で、周回を
+ * 重ねるほど加速の伸びが大きくなり、終盤に一気に最高速へ達する。
+ * フェーズ時間は「基準時間 ÷ 速度倍率」で、下限（ACCEL_MIN_*_MS）で止める。
+ * ACCEL_RAMP_PHASES = 120 はループ約 20 周ぶん（1 周 ≒ ノード 3 + エッジ 3
+ * = 6 フェーズ）。HP9999 ÷ ひっさつカード 300 = 34 周なので、後半 14 周は
+ * 最高速で押し切る配分になる（全体で 20 秒前後）。
+ */
+const ACCEL_RAMP_PHASES = 120;
+const ACCEL_MAX_SPEED = 24;
+const ACCEL_MIN_NODE_MS = 30;
+const ACCEL_MIN_EDGE_MS = 18;
+/*
+ * ボス復活（第二形態突入）演出の時間割。dead アニメ完了から
+ * REVIVE_DEAD_HOLD_MS 置いて白フラッシュ開始 → REVIVE_FLASH_IN_MS で
+ * 真っ白になった瞬間に第二形態へ差し替え → REVIVE_FADE_OUT_MS かけて
+ * 白が明けて新しい盤面が現れる。CSS 側（BossReviveOverlay.module.css）の
+ * アニメーション時間と同期させること。
+ */
+const REVIVE_DEAD_HOLD_MS = 600;
+const REVIVE_FLASH_IN_MS = 500;
+const REVIVE_FADE_OUT_MS = 900;
 let executionTimers = [];
 
 function cancelExecutionTimers() {
@@ -548,6 +572,10 @@ const useBattleStore = create((set, get) => ({
   enemyDamageEvents: [],
   victoryPhase: null,
   failPhase: null,
+  revivePhase: null,
+  isSecondPhase: false,
+  overrideEnemyId: null,
+  accelIntensity: 0,
   _enemyDamageCounter: 0,
   currentPlayerHp: 0,
   maxPlayerHp: 0,
@@ -650,6 +678,10 @@ const useBattleStore = create((set, get) => ({
       playerShakeEvents: [],
       victoryPhase: null,
       failPhase: null,
+      revivePhase: null,
+      isSecondPhase: Boolean(stage.isSecondPhase),
+      overrideEnemyId: null,
+      accelIntensity: 0,
       traversedEdgeIds: [],
       traversedNodeIds: [],
       guardShield: 0,
@@ -904,9 +936,33 @@ const useBattleStore = create((set, get) => ({
 
       const nodeVisitCounts = {};
 
+      /*
+       * 加速実行（最終ボス第二形態、`stage.isSecondPhase`）：進行度 t を
+       * easeInQuad（t²）に通した速度倍率で次のフェーズ時間を短縮し、無限
+       * ループ攻撃が「じわじわ加速し始め、終盤一気に最高速になる」演出を
+       * 作る。`currentPhaseMs` も短縮後の値になるため、`AnimatedProgressEdge`
+       * の進行アニメも自動で同期して速くなる。easeIn 済みの進行度は
+       * `accelIntensity`（0〜1）としてフェーズ更新のたびに state へ流し、
+       * `AccelerationEffect`（フローチャートの加速エフェクト）の強度と
+       * 点滅速度を駆動する。通常ステージでは常に基準時間・強度 0 のまま。
+       */
+      let acceleratedPhaseCount = 0;
+      let accelEased = 0;
+      const nextPhaseMs = (baseMs, minMs) => {
+        if (!stage.isSecondPhase) {
+          return baseMs;
+        }
+        const t = Math.min(1, acceleratedPhaseCount / ACCEL_RAMP_PHASES);
+        accelEased = t * t;
+        const speed = 1 + (ACCEL_MAX_SPEED - 1) * accelEased;
+        acceleratedPhaseCount += 1;
+        return Math.max(minMs, Math.round(baseMs / speed));
+      };
+
       set((s) => ({
         isExecuting: true,
         currentPhaseMs: NODE_PHASE_MS,
+        accelIntensity: 0,
         currentEnemyHp: s.maxEnemyHp,
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
@@ -990,22 +1046,25 @@ const useBattleStore = create((set, get) => ({
             return;
           }
           
+          const nodePhaseMs = nextPhaseMs(NODE_PHASE_MS, ACCEL_MIN_NODE_MS);
           set((s) => ({
             executionStep: { type: 'node', id: nodeId },
-            currentPhaseMs: NODE_PHASE_MS,
+            currentPhaseMs: nodePhaseMs,
+            accelIntensity: accelEased,
             traversedNodeIds: [...s.traversedNodeIds, nodeId],
           }));
 
           const card = get().slotAssignments[nodeId];
           const meta = get().slotMetadata[nodeId];
-          const multiplier = 
+          const multiplier =
             typeof meta?.multiplier === 'number' ? meta.multiplier :
             typeof meta?.counterRef === 'string' ? (get().counterValues[meta.counterRef] ?? 0) : 1;
           if (card && card.id === 'counter' && card.counterId) {
             get().incrementCounter(card.counterId);
             set({ activeCounterId: card.counterId });
           }
-          if (card && card.id === 'attack' && card.power > 0) {
+          /* finisher（ひっさつカード）は attack と同じ「敵にダメージ」効果 */
+          if (card && (card.id === 'attack' || card.id === 'finisher') && card.power > 0) {
             get().applyEnemyDamage(card.power * multiplier);
           }
           if (card && card.id === 'monster' && card.power > 0) {
@@ -1026,17 +1085,17 @@ const useBattleStore = create((set, get) => ({
           }
 
           if (nodeId === 'goal') {
-            scheduleComplete(NODE_PHASE_MS);
+            scheduleComplete(nodePhaseMs);
             return;
           }
 
           const nextEdge = selectNextEdge(nodeId);
           if (!nextEdge) {
-            scheduleComplete(NODE_PHASE_MS);
+            scheduleComplete(nodePhaseMs);
             return;
           }
 
-          scheduleEdgePhase(nextEdge, NODE_PHASE_MS);
+          scheduleEdgePhase(nextEdge, nodePhaseMs);
         }, delay);
         executionTimers.push(tid); 
       };
@@ -1048,9 +1107,11 @@ const useBattleStore = create((set, get) => ({
             set({ activeCounterId: null });
           }
 
+          const edgePhaseMs = nextPhaseMs(EDGE_PHASE_MS, ACCEL_MIN_EDGE_MS);
           set((s) => ({
             executionStep: { type: 'edge', id: edge.id },
-            currentPhaseMs: EDGE_PHASE_MS,
+            currentPhaseMs: edgePhaseMs,
+            accelIntensity: accelEased,
             traversedEdgeIds: [...s.traversedEdgeIds, edge.id],
           }));
 
@@ -1065,7 +1126,7 @@ const useBattleStore = create((set, get) => ({
             get().clearReflect();
           }
 
-          scheduleNodePhase(edge.target, EDGE_PHASE_MS);
+          scheduleNodePhase(edge.target, edgePhaseMs);
         }, delay);
         executionTimers.push(tid);
       };
@@ -1082,7 +1143,17 @@ const useBattleStore = create((set, get) => ({
             }
           }
           if (currentEnemyHp === 0 && currentPlayerHp > 0) {
-            get().startVictorySequence(stage.enemyId);
+            if (stage.secondPhase) {
+              /*
+               * 第二形態（`stagesLoader` が展開した `stage.secondPhase`）を
+               * 持つボスは、ここでは倒れず復活シーケンスへ入る。勝利演出は
+               * 第二形態を倒した実行（secondPhase 側には secondPhase が
+               * 無い）でのみ発火する。
+               */
+              get().startReviveSequence(stage);
+            } else {
+              get().startVictorySequence(stage.enemyId);
+            }
           } else {
             set({ failPhase: 'shown' });
           }
@@ -1547,6 +1618,96 @@ const useBattleStore = create((set, get) => ({
       set({ victoryPhase: 'fading' });
     }
     setTimeout(() => set({ victoryPhase: 'cleared' }), deadDurationMs + VICTORY_FADE_DURATION_MS, );
+   },
+
+   /**
+    * ボス復活（第二形態突入）シーケンスを開始する。
+    *
+    * 最終ボス戦（4-4）で第一形態の HP を 0 にしたとき、`scheduleComplete` の
+    * 勝敗判定から `startVictorySequence` の代わりに呼ばれる。`revivePhase` を
+    * `setTimeout` チェーンで以下のように遷移させる：
+    *   - `'dying'` : 敵の dead アニメを再生する（`BattleScreen` が
+    *     `revivePhase === 'dying'` でスプライトを `dead` 状態にする）。
+    *     入力は `BossReviveOverlay` の透明ブロッカーで塞ぐ
+    *   - `'down'`  : 敵が倒れたまま静止する。ここでシーケンスは一時停止し、
+    *     `BattleScreen` が `bossDown` トリガーを発火してロボの「やった！
+    *     倒した！」会話（フェイクアウト。`stage4-4-fakeout`）を流す。会話の
+    *     末尾 step（`reviveBoss`）で `BattleScreen` が
+    *     `resumeReviveSequence(stage)` を呼ぶまで先へ進まない
+    *
+    * 続き（`'flash'` 以降）は `resumeReviveSequence` が担う。
+    *
+    * 倒れるアニメ（`'dying'` の長さ）は **第一形態の敵**（`stage.enemyId`）の
+    * dead アニメ定義から算出する。画面で倒れているのは第一形態のスプライト
+    * なので、第二形態側の定義を見るとアニメの尺とズレる。
+    *
+    * タイマー管理：各 `setTimeout` の ID は `executionTimers` に push し、
+    * ステージ離脱やリセットで `cancelExecutionTimers()` により破棄される。
+    *
+    * Args:
+    *     stage (object): 第一形態（いま戦っていた）ステージ定義。
+    *         `enemyId`（dead アニメの尺）を参照する。
+    */
+   startReviveSequence: (stage) => {
+    const firstEnemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
+    const deadAnim = firstEnemy?.animations?.dead;
+    const deadDurationMs = deadAnim ? deadAnim.frameCount * deadAnim.frameDurationMs : 0;
+    set({ revivePhase: 'dying' });
+    const dyingTimer = setTimeout(() => {
+      set({ revivePhase: 'down' });
+    }, deadDurationMs + REVIVE_DEAD_HOLD_MS);
+    executionTimers.push(dyingTimer);
+   },
+
+   /**
+    * ボス復活シーケンスの後半（白フラッシュ〜復活）を再開する。
+    *
+    * `'down'`（倒れたまま静止）で一時停止していたシーケンスを、フェイク
+    * アウト会話（「やった！倒した！」）の末尾 step（`reviveBoss`）から
+    * `BattleScreen` が呼び出して再開する。遷移は次のとおり：
+    *   - `'flash'` : 画面全体を白フラッシュで覆う（REVIVE_FLASH_IN_MS かけて
+    *     真っ白へ）。真っ白になった瞬間に **敵の HP と見た目だけ** を第二形態
+    *     へ差し替える（HP は `secondPhase.maxEnemyHp`、見た目は
+    *     `overrideEnemyId` に第二形態の敵 ID（例: `dragon_final`）を立てて
+    *     `BattleScreen` の `EnemySprite` を差し替える）。フローチャート・
+    *     手札・実行の軌跡は第一形態のまま残す（盤面の差し替えは後、ロボの
+    *     決意のセリフに続く `boardTransform` step で `BattleScreen` が
+    *     `initializeBattle(stage.secondPhase)` を呼んで行う。その際
+    *     `overrideEnemyId` は `initializeBattle` が null へ戻すが、以降は
+    *     `isSecondPhase` が立つため表示は第二形態のまま変わらない）
+    *   - `'risen'` : 白が REVIVE_FADE_OUT_MS かけて明け、HP 9999 の第二形態
+    *     ボスと元のままの盤面が現れる。明け切ったら `null` に戻し、
+    *     `BattleScreen` がこの `'risen' → null` 遷移を検知して `bossRevive`
+    *     トリガー（ロボの会話）を発火する
+    *
+    * `revivePhase !== 'down'` のときは no-op（二重呼び出しや、シーケンス外
+    * からの誤呼び出しへのガード）。
+    *
+    * Args:
+    *     stage (object): 第一形態のステージ定義。`secondPhase`（復活後の
+    *         敵 ID・HP）を参照する。
+    */
+   resumeReviveSequence: (stage) => {
+    const secondPhaseStage = stage?.secondPhase;
+    if (!secondPhaseStage || get().revivePhase !== 'down') {
+      return;
+    }
+    const secondEnemy = enemiesData.enemies.find((e) => e.id === secondPhaseStage.enemyId);
+    set({ revivePhase: 'flash' });
+    const flashTimer = setTimeout(() => {
+      const revivedHp = secondPhaseStage.maxEnemyHp ?? secondEnemy?.maxHp ?? 0;
+      set({
+        maxEnemyHp: revivedHp,
+        currentEnemyHp: revivedHp,
+        enemyDamageEvents: [],
+        enemyReflectEvents: [],
+        overrideEnemyId: secondPhaseStage.enemyId,
+        revivePhase: 'risen',
+      });
+      const risenTimer = setTimeout(() => set({ revivePhase: null }), REVIVE_FADE_OUT_MS);
+      executionTimers.push(risenTimer);
+    }, REVIVE_FLASH_IN_MS);
+    executionTimers.push(flashTimer);
    },
 
    /**

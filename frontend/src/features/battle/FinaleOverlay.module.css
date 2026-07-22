@@ -1,0 +1,70 @@
+/*
+ * 最終ボス撃破後のフィナーレ演出。画面全体が白い光で満たされ（1.6s）、
+ * その後「つづく」テキストとボタンがフェードインする（0.8s、白化完了後に
+ * 開始）。
+ */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    opacity: 0;
+    animation: finaleWhiteIn 1600ms ease-in forwards;
+    pointer-events: auto;
+    z-index: 400;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    opacity: 0;
+    animation: finaleContentIn 800ms ease-out 1800ms forwards;
+}
+
+.finaleText {
+    margin: 0;
+    font-family: 'DotGothic16', 'Press Start 2P', monospace;
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    color: #33333d;
+    letter-spacing: 0.5em;
+    /* letter-spacing は最終文字の後ろにも付くので、中央に見えるよう相殺する */
+    padding-left: 0.5em;
+    user-select: none;
+}
+
+.button {
+    /* VictoryClearOverlay.button と同系のスタイル（白背景向けに反転） */
+    font-family: 'DotGothic16', 'Press Start 2P', monospace;
+    font-size: 0.85rem;
+    color: #33333d;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #33333d;
+    border-radius: 4px;
+    padding: 0.7rem 1.4rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.button:hover {
+    background: #eeeef4;
+}
+
+.button:active {
+    transform: translateY(1px);
+}
+
+@keyframes finaleWhiteIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes finaleContentIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}

@@ -1345,9 +1345,43 @@ function expandStage(raw, stageId) {
   return stage;
 }
 
+/**
+ * 1 ステージ分の定義を、第二形態（`secondPhase`）込みで完全形式に展開する。
+ *
+ * 本体は `expandStage` に委譲し、raw 定義に `secondPhase`（ボスの第二形態。
+ * 最終ボス 4-4 で使用）があれば、それも同じ `expandStage` で展開して
+ * `stage.secondPhase` に取り付ける。第二形態側には以下の 2 フィールドを付与する：
+ *   - `isSecondPhase: true`  : `battleStore.initializeBattle` が「今は第二形態」
+ *     フラグを立てるための印。`startExecution` の加速実行（ループのたびに
+ *     フェーズ時間が短くなる演出）の有効化判定にも使う
+ *   - `enemyId` の継承       : `secondPhase.enemyId` が未指定なら親ステージの
+ *     `enemyId` を引き継ぐ（第二形態は同じ敵の見た目を使い回す想定のため）
+ *
+ * 第二形態の入れ子（`secondPhase.secondPhase`）は展開しない（1 段のみ）。
+ *
+ * Args:
+ *     raw (object): `stages.json` 内の 1 ステージ分（短縮形式）。任意で
+ *         `secondPhase`（同じ短縮形式のステージ定義）を持つ。
+ *     stageId (string): 当該ステージの ID。警告ログ用。
+ *
+ * Returns:
+ *     object: 完全形式の 1 ステージ定義。`secondPhase` があれば展開済みの
+ *         第二形態ステージ（`isSecondPhase: true` 付き）を同名フィールドに持つ。
+ */
+function expandStageWithPhases(raw, stageId) {
+  const stage = expandStage(raw, stageId);
+  if (typeof raw.secondPhase === 'object' && raw.secondPhase !== null) {
+    const secondRaw = { enemyId: raw.enemyId, ...raw.secondPhase };
+    const second = expandStage(secondRaw, `${stageId} (secondPhase)`);
+    second.isSecondPhase = true;
+    stage.secondPhase = second;
+  }
+  return stage;
+}
+
 const expandedStages = {};
 for (const [key, raw] of Object.entries(rawStagesData.stages)) {
-  expandedStages[key] = expandStage(raw, key);
+  expandedStages[key] = expandStageWithPhases(raw, key);
 }
 
 const stagesData = {

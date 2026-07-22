@@ -1,0 +1,37 @@
+/*
+ * ボス復活（第二形態突入）演出のオーバーレイ。
+ * アニメーション時間は battleStore.js の REVIVE_FLASH_IN_MS（白フェードイン
+ * 500ms）/ REVIVE_FADE_OUT_MS（白フェードアウト 900ms）と同期させること。
+ */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    /* 演出中の誤操作（リセット・実行・ドラッグ）を全面的に塞ぐ */
+    pointer-events: auto;
+    z-index: 400;
+}
+
+/* dead アニメ再生中：見た目は透明のまま、入力だけブロックする */
+.dying {
+    opacity: 0;
+}
+
+.flash {
+    animation: reviveFlashIn 500ms ease-in forwards;
+}
+
+.risen {
+    animation: reviveFlashOut 900ms ease-out forwards;
+}
+
+@keyframes reviveFlashIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes reviveFlashOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}

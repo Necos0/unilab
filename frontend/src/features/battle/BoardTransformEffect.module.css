@@ -1,0 +1,36 @@
+/*
+ * フローチャート・手札エリアの変身エフェクト（最終ボス第二形態）。
+ * 全体 1600ms：金色の光が 700ms かけて満ち（この瞬間に BattleScreen が
+ * 盤面を差し替える）、残り 900ms で引いていく。BattleScreen.jsx の
+ * BOARD_TRANSFORM_SWAP_MS(700) / BOARD_TRANSFORM_TOTAL_MS(1600) と
+ * 同期させること。
+ */
+
+.effect {
+    position: absolute;
+    inset: 0;
+    /* 変身中の誤操作（実行・リセット・ドラッグ）をブロックする */
+    pointer-events: auto;
+    z-index: 30;
+    overflow: hidden;
+}
+
+.glow {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 50% 55%,
+            rgba(255, 255, 255, 0.95) 0%,
+            rgba(255, 224, 122, 0.9) 45%,
+            rgba(255, 213, 74, 0.75) 100%);
+    opacity: 0;
+    animation: boardTransformGlow 1600ms ease-in-out forwards;
+}
+
+/* 700/1600 = 43.75% の時点が光のピーク（＝盤面差し替えの瞬間） */
+@keyframes boardTransformGlow {
+    0%     { opacity: 0; }
+    43.75% { opacity: 1; }
+    62%    { opacity: 1; }
+    100%   { opacity: 0; }
+}

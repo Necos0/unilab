@@ -77,6 +77,18 @@ function collectBattleAssetUrls(stage) {
   urls.add('/icons/flowchart/play.svg');
   urls.add('/icons/flowchart/reset.svg');
 
+  /*
+   * 第二形態（最終ボス 4-4）があれば、その分のアセットも入場時にまとめて
+   * 先読みする。復活演出はバトル中に始まるため、そのタイミングでの
+   * ネットワーク取得を避けたい（白フェード明けに専用カード画像が
+   * チラつかないように）。
+   */
+  if (stage.secondPhase) {
+    for (const url of collectBattleAssetUrls(stage.secondPhase)) {
+      urls.add(url);
+    }
+  }
+
   return [...urls];
 }
 

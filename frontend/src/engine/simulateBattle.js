@@ -17,8 +17,10 @@ import evaluateCondition from './evaluateCondition';
 /**
  * 1 ノードのカード効果を数値状態に適用した新しい状態を返す（純関数）。
  *
- * live の `scheduleNodePhase` の効果分岐を写したもの：attack / heal / guard は
- * `multiplier` を掛け、monster は掛けない（敵攻撃のため）。monster は `reflectActive`
+ * live の `scheduleNodePhase` の効果分岐を写したもの：attack / finisher / heal /
+ * guard は `multiplier` を掛け、monster は掛けない（敵攻撃のため）。finisher
+ * （ひっさつカード。最終ボス第二形態の専用カード）は attack と同じ「敵に
+ * ダメージ」の効果。monster は `reflectActive`
  * なら敵HPへ反射、`guardShield` があれば吸収して残りを自HPへ、無ければ自HPへ。
  * クランプは live と同じ（敵HP・自HP は 0 下限、heal は `maxPlayerHp` 上限）。
  * カードが無いノード（start / goal / merge / condition）は状態を変えずに返す。
@@ -36,7 +38,7 @@ export function applyNodeEffect(state, card, multiplier) {
   let { enemyHp, playerHp, guardShield, reflectActive } = state;
   const { maxPlayerHp } = state;
   const mult = multiplier ?? 1;
-  if (card.id === 'attack' && card.power > 0) {
+  if ((card.id === 'attack' || card.id === 'finisher') && card.power > 0) {
     enemyHp = Math.max(0, enemyHp - card.power * mult);
   } else if (card.id === 'monster' && card.power > 0) {
     if (reflectActive) {

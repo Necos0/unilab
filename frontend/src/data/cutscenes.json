@@ -229,5 +229,44 @@
       { "bubble": "ここを 突破《とっぱ》できれば、魔物《まもの》たちの ボスがいる ステージに 行《い》けるよ！" },
       { "bubble": "ぼくと 力《ちから》を 合《あ》わせて、いっしょに 倒《たお》そうね！！" }
     ]
+  },
+
+  "stage4-4-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "4-4" },
+    "steps": [
+      { "bubble": "…ついに ここまで 来《き》たね、{playerName}。" },
+      { "bubble": "これが 最後《さいご》の ボスだ！こいつを 倒《たお》せば、街《まち》を 取《と》り戻《もど》せる！" },
+      { "bubble": "こわくないよ。だって、ぼくと {playerName}は 最強《さいきょう》の コンビだからね！" },
+      { "bubble": "さあ、力《ちから》を 合《あ》わせて 倒《たお》そう！！" }
+    ]
+  },
+
+  "stage4-4-fakeout": {
+    "category": "story",
+    "once": false,
+    "trigger": { "type": "bossDown", "stageId": "4-4" },
+    "steps": [
+      { "bubble": "やった…！ 倒《たお》した！！" },
+      { "bubble": "超絶《ちょうぜつ》グレート！！ ぼくたち、やったんだよ、{playerName}！！" },
+      { "bubble": "これで 街《まち》も みんなも 取《と》り戻《もど》せるね！さあ、マップに 戻《もど》ろ…" },
+      { "reviveBoss": true }
+    ]
+  },
+
+  "stage4-4-revive": {
+    "category": "story",
+    "once": false,
+    "trigger": { "type": "bossRevive", "stageId": "4-4" },
+    "steps": [
+      { "bubble": "そ、そんな…！？ 倒《たお》したはずなのに、立《た》ち上《あ》がってくる…！" },
+      { "bubble": "HPが 9999…！？ こんなの、ふつうに 戦《たたか》ったら 勝《か》てないよ…！" },
+      { "bubble": "…ううん、あきらめない。{playerName}と ここまで 来《き》たんだ。ぼくの 全部《ぜんぶ》の 力《ちから》を 使《つか》うよ！" },
+      { "boardTransform": true },
+      { "bubble": "見《み》て！ 新《あたら》しい フローチャートと、特別《とくべつ》な カードが 出《で》てきた！" },
+      { "bubble": "この『ひっさつカード』を マスに はめてみて！", "point": "finisherCard", "waitForCardInSlot": true },
+      { "bubble": "このフローチャートは 無限《むげん》ループ！倒《たお》すまで 攻撃《こうげき》し続《つづ》けるよ。じっこうだ、{playerName}！！", "point": "executeButton", "waitForExecute": true }
+    ]
   }
 }

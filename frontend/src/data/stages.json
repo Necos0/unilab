@@ -356,6 +356,7 @@
       "maxEnemyHp": 150,
       "cards": [
         { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 150 },
         { "id": "guard", "power": 30 },
         { "id": "heal", "power": 30 }
       ],
@@ -372,7 +373,28 @@
             { "lockedCard": { "id": "monster", "power": 40 } }
           ]
         }
-      ]
+      ],
+      "secondPhase": {
+        "enemyId": "dragon_final",
+        "maxEnemyHp": 9999,
+        "cards": [
+          { "id": "finisher", "power": 300 }
+        ],
+        "flow": [
+          {
+            "loop": {
+              "mode": "post",
+              "condition": "enemyHp <= 0",
+              "label": "敵のHPが0になった?",
+              "trueDir": "right",
+              "falseDir": "up",
+              "body": [
+                {}
+              ]
+            }
+          }
+        ]
+      }
     },
     "5-1": {
       "enemyId": "cobra",
