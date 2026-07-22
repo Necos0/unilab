@@ -140,6 +140,7 @@
         {},
         { "lockedCard": { "id": "monster", "power": 50 } },
         {},
+        { "turn": {} },
         { "acceptOnly": "attack" },
         { "lockedCard": { "id": "monster", "power": 60 } },
         {},
