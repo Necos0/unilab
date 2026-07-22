@@ -107,7 +107,13 @@ function EnemySprite({ enemyId, state = 'idle', className }) {
     return null;
   }
 
-  const src = getEnemyFramePath(enemyId, state, frameIndex);
+  /*
+   * フレーム index を現在アニメの範囲にクランプする。敵 ID・状態の
+   * 切り替わりフレームで前アニメの index が一瞬残っても、存在しない
+   * フレーム URL（壊れ画像表示の原因）を参照しないための保険。
+   */
+  const safeFrameIndex = Math.min(frameIndex, animation.frameCount - 1);
+  const src = getEnemyFramePath(enemyId, state, safeFrameIndex);
 
   return (
     <div
