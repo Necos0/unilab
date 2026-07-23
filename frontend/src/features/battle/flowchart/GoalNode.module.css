@@ -35,7 +35,7 @@
     点滅させる（play-button 要件 5-5）。SlotNode の `.slot.active` と同じ      
     流儀で、`filter` を marker 全体に当てて「カード周りに光の影」を出す */
 .marker.active {
-    animation: startGoalHighlight 0.3s ease-in-out 2 alternate;
+    animation: startGoalHighlight calc(0.3s / var(--speed-mult, 1)) ease-in-out 2 alternate;
 }
 
 @keyframes startGoalHighlight {

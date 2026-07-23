@@ -46,7 +46,7 @@
 }
 
 .diamond.active {
-  animation: conditionHighlight 0.3s ease-in-out 2 alternate;
+  animation: conditionHighlight calc(0.3s / var(--speed-mult, 1)) ease-in-out 2 alternate;
 }
 
 @keyframes conditionHighlight {

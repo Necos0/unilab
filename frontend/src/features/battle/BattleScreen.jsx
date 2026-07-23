@@ -11,6 +11,7 @@ import styles from './BattleScreen.module.css';
 import FlowchartArea from './flowchart/FlowchartArea';
 import ResetButton from './flowchart/ResetButton';
 import ZoomButton from './flowchart/ZoomButton';
+import SpeedToggleButton from './flowchart/SpeedToggleButton';
 import EnemySprite from './enemy/EnemySprite';
 import BackToMapButton from './BackToMapButton';
 import HelpButton from './HelpButton';
@@ -383,6 +384,13 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * 第二形態のステージ定義を渡す。
    */
   const activeStage = isSecondPhase && stage.secondPhase ? stage.secondPhase : stage;
+  const speedMultiplier = useBattleStore((s) => s.speedMultiplier);
+  const rootRef = useRef(null);
+  useEffect(() => {
+    if (rootRef.current) {
+      rootRef.current.style.setProperty('--speed-mult', String(speedMultiplier));
+    }
+  }, [speedMultiplier]);
   const isEnemyFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
   const isEnemyDimmed = failPhase === 'shown';
   const lastPlayerDamageId = useBattleStore(
@@ -739,7 +747,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <section className={rootClassName}>
+      <section ref={rootRef} className={rootClassName}>
         {isIntroActive && (
           /*
            * 入場演出のスキップレイヤー。root の `.intro` が pointer-events を
@@ -764,6 +772,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             <BackToMapButton onClick={onExitToMap} />
           )}
         </div>
+        <HelpButton onClick={() => setIsHelpOpen(true)} />
         {isCardHelpOpen && (
           /*
            * key で pending の切り替わりごとに再マウントする。`openCardHelp` →
@@ -905,6 +914,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
                 <ZoomButton />
                 <ResetButton stage={activeStage} />
               </div>
+              <SpeedToggleButton />
             </div>
           </div>
           <div className={styles.playerArea} data-cutscene-point="handPanel">

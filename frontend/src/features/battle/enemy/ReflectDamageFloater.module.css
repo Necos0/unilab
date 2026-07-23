@@ -13,7 +13,7 @@
     font-size: 1.75rem;
     color: #ff8c42;
     text-shadow: 0 0 4px #000, 0 2px 0 #000;
-    animation: reflectFloat 0.8s ease-out forwards;
+    animation: reflectFloat calc(0.8s / var(--speed-mult, 1)) ease-out forwards;
 }
 
 @keyframes reflectFloat {

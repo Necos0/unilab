@@ -27,7 +27,7 @@
     - Lint / 型チェックがパスする
     - 既存の戦闘進行・勝利演出・敗北演出に挙動の変化がない（この時点ではまだ倍率が時間に適用されていないので何も速くならない）
 
-- [ ] **2. `startExecution` 内の `setTimeout` 遅延と `currentPhaseMs` set を倍率適用に書き換える**
+- [x] **2. `startExecution` 内の `setTimeout` 遅延と `currentPhaseMs` set を倍率適用に書き換える**  ✓ 完了
   - 内容：
     - `scheduleNodePhase(nodeId, delay)` 内の `setTimeout(callback, delay)` を `setTimeout(callback, delay / get().speedMultiplier)` に変更
     - `scheduleEdgePhase(edge, delay)` 内の同様の `setTimeout` も同じく書き換え
@@ -44,7 +44,7 @@
     - Lint / 型チェックがパスする
     - **この時点では CSS animation はまだ通常速度** なので、ノードハイライト（0.3s）と DamageFloater（0.8s）は速くならない。タスク5 で揃える
 
-- [ ] **3. `SpeedToggleButton.jsx` と `SpeedToggleButton.module.css` を新規作成**
+- [x] **3. `SpeedToggleButton.jsx` と `SpeedToggleButton.module.css` を新規作成**  ✓ 完了
   - 内容：
     - 新規ファイル `frontend/src/features/battle/flowchart/SpeedToggleButton.jsx` を作成
     - JSX 構造：
@@ -74,7 +74,7 @@
     - `.button.active` で薄表示（opacity 0.5）の見た目になる（実機確認は次のタスク以降）
     - Lint / 型チェックがパスする
 
-- [ ] **4. `BattleScreen.jsx` で `SpeedToggleButton` を配置し、CSS variable `--speed-mult` を root に同期**
+- [x] **4. `BattleScreen.jsx` で `SpeedToggleButton` を配置し、CSS variable `--speed-mult` を root に同期**  ✓ 完了
   - 内容：
     - `BattleScreen.jsx` の import に `import SpeedToggleButton from './flowchart/SpeedToggleButton';` を追加
     - `.flowchartControls` 内、`.topRow` の `<div>` 直後（旧 `PlayButton` の位置）に `<SpeedToggleButton />` を追加：
@@ -104,7 +104,7 @@
     - **この時点では CSS animation はまだ通常速度のままで、JS タイマー側だけ倍速** で動く（混在状態を確認、タスク5 で揃える）
     - Lint / 型チェックがパスする
 
-- [ ] **5. 対象 CSS animation の `animation-duration` を `calc(<base> / var(--speed-mult, 1))` に書き換える**
+- [x] **5. 対象 CSS animation の `animation-duration` を `calc(<base> / var(--speed-mult, 1))` に書き換える**  ✓ 完了
   - 内容：以下の 16 個の animation について、`animation` shorthand の duration 部分（または `animation-duration` 個別プロパティ）を `calc(<旧 duration> / var(--speed-mult, 1))` に変更
     - `SlotNode.module.css` の `.slot.active` (`slotHighlight` 0.3s)
     - `SlotNode.module.css` の `.slot.counterFlash` (`counterFlash` 0.36s)
