@@ -247,6 +247,7 @@ const ACCEL_MIN_EDGE_MS = 18;
 const REVIVE_DEAD_HOLD_MS = 600;
 const REVIVE_FLASH_IN_MS = 500;
 const REVIVE_FADE_OUT_MS = 900;
+const SPEED_MULTIPLIERS = [1, 2];
 let executionTimers = [];
 
 function cancelExecutionTimers() {
@@ -593,6 +594,7 @@ const useBattleStore = create((set, get) => ({
   _enemyReflectCounter: 0,
   counterValues: {},
   activeCounterId: null,
+  speedMultiplier: 1,
 
   /**
    * ステージ定義から配置状態を初期化する。
@@ -689,6 +691,7 @@ const useBattleStore = create((set, get) => ({
       enemyReflectEvents: [],
       counterValues,
       activeCounterId: null,
+      speedMultiplier: 1,
     }));
   },
 
@@ -740,6 +743,14 @@ const useBattleStore = create((set, get) => ({
     setTimeout(() => {
       set(() => ({ isTransitioning: false }));
     }, TRANSITION_DURATION_MS);
+  },
+
+  toggleSpeedMultiplier: () => {
+    set((s) => {
+      const idx = SPEED_MULTIPLIERS.indexOf(s.speedMultiplier);
+      const next = SPEED_MULTIPLIERS[(idx + 1) % SPEED_MULTIPLIERS.length];
+      return { speedMultiplier: next };
+    });
   },
 
   /**
@@ -961,8 +972,8 @@ const useBattleStore = create((set, get) => ({
 
       set((s) => ({
         isExecuting: true,
-        currentPhaseMs: NODE_PHASE_MS,
         accelIntensity: 0,
+        currentPhaseMs: NODE_PHASE_MS / get().speedMultiplier,
         currentEnemyHp: s.maxEnemyHp,
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
@@ -1000,6 +1011,7 @@ const useBattleStore = create((set, get) => ({
           executionStep: null,
           currentPhaseMs: null,
           failPhase: 'shown',
+          speedMultiplier: 1,
         });
         return;
       }
@@ -1042,6 +1054,7 @@ const useBattleStore = create((set, get) => ({
               isExecuting: false,
               executionStep: null,
               currentPhaseMs: null,
+              speedMultiplier: 1,
             });
             return;
           }
@@ -1049,8 +1062,8 @@ const useBattleStore = create((set, get) => ({
           const nodePhaseMs = nextPhaseMs(NODE_PHASE_MS, ACCEL_MIN_NODE_MS);
           set((s) => ({
             executionStep: { type: 'node', id: nodeId },
-            currentPhaseMs: nodePhaseMs,
             accelIntensity: accelEased,
+            currentPhaseMs: nodePhaseMs / get().speedMultiplier,
             traversedNodeIds: [...s.traversedNodeIds, nodeId],
           }));
 
@@ -1096,7 +1109,7 @@ const useBattleStore = create((set, get) => ({
           }
 
           scheduleEdgePhase(nextEdge, nodePhaseMs);
-        }, delay);
+        }, delay / get().speedMultiplier);
         executionTimers.push(tid); 
       };
 
@@ -1110,7 +1123,7 @@ const useBattleStore = create((set, get) => ({
           const edgePhaseMs = nextPhaseMs(EDGE_PHASE_MS, ACCEL_MIN_EDGE_MS);
           set((s) => ({
             executionStep: { type: 'edge', id: edge.id },
-            currentPhaseMs: edgePhaseMs,
+            currentPhaseMs: edgePhaseMs / get().speedMultiplier,
             accelIntensity: accelEased,
             traversedEdgeIds: [...s.traversedEdgeIds, edge.id],
           }));
@@ -1127,7 +1140,7 @@ const useBattleStore = create((set, get) => ({
           }
 
           scheduleNodePhase(edge.target, edgePhaseMs);
-        }, delay);
+        }, delay / get().speedMultiplier);
         executionTimers.push(tid);
       };
 
@@ -1155,9 +1168,9 @@ const useBattleStore = create((set, get) => ({
               get().startVictorySequence(stage.enemyId);
             }
           } else {
-            set({ failPhase: 'shown' });
+            set({ failPhase: 'shown', speedMultiplier: 1 });
           }
-        }, delay);
+        }, delay / get().speedMultiplier);
         executionTimers.push(tid);
       };
 
@@ -1243,6 +1256,7 @@ const useBattleStore = create((set, get) => ({
       result.guardShield = 0;
       result.reflectActive = false;
       result.playerShakeEvents = [];
+      result.speedMultiplier = 1;
     }
     return result;
    }),
@@ -1612,10 +1626,10 @@ const useBattleStore = create((set, get) => ({
     const deadAnim = enemy?.animations?.dead;
     const deadDurationMs = deadAnim ? deadAnim.frameCount * deadAnim.frameDurationMs : 0;
     if (deadAnim) {
-      set({ victoryPhase: 'dead' });
+      set({ victoryPhase: 'dead', speedMultiplier: 1 });
       setTimeout(() => set({ victoryPhase: 'fading' }), deadDurationMs);
     } else {
-      set({ victoryPhase: 'fading' });
+      set({ victoryPhase: 'fading', speedMultiplier: 1 });
     }
     setTimeout(() => set({ victoryPhase: 'cleared' }), deadDurationMs + VICTORY_FADE_DURATION_MS, );
    },
@@ -1765,6 +1779,7 @@ const useBattleStore = create((set, get) => ({
     cancelExecutionTimers();
     set((state) => ({
       failPhase: null,
+      speedMultiplier: 1,
       currentEnemyHp: state.maxEnemyHp,
       currentPlayerHp: state.maxPlayerHp,
       enemyDamageEvents: [],

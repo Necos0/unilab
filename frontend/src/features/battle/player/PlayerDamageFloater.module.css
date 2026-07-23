@@ -13,7 +13,7 @@
     font-size: 1.5rem;
     color: #ff5d5d;
     text-shadow: 0 0 4px #000, 0 2px 0 #000;
-    animation: damageFloat 0.8s ease-out forwards;
+    animation: damageFloat calc(0.8s / var(--speed-mult, 1)) ease-out forwards;
 }
 
 @keyframes damageFloat {

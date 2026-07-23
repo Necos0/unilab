@@ -120,7 +120,7 @@
 }
 
 .slot.active {
-  animation: slotHighlight 0.3s ease-in-out 2 alternate;
+  animation: slotHighlight calc(0.3s / var(--speed-mult, 1)) ease-in-out 2 alternate;
 }
 
 @keyframes slotHighlight {
@@ -160,7 +160,7 @@
 }
 
 .slot.counterFlash {
-  animation: counterFlash 0.36s ease-out 1;
+  animation: counterFlash calc(0.36s / var(--speed-mult, 1)) ease-out 1;
 }
 
 @keyframes counterFlash {
