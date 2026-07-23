@@ -1,0 +1,44 @@
+/*
+ * バトル画面からマップ画面へ戻るときの黒フェードオーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）。z-index はエンカウント演出
+ *     （BattleTransition）と同じ最上位にし、遷移中のクリックをブロックする
+ *   - 演出は 2 段階：バトル画面上での暗転（.darken）→ 入れ替わった
+ *     マップ画面上での明転（.lighten）
+ *   - 各段の終了状態は `forwards` で保持し、JS 側の phase 切替と CSS
+ *     アニメーションを同期させる（BattleTransition と同じ流儀）
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  background: #000;
+}
+
+/* バトル画面の上で黒へ暗転していく */
+.darken {
+  animation: mapReturnDarken 300ms ease-in forwards;
+}
+
+/* マップ画面の上で黒から明転していく */
+.lighten {
+  animation: mapReturnLighten 350ms ease-out forwards;
+}
+
+@keyframes mapReturnDarken {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mapReturnLighten {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

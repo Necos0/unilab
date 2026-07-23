@@ -5,6 +5,7 @@ import WakeUpOverlay from './features/story/WakeUpOverlay.jsx';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
+import MapReturnTransition from './features/battle/MapReturnTransition.jsx';
 import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
 import CharacterGallery from './editer/CharacterGallery.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
@@ -52,13 +53,19 @@ import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
  * 切り替え、その後フェードアウトでバトル画面を露出させる。
  *
  * 戦闘 → マップの帰り道は 2 経路ある：
- *   - 右上テスト用 `BackToMapButton` → `handleExitToMap`：画面遷移のみ。
- *     クリア記録は変更しない（要件 3-3）。
+ *   - 右上テスト用 `BackToMapButton`・敗北時 `BattleFailOverlay` →
+ *     `handleBattleExitToMap`：画面遷移のみ。クリア記録は変更しない
+ *     （要件 3-3）。
  *   - 勝利演出 `VictoryClearOverlay` の「マップへ戻る」 → `handleClearedExitToMap`：
  *     `progressStore.markStageCleared(stageId)` でクリア記録を更新してから
  *     マップ画面へ遷移する（要件 3-1）。`markStageCleared` 内で次ステージの
  *     解放判定と `pendingUnlockStageId` のセットも行われ、`MapScreen` の
  *     マウント時 useEffect が拾って解放アニメを起動する。
+ * どちらの経路も即座に画面を切り替えるのではなく、`MapReturnTransition` の
+ * 黒フェード（暗転 → 画面切替 → 明転）を挟んで自然に戻す。実際の退出処理
+ * （クリア記録・`setScreen`）は `returnToMapActionRef` に退避しておき、
+ * 暗転完了時の `handleReturnMidpoint` が実行する。エディタ・ギャラリー・
+ * 広場からの `handleExitToMap`（開発用途）は従来どおり即時切替。
  *
  * 将来「ステージ選択画面」「タイトル画面」「戦闘終了→マップ復帰」など
  * 本格的な画面遷移ロジックを追加する際は、ここの `useState` を Zustand
@@ -71,6 +78,14 @@ function App() {
   const [screen, setScreen] = useState('title');
   const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
   const [pendingStageId, setPendingStageId] = useState(null);
+  /*
+   * バトル → マップの黒フェード帰還演出（`MapReturnTransition`）を表示中か。
+   * 実際の退出処理（クリア記録・`setScreen`）は `returnToMapActionRef` に
+   * 退避し、暗転完了時（`handleReturnMidpoint`）に実行する。ref の
+   * 非 null は「演出予約済み」を意味し、二重予約のガードにも使う。
+   */
+  const [isReturningToMap, setIsReturningToMap] = useState(false);
+  const returnToMapActionRef = useRef(null);
   /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
   const [isWakingUp, setIsWakingUp] = useState(false);
   /*
@@ -223,6 +238,27 @@ function App() {
     setScreen('map');
   }, []);
 
+  /*
+   * バトル → マップの帰還演出。押下時は退出処理を `returnToMapActionRef` に
+   * 退避して黒フェード（`MapReturnTransition`）を開始するだけにし、実際の
+   * 画面切替は暗転が完了した `handleReturnMidpoint` で行う。演出中の再押下は
+   * ref が埋まっているあいだ無視する（オーバーレイ自体もクリックを遮る）。
+   */
+  const handleBattleExitToMap = useCallback(() => {
+    if (returnToMapActionRef.current) return;
+    returnToMapActionRef.current = () => setScreen('map');
+    setIsReturningToMap(true);
+  }, []);
+
+  const handleReturnMidpoint = useCallback(() => {
+    returnToMapActionRef.current?.();
+    returnToMapActionRef.current = null;
+  }, []);
+
+  const handleReturnEnd = useCallback(() => {
+    setIsReturningToMap(false);
+  }, []);
+
   const handleStartGame = useCallback(() => {
     /*
      * オープニング紙芝居はカットシーンと同様に視聴履歴を持つ
@@ -306,26 +342,36 @@ function App() {
   }, []);
 
   const handleClearedExitToMap = useCallback((clearedStageId) => {
-    useProgressStore.getState().markStageCleared(clearedStageId);
-    const progress = useProgressStore.getState();
+    if (returnToMapActionRef.current) return;
     /*
-     * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
-     * （`WorldUnlockCutscene`）が走るときは、シネマ完了後に `exitStage` を
-     * 出す（上の `pendingWorldUnlock` 監視 useEffect が発火する）。
-     * それ以外で次ステージの開放アニメーションが走るなら、`exitStage` は
-     * アニメ完了後に出す（`isUnlockAnimating` 監視の useEffect が発火する）。
-     * どちらの演出も無ければここで即時発火する。
+     * クリア記録〜画面切替の一連の退出処理は、黒フェードの暗転が完了した
+     * タイミング（`handleReturnMidpoint`）で実行する。マップ側の解放
+     * アニメーションやカットシーンが、暗転中ではなく明転後のマップ上で
+     * 始まるようにするため。
      */
-    if (progress.pendingWorldUnlock !== null) {
-      pendingExitStageIdRef.current = clearedStageId;
-    } else if (progress.pendingUnlockStageId !== null) {
-      pendingExitStageIdRef.current = clearedStageId;
-    } else {
-      useCutsceneStore
-        .getState()
-        .fireTrigger({ type: 'exitStage', stageId: clearedStageId });
-    }
-    setScreen('map');
+    returnToMapActionRef.current = () => {
+      useProgressStore.getState().markStageCleared(clearedStageId);
+      const progress = useProgressStore.getState();
+      /*
+       * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
+       * （`WorldUnlockCutscene`）が走るときは、シネマ完了後に `exitStage` を
+       * 出す（上の `pendingWorldUnlock` 監視 useEffect が発火する）。
+       * それ以外で次ステージの開放アニメーションが走るなら、`exitStage` は
+       * アニメ完了後に出す（`isUnlockAnimating` 監視の useEffect が発火する）。
+       * どちらの演出も無ければここで即時発火する。
+       */
+      if (progress.pendingWorldUnlock !== null) {
+        pendingExitStageIdRef.current = clearedStageId;
+      } else if (progress.pendingUnlockStageId !== null) {
+        pendingExitStageIdRef.current = clearedStageId;
+      } else {
+        useCutsceneStore
+          .getState()
+          .fireTrigger({ type: 'exitStage', stageId: clearedStageId });
+      }
+      setScreen('map');
+    };
+    setIsReturningToMap(true);
   }, []);
 
   let currentScreen;
@@ -337,7 +383,7 @@ function App() {
     currentScreen = (
       <BattleScreen
         stageId={stageId}
-        onExitToMap={handleExitToMap}
+        onExitToMap={handleBattleExitToMap}
         onClearedExitToMap={handleClearedExitToMap}
       />
     );
@@ -372,6 +418,12 @@ function App() {
           targetStageId={pendingStageId}
           onMidpoint={handleTransitionMidpoint}
           onEnd={handleTransitionEnd}
+        />
+      )}
+      {isReturningToMap && (
+        <MapReturnTransition
+          onMidpoint={handleReturnMidpoint}
+          onEnd={handleReturnEnd}
         />
       )}
     </>
