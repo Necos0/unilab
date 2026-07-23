@@ -36,9 +36,11 @@
 import rawStagesData from './stages.json';
 
 const SLOT_X_START = 80;
-const SLOT_X_STEP = 200;
+const SLOT_X_STEP = 160;
 const SLOT_Y_DEFAULT = 120;
-const START_X = -120;
+// スタートマーカーは先頭スロットの 1 ステップ左に置き、スロットと同じ
+// リズム（SLOT_X_STEP 間隔）で並ぶようにする
+const START_X = SLOT_X_START - SLOT_X_STEP;
 const MERGE_SIZE = 16;
 const SLOT_WIDTH = 80;
 const SLOT_HEIGHT = 120;
@@ -669,7 +671,7 @@ function processSubFlow(items, {
       const condId = `cond-${ctx.condCounter}`;
       ctx.conditions.push({
         id: condId,
-        position: { x: 80 + column * 200, y: currentYLevel },
+        position: { x: SLOT_X_START + column * SLOT_X_STEP, y: currentYLevel },
         expression: item.condition,
         label: item.label,
         // leftward なら trueDir を left に指定
