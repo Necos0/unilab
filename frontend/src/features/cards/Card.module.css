@@ -21,7 +21,9 @@
   bottom: 13%;
   text-align: center;
   font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
-  font-size: 1.25rem;
+  /* カード幅 120px に 3 桁（Press Start 2P は 1 文字 ≒ font-size 幅）が
+     収まる上限。これ以上はカード絵の数値帯からもはみ出す */
+  font-size: 1.5rem;
   color: #f5f5f5;
   text-shadow: 1px 1px 0 #000;
   letter-spacing: 1px;

@@ -10,7 +10,7 @@
 .number {
     position: absolute;
     font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     color: #ff5d5d;
     text-shadow: 0 0 4px #000, 0 2px 0 #000;
     animation: damageFloat 0.8s ease-out forwards;

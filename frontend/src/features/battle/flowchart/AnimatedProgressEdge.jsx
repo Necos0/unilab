@@ -95,7 +95,7 @@ import styles from './AnimatedProgressEdge.module.css';
  * `labelPos` で算出する（`flowchart-loop` 仕様で cond の出口方向が可変になった
  * ため）。右出口なら右上、下出口なら下、上出口なら上、左出口なら左にずらす。
  * 既定（true=右 / false=下）の分岐ステージでも従来とほぼ同じ位置に収まる。
- * スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 11px`
+ * スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 13px`
  * ／ `font-weight: bold`、`pointer-events: none` でエッジクリックを奪わない。
  * `isActive` / `isTraversed` には依存させず、常時同じ見た目で表示する（実行
  * 中のラベル色変えは視覚ノイズが増えるだけで判別性に貢献しないと判断）。

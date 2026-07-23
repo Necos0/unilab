@@ -181,7 +181,9 @@
 
 .hpText {
   font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
-  font-size: 0.75rem;
+  /* 「100/100」（7 文字 ≒ font-size × 7 + 字間）がバー（180px）と合わせて
+     幅 390px 級のスマホでもはみ出さない上限が 1rem */
+  font-size: 1rem;
   color: #f5f5f5;
   letter-spacing: 1px;
 }

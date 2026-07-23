@@ -26,10 +26,10 @@
   background: #15151c;
 }
 
-/* SVGアイコン本体。ZoomButton の矢印（font-size 0.9rem）と同じ高さに揃える */
+/* SVGアイコン本体。ZoomButton の矢印（font-size 1.05rem）と同じ高さに揃える */
 .icon {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 1.05rem;
+  height: 1.05rem;
   display: block;
 }
 

@@ -139,7 +139,8 @@
 .slotNumber {
   color: #6a6a78;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.8rem;
+  /* スロット内寸（幅 76px）に 2 桁（40px）が余裕で収まる範囲での拡大 */
+  font-size: 1.25rem;
   pointer-events: none;
   user-select: none;
 }
