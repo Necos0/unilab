@@ -1,0 +1,18 @@
+/*
+ * マップ上のフローチャートロボの浮遊アニメーション。
+ * SVG の <g> に CSS transform を掛けて上下にゆっくりバウンスさせる
+ * （translate の px は SVG のユーザー座標単位として解釈される）。
+ */
+.float {
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}

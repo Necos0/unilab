@@ -4,6 +4,7 @@ import { useSpriteAnimation } from '../../hooks/useSpriteAnimation';
 import findNodeById from './findNodeById';
 import { getHeroFramePath } from './heroSpritePath';
 import { reverseDirection } from './reverseDirection';
+import RoboSprite from './RoboSprite';
 import playerData from '../../data/player.json';
 
 const SEGMENT_SPEED_PX_PER_MS = 0.42;
@@ -205,6 +206,10 @@ function PlayerShadow({ x, y }) {
  *   - 状態が切り替わるたびに `preloadFrames` で次の歩行方向の画像群を
  *     先読みしてチラつきを抑える。
  *
+ * 相棒のフローチャートロボ（`RoboSprite`）も同じ足元座標と歩行方向を
+ * 渡して勇者の斜め上（進行方向の反対側）に描画し、歩行・静止を問わず
+ * 常に追従して浮遊させる。
+ *
  * Returns:
  *     JSX.Element | null: スプライト要素、または座標未確定時 null。
  */
@@ -316,6 +321,11 @@ function PlayerSprite() {
         x={position.x}
         y={position.y}
         src={getHeroFramePath(directionState, frameIndex)}
+      />
+      <RoboSprite
+        x={position.x}
+        y={position.y}
+        directionState={directionState}
       />
     </g>
   );
