@@ -1,7 +1,8 @@
 /*
  * オープニング紙芝居画面。黒一色の背景に、上部の絵と下部の文章を縦に並べる。
- * スライドの切り替えは `key={index}` の再マウントで `.imageArea` / `.text` の
- * フェードインが毎回先頭から走る。最後のスライドを送ったら `.slide` に
+ * スライドの切り替えは `key={index}` の再マウントで `.imageArea` のフェード
+ * インが毎回先頭から走る（文章は JSX 側の読み上げアニメーションで 1 トークン
+ * ずつ現れる）。最後のスライドを送ったら `.slide` に
  * `.leaving` を付け、全体を黒へフェードアウトする（`StoryScreen.jsx` の
  * `FADE_OUT_MS` と長さを合わせる）。
  */
@@ -69,7 +70,10 @@
   letter-spacing: 0.08em;
 }
 
-/* 文章。絵よりわずかに遅れてフェードインする。ルビの分だけ行間を広く取る。 */
+/*
+ * 文章。表示は CSS ではなく JSX 側の読み上げ（タイプライター）アニメーション
+ * が担い、1 トークンずつゆっくり現れる。ルビの分だけ行間を広く取る。
+ */
 .text {
   margin: 0;
   max-width: 36em;
@@ -78,12 +82,16 @@
   font-size: clamp(1rem, 2.4vw, 1.5rem);
   line-height: 2.3;
   text-align: center;
-  animation: storyFadeIn 1.5s ease 0.35s both;
 }
 
 .text rt {
   font-size: 0.45em;
   letter-spacing: 0;
+}
+
+/* 読み上げ前のトークン。場所は確保したまま透明にして折り返しを固定する。 */
+.hidden {
+  color: transparent;
 }
 
 /*
