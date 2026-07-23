@@ -9,7 +9,7 @@
    * 一部にしか描かれず、残りが白く埋まってしまう不具合があった。
    */
   height: 100dvh;
-  background: #0b0b10;
+  background: #000;
   color: #f5f5f5;
   font-family: system-ui, sans-serif;
   overflow: hidden;
@@ -23,6 +23,22 @@
   --robo-frame-radius: 20px;
 }
 
+/* 画面中央だけをわずかに明るく持ち上げる逆ビネット。
+   視線が中央に集まり、額縁に入ったような落ち着きを出す。
+   pointer-events: none の光のヴェールとして全エリアの上に重ねる */
+.root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 75% 65% at 50% 45%,
+    rgba(150, 145, 190, 0.09) 0%,
+    rgba(150, 145, 190, 0.035) 45%,
+    transparent 75%
+  );
+}
+
 .enemyArea {
   flex: 45 0 0;
   display: flex;
@@ -31,6 +47,13 @@
   justify-content: center;
   gap: 0.75rem;
   border-bottom: 1px solid #2a2a33;
+  /* 敵の背後にだけ薄明かりを敷き、舞台照明が当たっているように見せる */
+  background: radial-gradient(
+    ellipse 70% 85% at 50% 55%,
+    #2c2440 0%,
+    #16121f 45%,
+    #000 100%
+  );
   font-size: 1.25rem;
   overflow: hidden;
   /* DamageFloater を絶対配置で重ねるための基準点（attack-processing 要件     
@@ -46,6 +69,8 @@
      重ねるための基準（card-placement 要件 7-5、flowchart-zoom 要件 1-1） */
   position: relative;
   /*border-bottom: 1px solid #2a2a33;*/
+  /* 手札（純黒）とのトーン差で、領域の区切りを装飾なしに示す */
+  background: #12121a;
   color: #a9a9b3;
   min-height: 0;
   /* 拡大時に flex-grow を 80 にアニメーションさせる（flowchart-zoom 要件 4） */
@@ -73,29 +98,7 @@
   border: var(--robo-frame-width) solid transparent;
   border-radius: var(--robo-frame-radius);
   overflow: hidden;
-  background:
-    /*  1. 上端のリムライト（光が当たる縁, 短く鮮明）*/
-    /*linear-gradient(180deg,
-      rgba(255, 255, 255, 0.7) 0%,
-      rgba(255, 255, 255, 0) 12%
-    ) padding-box,*/
-    /* 2. 斜めの光の帯（ガラスの表面反射, 中央に集中）*/
-    linear-gradient(115deg,
-      rgba(255, 255, 255, 0) 35%,
-      rgba(255, 255, 255, 0.5) 50%,
-      rgba(255, 255, 255, 0) 65%
-    ) padding-box,
-    /* 3. ベースの水色ティント（液晶パネルらしさ）*/
-    linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)) padding-box,
-    linear-gradient(155deg,
-      var(--robo-frame-color-light) 0%,
-      var(--robo-frame-color) 30%,
-      var(--robo-frame-color-dark) 55%,
-      var(--robo-frame-color) 80%,
-      var(--robo-frame-color-light) 100%
-    ) border-box;
-  /* 4. 外側のドロップシャドウ（宙に浮かんで見える）*/
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  background: #000;
 }
 
 /* 拡大状態：敵エリアを 0 に潰し、フローチャートエリアを 80 まで広げる。

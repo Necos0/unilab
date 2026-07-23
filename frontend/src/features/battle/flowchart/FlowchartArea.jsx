@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   MarkerType,
-  Background,
-  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import SlotNode from './SlotNode';
@@ -216,9 +214,7 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoa
  * ステージ定義（スロット・スタート／ゴールマーカー・エッジ）を受け取り
  * React Flow キャンバス上に描画する。スロットには dnd-kit でカードを
  * ドロップできるが、スタート／ゴールマーカーはドロップ対象外（純粋な
- * 視覚マーカー）。背景には `Background` の `Lines` バリアントで薄い
- * グリッドを敷き、「プログラムを組む場所」である中段の領域性を視覚的に
- * 強調する。
+ * 視覚マーカー）。
  *
  * 拡大／縮小切替（`battleStore.isExpanded`）に連動して以下をコントロール：
  *   - **両モード共通の zoom 計算**：`getNodesBounds` で求めたノード範囲を
@@ -346,12 +342,6 @@ function FlowchartArea({ stage }) {
         onInit={setReactFlowInstance}
         proOptions={{ hideAttribution: true }}
       >
-        <Background
-          variant={BackgroundVariant.Lines}
-          gap={24}
-          color="#c8dde2"
-          size={1}
-        />
         <ZoomControls />
       </ReactFlow>
     </div>

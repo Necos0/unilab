@@ -1,8 +1,7 @@
 .canvas {
   width: 100%;
   height: 100%;
-  /* React Flow の背景色を戦闘画面のダーク基調に固定し、
-     Background の薄いグリッド線が視認できる地色を保証する
+  /* React Flow の背景色を BattleScreen 側の .flowchartArea と揃える
      （デフォルトは transparent だが、明示しておく方が事故を避けやすい） */
-  --xy-background-color-default: #0b0b10;
+  --xy-background-color-default: #12121a;
 }
