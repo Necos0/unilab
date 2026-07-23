@@ -135,6 +135,7 @@ unilab/
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
     │   ├── title.png            ← タイトル画面の背景画像(TitleScreen が参照)
+    │   ├── audio/                ← BGM(paper_snow_memory.mp3、StoryScreen が参照)
     │   ├── cards/                ← カード画像(<id>.png)
     │   ├── icons/                ← UI アイコン
     │   │   ├── icon_round.png        ← アプリのファビコン(index.html が参照)
