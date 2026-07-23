@@ -248,7 +248,13 @@ function CrossIcon() {
  *
  * フローチャートの拡大／縮小状態はストアの `isExpanded` を購読して
  * ルート `<section>` の className に `.expanded` を条件付与することで
- * レイアウトを切り替える。切替アニメーション中（`isTransitioning`）と
+ * レイアウトを切り替える。拡大中も敵エリアは高さ 0 に潰さず、薄い
+ * HP ストリップとして残す。敵 HP（中央寄せ）とプレイヤー HP（左下の
+ * 絶対配置）の配置は通常時のまま維持され、敵スプライトは
+ * `useResponsiveSpriteZoom` がストリップの残り高さに合わせて自動縮小する
+ * ためミニサイズで表示され続ける。フローチャートを広げたままでも
+ * 両者の HP と敵の姿を確認できる
+ * （`.root.expanded .enemyArea` のスタイル参照）。切替アニメーション中（`isTransitioning`）と
  * 実行中（`isExecuting`）と勝利演出中（`victoryPhase` 非 null）と失敗
  * 演出中（`failPhase` 非 null）は `.transitioning` ／ `.executing` ／
  * `.victory` ／ `.failed` クラスを付与して pointer-events を無効化し、

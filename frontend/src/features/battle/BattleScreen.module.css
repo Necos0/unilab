@@ -59,8 +59,8 @@
   /* DamageFloater を絶対配置で重ねるための基準点（attack-processing 要件     
   8-4） */
   position: relative;
-  /* 拡大時に flex-grow を 0 にアニメーションさせる（flowchart-zoom 要件 4） */
-  transition: flex-grow 0.25s ease;
+  /* 拡大時に HP ストリップの固定高さへ縮むアニメーション（flowchart-zoom 要件 4） */
+  transition: flex-grow 0.25s ease, flex-basis 0.25s ease;
 }
 
 .flowchartArea {
@@ -101,10 +101,19 @@
   background: #000;
 }
 
-/* 拡大状態：敵エリアを 0 に潰し、フローチャートエリアを 80 まで広げる。
-   プレイヤーエリア（手札）は 20 のまま変えない（flowchart-zoom 要件 3） */
+/* 拡大状態：敵エリアを薄い HP ストリップに縮める。各 HP の配置は通常時と
+   同じまま（敵 HP はエリア中央寄せ・プレイヤー HP は絶対配置で左下）で、
+   敵スプライトは useResponsiveSpriteZoom がストリップの残り高さに合わせて
+   自動縮小するためミニサイズで残る。justify-content を flex-start に
+   切り替えるのは、縮んだストリップ内で中央寄せすると敵 HP が左下の
+   プレイヤー HP と縦に重なり得るため（敵 HP 側は上端・プレイヤー HP は
+   下端に分離する）。フローチャートエリアは 80 まで広げ、プレイヤーエリア
+   （手札）は 20 のまま変えない（flowchart-zoom 要件 3） */
 .root.expanded .enemyArea {
   flex-grow: 0;
+  flex-basis: 6rem;
+  justify-content: flex-start;
+  padding-top: 0.75rem;
 }
 
 .root.expanded .flowchartArea {
