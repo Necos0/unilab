@@ -118,8 +118,9 @@ const BACKDROP_FADE_MS = 700;
  * 添え、ロボが自己紹介する step（`revealRoboName: true`、オープニング会話の
  * 「ぼくは ビット」）より前は「???」、そこへ進んだ以降とその会話の視聴後は
  * 「ビット」を表示する（正体を明かす演出。`seenIds` 永続化により
- * リロード後も名前は保たれる）。`variant` では画面内の縦位置
- * だけを切り替える:
+ * リロード後も名前は保たれる）。名前プレートは `"map"` バリアントのみで、
+ * `"battle"` では画面が手狭なため出さない。`variant` では画面内の縦位置
+ * も切り替える:
  *   - `"map"`   : 画面上側の左に置く。
  *   - `"battle"`: 画面上側（敵エリア）の左に、やや小さい幅で置く。
  *
@@ -483,7 +484,9 @@ function RoboBubble({ variant = 'map' }) {
               alt="ロボ"
               draggable={false}
             />
-            <span className={styles.iconName}>{roboLabel}</span>
+            {variant !== 'battle' && (
+              <span className={styles.iconName}>{roboLabel}</span>
+            )}
           </div>
           <div className={styles.bubble}>
             <div className={styles.body}>
