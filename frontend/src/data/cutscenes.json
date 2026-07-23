@@ -178,7 +178,19 @@
     ]
   },
 
+  "stage2-1-enter": {
+    "category": "tutorial",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "2-1" },
+    "steps": [
+      { "bubble": "さぁ、ここからが 第二《だいに》ステージだ！" },
+      { "bubble": "{playerName}なら、きっとこの先も大丈夫《だいじょうぶ》！" },
+      { "bubble": "あ、そういえばこのボタンを 押《お》せば フローチャートを 拡大《かくだい》できるよ！使ってみてね!", "point": "zoomButton" }
+    ]
+  },
+
   "stage2-3-enter": {
+
     "category": "tutorial",
     "once": true,
     "trigger": { "type": "enterBattle", "stageId": "2-3" },

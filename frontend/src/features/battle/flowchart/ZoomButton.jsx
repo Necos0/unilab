@@ -19,6 +19,10 @@ import styles from './ZoomButton.module.css';
  * `cursor: not-allowed` 表示にし、押せないことを視覚的に伝える
  * （play-button 要件 3-2、victory-clear 要件 6-2）。
  *
+ * ルート要素の `data-cutscene-point="zoomButton"` はカットシーンの指差し
+ * 誘導（`CutscenePointer`）の対象にするためのアンカー。2-1 入場時の
+ * 拡大機能チュートリアル（cutscenes.json の `stage2-1-enter`）が参照する。
+ *
  * Returns:
  *     JSX.Element: トグルボタン要素。
  */
@@ -38,6 +42,7 @@ function ZoomButton() {
       onClick={toggleExpand}
       aria-label={isExpanded ? 'フローチャートを縮小' : 'フローチャートを拡大'}
       disabled={isDisabled}
+      data-cutscene-point="zoomButton"
     >
       {isExpanded ? '↓' : '↑'}
     </button>
