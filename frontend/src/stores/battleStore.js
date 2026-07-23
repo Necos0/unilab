@@ -972,12 +972,8 @@ const useBattleStore = create((set, get) => ({
 
       set((s) => ({
         isExecuting: true,
-<<<<<<< HEAD
-        currentPhaseMs: NODE_PHASE_MS,
         accelIntensity: 0,
-=======
         currentPhaseMs: NODE_PHASE_MS / get().speedMultiplier,
->>>>>>> 539fa1b (倍速ボタン実装)
         currentEnemyHp: s.maxEnemyHp,
         enemyDamageEvents: [],
         currentPlayerHp: s.maxPlayerHp,
@@ -1066,12 +1062,8 @@ const useBattleStore = create((set, get) => ({
           const nodePhaseMs = nextPhaseMs(NODE_PHASE_MS, ACCEL_MIN_NODE_MS);
           set((s) => ({
             executionStep: { type: 'node', id: nodeId },
-<<<<<<< HEAD
-            currentPhaseMs: nodePhaseMs,
             accelIntensity: accelEased,
-=======
-            currentPhaseMs: NODE_PHASE_MS / get().speedMultiplier,
->>>>>>> 539fa1b (倍速ボタン実装)
+            currentPhaseMs: nodePhaseMs / get().speedMultiplier,
             traversedNodeIds: [...s.traversedNodeIds, nodeId],
           }));
 
@@ -1116,13 +1108,8 @@ const useBattleStore = create((set, get) => ({
             return;
           }
 
-<<<<<<< HEAD
           scheduleEdgePhase(nextEdge, nodePhaseMs);
-        }, delay);
-=======
-          scheduleEdgePhase(nextEdge, NODE_PHASE_MS);
         }, delay / get().speedMultiplier);
->>>>>>> 539fa1b (倍速ボタン実装)
         executionTimers.push(tid); 
       };
 
@@ -1136,12 +1123,8 @@ const useBattleStore = create((set, get) => ({
           const edgePhaseMs = nextPhaseMs(EDGE_PHASE_MS, ACCEL_MIN_EDGE_MS);
           set((s) => ({
             executionStep: { type: 'edge', id: edge.id },
-<<<<<<< HEAD
-            currentPhaseMs: edgePhaseMs,
+            currentPhaseMs: edgePhaseMs / get().speedMultiplier,
             accelIntensity: accelEased,
-=======
-            currentPhaseMs: EDGE_PHASE_MS / get().speedMultiplier,
->>>>>>> 539fa1b (倍速ボタン実装)
             traversedEdgeIds: [...s.traversedEdgeIds, edge.id],
           }));
 
@@ -1156,13 +1139,8 @@ const useBattleStore = create((set, get) => ({
             get().clearReflect();
           }
 
-<<<<<<< HEAD
           scheduleNodePhase(edge.target, edgePhaseMs);
-        }, delay);
-=======
-          scheduleNodePhase(edge.target, EDGE_PHASE_MS);
         }, delay / get().speedMultiplier);
->>>>>>> 539fa1b (倍速ボタン実装)
         executionTimers.push(tid);
       };
 
