@@ -86,9 +86,11 @@
     "trigger": { "type": "enterBattle", "stageId": "1-1" },
     "steps": [
       { "bubble": "ここは バトル画面《がめん》だよ！" },
+      { "bubble": "この フローチャートは ぼくの 力《ちから》なんだ！", "point": "flowchart" },
+      { "bubble": "ここの カードを フローチャートに はめて 動《うご》かして、いっしょに 敵《てき》を 倒《たお》そう！", "point": "handPanel" },
       { "bubble": "ここが{playerName}のHPで、", "point": "playerHpBar" },
       { "bubble": "ここが相手のHPだよ。", "point": "enemyHpBar" },
-      { "bubble": "{playerName}のHPが ゼロに ならないように、敵《てき》のHPを ゼロに できたら {playerName}の勝《か》ちだよ。"},
+      { "bubble": "敵《てき》のHPを ゼロに できたら {playerName}の勝《か》ちだよ。"},
       { "bubble": "このカードは「攻撃《こうげき》カード」だよ！", "point": "attackCard" },
       { "openCardHelp": "attack" },
       { "bubble": "攻撃《こうげき》カードを マスに 置《お》いてみよう。"},

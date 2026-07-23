@@ -512,13 +512,29 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     if (introPhase !== 'done') return;
     fireTrigger({ type: 'enterBattle', stageId: resolvedStageId });
   }, [introPhase, fireTrigger, resolvedStageId]);
+  /*
+   * `victoryPhase` / `failPhase` はグローバルな `battleStore` 由来のため、
+   * マウント直後の初回レンダーには**前バトルの値**（`'cleared'` など）が
+   * 残っていることがある（リセットは `initializeBattle` の effect 実行後）。
+   * 値の一致だけで発火すると、入場直後に前バトルの勝利状態を拾って
+   * `defeatEnemy` が誤発火する（例: 1-1 入場時に撃破後の「やったね、
+   * グレート！」が流れる）。そこで ref に前回値を持ち、このマウント中に
+   * 値が目標フェーズへ**変化した**ときだけ発火する。ref の初期値は
+   * マウント時のストア値（＝残留値）なので、残留状態はそのまま無視される。
+   */
+  const prevVictoryPhaseRef = useRef(victoryPhase);
   useEffect(() => {
-    if (victoryPhase === 'cleared') {
+    const prev = prevVictoryPhaseRef.current;
+    prevVictoryPhaseRef.current = victoryPhase;
+    if (victoryPhase === 'cleared' && prev !== 'cleared') {
       fireTrigger({ type: 'defeatEnemy', stageId: resolvedStageId });
     }
   }, [victoryPhase, fireTrigger, resolvedStageId]);
+  const prevFailPhaseRef = useRef(failPhase);
   useEffect(() => {
-    if (failPhase === 'shown') {
+    const prev = prevFailPhaseRef.current;
+    prevFailPhaseRef.current = failPhase;
+    if (failPhase === 'shown' && prev !== 'shown') {
       fireTrigger({ type: 'battleLost', stageId: resolvedStageId });
     }
   }, [failPhase, fireTrigger, resolvedStageId]);
@@ -869,7 +885,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
           )}
         </div>
         <div className={[styles.roboPanel, introUiClass].filter(Boolean).join(' ')}>
-          <div className={styles.flowchartArea}>
+          <div className={styles.flowchartArea} data-cutscene-point="flowchart">
             {/*
               * key で形態の切り替わり時に React Flow ごと再マウントし、
               * 第二形態の盤面（無限ループのフローチャート）へ確実に
@@ -891,7 +907,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               </div>
             </div>
           </div>
-          <div className={styles.playerArea}>
+          <div className={styles.playerArea} data-cutscene-point="handPanel">
             <Hand />
           </div>
           {isBoardTransformStep && <BoardTransformEffect />}
