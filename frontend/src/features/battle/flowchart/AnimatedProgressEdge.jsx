@@ -91,12 +91,18 @@ import styles from './AnimatedProgressEdge.module.css';
  * `sourceHandleId === 'true'` のエッジには始点近くに `はい`、
  * `sourceHandleId === 'false'` のエッジには `いいえ` を SVG `<text>` で常時描画
  * する。これによりフローチャートを実行する前から「どちらが Yes 側か」が一目で
- * 判別できる。ラベルのオフセットは固定値ではなく `sourcePosition`（出口辺）から
- * `labelPos` で算出する（`flowchart-loop` 仕様で cond の出口方向が可変になった
- * ため）。右出口なら右上、下出口なら下、上出口なら上、左出口なら左にずらす。
- * 既定（true=右 / false=下）の分岐ステージでも従来とほぼ同じ位置に収まる。
+ * 判別できる。ラベルのオフセットとアンカーは固定値ではなく `sourcePosition`
+ * （出口辺）から `labelPos` で算出する（`flowchart-loop` 仕様で cond の出口方向が
+ * 可変になったため）。横出口（右／左）は **出口頂点の真上に `text-anchor:
+ * middle` でセンタリング** する：スロット間隔の短縮（`SLOT_X_STEP` 200→160）で
+ * cond と隣ノードの隙間が 20px しかなくなり、従来の「頂点の右に開始位置を置く」
+ * 方式だと `はい`／`いいえ` が隣のカードに重なったため。センタリングなら
+ * `いいえ`（約 39px）でも半分ずつ左右に逃げて隙間に収まる。縦出口（上／下）は
+ * 従来どおり頂点の右横にずらす（下方向は次の行まで空間があるため）。
  * スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 13px`
- * ／ `font-weight: bold`、`pointer-events: none` でエッジクリックを奪わない。
+ * ／ `font-weight: bold`、`paint-order: stroke` + キャンバス背景色（`#12121a`）の
+ * 3px 縁取りで、菱形の斜辺やエッジ線にかかっても文字が読めるようにする。
+ * `pointer-events: none` でエッジクリックを奪わない。
  * `isActive` / `isTraversed` には依存させず、常時同じ見た目で表示する（実行
  * 中のラベル色変えは視覚ノイズが増えるだけで判別性に貢献しないと判断）。
  *
@@ -135,11 +141,11 @@ function AnimatedProgressEdge({
   const isTraversed = useBattleStore((s) => s.traversedEdgeIds.includes(id));
 
   const labelPos = {
-    [Position.Right]: { dx: 8, dy: -6 },
-    [Position.Left]: { dx: -8, dy: -6 },
-    [Position.Top]: { dx: 8, dy: -8 },
-    [Position.Bottom]: { dx: 8, dy: 16 },
-  }[sourcePosition] ?? { dx: 8, dy: -6 };
+    [Position.Right]: { dx: 0, dy: -8, anchor: 'middle' },
+    [Position.Left]: { dx: 0, dy: -8, anchor: 'middle' },
+    [Position.Top]: { dx: 8, dy: -8, anchor: 'start' },
+    [Position.Bottom]: { dx: 8, dy: 16, anchor: 'start' },
+  }[sourcePosition] ?? { dx: 0, dy: -8, anchor: 'middle' };
 
   const pathClassName = [
     'react-flow__edge-path',
@@ -203,6 +209,7 @@ function AnimatedProgressEdge({
           className={styles.handleLabel}
           x={sourceX + labelPos.dx}
           y={sourceY + labelPos.dy}
+          textAnchor={labelPos.anchor}
         >
           はい
         </text>
@@ -212,6 +219,7 @@ function AnimatedProgressEdge({
           className={styles.handleLabel}
           x={sourceX + labelPos.dx}
           y={sourceY + labelPos.dy}
+          textAnchor={labelPos.anchor}
         >
           いいえ
         </text>
