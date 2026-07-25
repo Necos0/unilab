@@ -222,6 +222,21 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
         };
       }
     }
+    // for-start 入場時のカウンタ再初期化（live 実行と同じセマンティクス）。
+    // 外側ループから再入場された場合に前回 exit で 0 になっていた counter を
+    // iterations に戻し、次のイテレーション群が正しく iterations 回まわるよう
+    // にする。ループバック入場では counter が 1..N-1 の途中値なのでリセットは
+    // 起きない（無限ループ防止）。
+    if (nodeMap[nodeId]?.type === 'for-start') {
+      const iterations = nodeMap[nodeId].iterations;
+      const current = forLoopCounters[nodeId] ?? 0;
+      if (current <= 0 && typeof iterations === 'number') {
+        forLoopCounters = {
+          ...forLoopCounters,
+          [nodeId]: iterations,
+        };
+      }
+    }
     if (state.playerHp <= 0) {
       return 'lose';
     }

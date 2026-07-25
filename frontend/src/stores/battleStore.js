@@ -1123,6 +1123,28 @@ const useBattleStore = create((set, get) => ({
             get().decrementForLoopCounter(forLoopId);
           }
 
+          /*
+           * for-start 入場時のカウンタ再初期化。外側ループに包まれた for が
+           * 2 回目以降に再入場されたとき、前回の exit で counter が 0 になった
+           * ままだと body が 1 回しか回らない。counter <= 0（前回 exit 済 or
+           * 未初期化）のとき iterations に戻し、次のイテレーション群が正しく
+           * iterations 回まわるようにする。ループバックで戻ってきた場合は
+           * counter は 1..N-1 の途中値なので条件に引っかからず、リセットは
+           * 起きない（無限ループ防止）。
+           */
+          if (nodeMap[nodeId]?.type === 'for-start') {
+            const iterations = nodeMap[nodeId].iterations;
+            const current = get().forLoopCounters[nodeId] ?? 0;
+            if (current <= 0 && typeof iterations === 'number') {
+              set((s) => ({
+                forLoopCounters: {
+                  ...s.forLoopCounters,
+                  [nodeId]: iterations,
+                },
+              }));
+            }
+          }
+
           if (nodeId === 'goal') {
             scheduleComplete(nodePhaseMs);
             return;
