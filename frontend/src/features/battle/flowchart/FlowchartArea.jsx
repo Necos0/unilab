@@ -9,12 +9,14 @@ import StartNode from './StartNode';
 import GoalNode from './GoalNode';
 import ConditionNode from './ConditionNode';
 import MergeNode from './MergeNode';
+import ForStartNode from './ForStartNode';
+import ForEndNode from './ForEndNode';
 import AnimatedProgressEdge from './AnimatedProgressEdge';
 import ZoomControls from './ZoomControls';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
-const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode, condition: ConditionNode, merge: MergeNode };
+const nodeTypes = { slot: SlotNode, start: StartNode, goal: GoalNode, condition: ConditionNode, merge: MergeNode, 'for-start': ForStartNode, 'for-end': ForEndNode };
 const edgeTypes = { 'animated-progress': AnimatedProgressEdge };
 const LOOP_TOP_HEADROOM = 80;
 
@@ -138,6 +140,24 @@ function mergeNodesToNodes(mergeNodes) {
   }));
 }
 
+function forStartsToNodes(forStarts) {
+  return forStarts.map((f) => ({
+    id: f.id,
+    type: 'for-start',
+    position: f.position,
+    data: { iterations: f.iterations },
+  }));
+}
+
+function forEndsToNodes(forEnds) {
+  return forEnds.map((f) => ({
+    id: f.id,
+    type: 'for-end',
+    position: f.position,
+    data: { forLoopId: f.forLoopId },
+  }));
+}
+
 /**
  * ステージ定義のエッジ配列を React Flow のエッジ配列に変換する。
  *
@@ -170,19 +190,35 @@ function mergeNodesToNodes(mergeNodes) {
  *         参照整合性チェックに使う条件分岐ノード配列。空配列でも OK。
  *     mergeNodes (Array<{id: string}>):
  *         参照整合性チェックに使う合流ノード配列。空配列でも OK。
+ *     forStarts (Array<{id: string}>):
+ *         参照整合性チェックに使う for ループ開始ノード配列（`for-loop`
+ *         仕様）。空配列でも OK。エッジの `sourceHandle: "loop-back"` /
+ *         `targetHandle: "loop-back"` を持つ戻りエッジも、両端の id が
+ *         `forStarts` / `forEnds` に含まれていれば有効扱いになる。
+ *     forEnds (Array<{id: string}>):
+ *         参照整合性チェックに使う for ループ終了ノード配列（`for-loop`
+ *         仕様）。空配列でも OK。`sourceHandle: "loop-back"` /
+ *         `sourceHandle: "exit"` の 2 本の outgoing エッジをそれぞれ
+ *         for-start と後続ノードに接続する。
  *     hasStart (boolean): スタートマーカーが定義されているか。
  *     hasGoal (boolean): ゴールマーカーが定義されているか。
  *
  * Returns:
  *     Array<object>: React Flow に渡せるエッジ配列。矢印マーカー付き。
  */
-function edgesToFlowEdges(edges, slots, conditions, mergeNodes, hasStart, hasGoal) {
+function edgesToFlowEdges(edges, slots, conditions, mergeNodes, forStarts, forEnds, hasStart, hasGoal) {
   const validIds = new Set(slots.map((slot) => slot.id));
   for (const c of conditions) {
     validIds.add(c.id);
   }
   for (const m of mergeNodes) {
     validIds.add(m.id);
+  }
+  for (const f of forStarts) {
+    validIds.add(f.id);
+  }
+  for (const f of forEnds) {
+    validIds.add(f.id);
   }
   if (hasStart) validIds.add('start');
   if (hasGoal) validIds.add('goal');
@@ -276,15 +312,19 @@ function FlowchartArea({ stage }) {
     const goalNode = goalToNode(stage.goal);
     const conditionNodes = conditionsToNodes(stage.conditions ?? []);
     const mergeNodes = mergeNodesToNodes(stage.mergeNodes ?? []);
+    const forStartNodes = forStartsToNodes(stage.forStarts ?? []);
+    const forEndNodes = forEndsToNodes(stage.forEnds ?? []);
     if(startNode) result.unshift(startNode);
     if(goalNode) result.push(goalNode);
     result.push(...conditionNodes);
     result.push(...mergeNodes);
+    result.push(...forStartNodes);
+    result.push(...forEndNodes);
     return result;
   }, [stage]);
   
   const edges = useMemo(
-    () => edgesToFlowEdges(stage.edges, stage.slots, stage.conditions ?? [], stage.mergeNodes ?? [], !!stage.start, !!stage.goal),
+    () => edgesToFlowEdges(stage.edges, stage.slots, stage.conditions ?? [], stage.mergeNodes ?? [], stage.forStarts ?? [], stage.forEnds ?? [], !!stage.start, !!stage.goal),
     [stage],
   );
 

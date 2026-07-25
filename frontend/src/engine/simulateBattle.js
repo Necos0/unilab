@@ -100,7 +100,7 @@ export function clearTransientBuffs(state, prevCard) {
  * Returns:
  *     object: `{variables, slot}` 形式の評価コンテキスト。
  */
-function buildEvalContext(state, slotAssignments) {
+function buildEvalContext(state, slotAssignments, forLoopCounters) {
   return {
     variables: {
       playerHp: state.playerHp,
@@ -111,6 +111,7 @@ function buildEvalContext(state, slotAssignments) {
       reflectActive: state.reflectActive,
     },
     slot: (slotId) => slotAssignments[slotId]?.id ?? null,
+    forCounter: (forLoopId) => forLoopCounters?.[forLoopId] ?? 0,
   };
 }
 
@@ -131,12 +132,17 @@ function buildEvalContext(state, slotAssignments) {
  * Returns:
  *     object | undefined: 次のエッジ。行き止まりなら undefined。
  */
-function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments) {
+function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments, forLoopCounters) {
   const edges = edgesBySource[nodeId] ?? [];
   const node = nodeMap[nodeId];
   if (node?.type === 'condition') {
-    const result = evaluateCondition(node.expression, buildEvalContext(state, slotAssignments));
+    const result = evaluateCondition(node.expression, buildEvalContext(state, slotAssignments, forLoopCounters));
     const target = result ? 'true' : 'false';
+    return edges.find((e) => e.sourceHandle === target);
+  }
+  if (node?.type === 'for-end') {
+    const remaining = forLoopCounters?.[node.forLoopId] ?? 0;
+    const target = remaining > 0 ? 'loop-back' : 'exit';
     return edges.find((e) => e.sourceHandle === target);
   }
   return edges[0];
@@ -180,7 +186,8 @@ function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments) 
  *             acceptOnly?}`。`multiplier` と `counterRef` は排他キー。
  *         initialState (object): 開始時の数値状態（満タンHP・シールド0・反射false）。
  *             `counterValues: { [counterId]: 0 }` を任意で含む（未指定なら空オブジェクト
- *             として扱う）。
+ *             として扱う）。`forLoopCounters: { [forLoopId]: iterations }` も任意で含む
+ *             （未指定なら空オブジェクトとして扱う）。
  *         maxVisits (number): 1 ノードあたりの訪問回数上限（超過で runaway）。
  *
  * Returns:
@@ -189,6 +196,7 @@ function selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments) 
 export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMetadata, initialState, maxVisits }) {
   let state = initialState;
   let counterValues = { ...(initialState.counterValues ?? {}) };
+  let forLoopCounters = { ...(initialState.forLoopCounters ?? {}) };
   const visits = {};
   let nodeId = 'start';
   while (true) {
@@ -201,17 +209,26 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
       counterValues = { ...counterValues, [card.counterId]: counterValues[card.counterId] + 1 };
     }
     const meta = slotMetadata[nodeId];
-    const multiplier = 
+    const multiplier =
       typeof meta?.multiplier === 'number' ? meta.multiplier :
       typeof meta?.counterRef === 'string' ? (counterValues[meta.counterRef] ?? 0) : 1;
     state = applyNodeEffect(state, card, multiplier);
+    if (nodeMap[nodeId]?.type === 'for-end') {
+      const forLoopId = nodeMap[nodeId].forLoopId;
+      if (forLoopCounters[forLoopId] !== undefined) {
+        forLoopCounters = {
+          ...forLoopCounters,
+          [forLoopId]: Math.max(0, forLoopCounters[forLoopId] - 1),
+        };
+      }
+    }
     if (state.playerHp <= 0) {
       return 'lose';
     }
     if (nodeId === 'goal') {
       return state.enemyHp <= 0 && state.playerHp > 0 ? 'win' : 'lose';
     }
-    const nextEdge = selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments);
+    const nextEdge = selectNextEdge(nodeId, edgesBySource, nodeMap, state, slotAssignments, forLoopCounters);
     if (!nextEdge) {
       return state.enemyHp <= 0 && state.playerHp > 0 ? 'win' : 'lose';
     }

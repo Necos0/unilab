@@ -306,15 +306,37 @@
     },
     "4-2": {
       "enemyId": "lizard",
-      "maxEnemyHp": 70,
+      "maxEnemyHp": 60,
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "guard", "power": 20 }
+        { "id": "attack", "power": 10 },
+        { "id": "guard", "power": 15 },
+        { "id": "heal", "power": 20 },
+        { "id": "reflect" }
       ],
       "flow": [
-        {},
-        { "lockedCard": { "id": "monster", "power": 30 } },
-        {}
+        { "lockedCard": { "id": "monster", "power": 80 } },
+        {
+          "for": {
+            "iterations": 3,
+            "body": [
+              {
+                "condition": "forCounter('for-start-1') === 2",
+                "label": "のこり2回？",
+                "true": [
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 10 } },
+                  { "lockedCard": { "id": "monster", "power": 10 } },
+                  {}
+                ],
+                "false": [
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 15 } }
+                ]
+              }
+            ]
+          }
+        },
+        { "lockedCard": { "id": "attack", "power": 20 } }
       ]
     },
     "4-3": {
