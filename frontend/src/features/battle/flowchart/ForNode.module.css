@@ -1,0 +1,77 @@
+/*
+ * 「黄色い外側 + 暗い内側 2px inset」の 2 層構造で、clip-path の斜辺を含む
+ * 全周に黄色の輪郭を出す。通常の border は clip-path でカットされた斜辺には
+ * 表示されないため、擬似要素 ::before に同じ clip-path を持たせて 2px 内側に
+ * 配置し、その差分（2px 幅の帯）が黄色として見える。
+ */
+.forNode {
+  width: 80px;
+  height: 120px;
+  background: #ffd54a;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: opacity 0.15s;
+}
+
+.forNode::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: #15151c;
+}
+
+.forNode.start,
+.forNode.start::before {
+  clip-path: polygon(0 20%, 20% 0, 100% 0, 100% 100%, 20% 100%, 0 80%);
+}
+
+.forNode.end,
+.forNode.end::before {
+  clip-path: polygon(0 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 0 100%);
+}
+
+.count {
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 1.75rem;
+  color: #ffd54a;
+  pointer-events: none;
+  user-select: none;
+  /* ::before の上に重ねる */
+  position: relative;
+  z-index: 1;
+}
+
+.forNode.active {
+  animation: forHighlight calc(0.3s / var(--speed-mult, 1)) ease-in-out 2 alternate;
+}
+
+@keyframes forHighlight {
+  from {
+    filter: brightness(1) drop-shadow(0 0 0 rgba(229, 229, 255, 0));
+  }
+  to {
+    filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+  }
+}
+
+.forNode.traversed {
+  filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
+}
+
+/* SlotNodeと同じく、エッジ接続のためだけに存在する不可視ハンドル */
+.handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}

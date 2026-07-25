@@ -36,6 +36,7 @@
  */
 
 const SLOT_PATTERN = /^slot\(\s*(['"])([^'"]+)\1\s*\)\s*(===|!==)\s*(.+)$/;
+const FORCOUNTER_PATTERN = /^forCounter\(\s*(['"])([^'"]+)\1\s*\)\s*(>=|<=|===|!==|>|<)\s*(.+)$/;
 const VAR_PATTERN = /^(\w+)\s*(>=|<=|===|!==|>|<)\s*(.+)$/;
 
 /**
@@ -124,6 +125,20 @@ function evaluateAtom(expression, context) {
       return false;
     }
     return op === '===' ? left === right : left !== right;
+  }
+
+  const forCounterMatch = expression.match(FORCOUNTER_PATTERN);
+  if (forCounterMatch) {
+    const forLoopId = forCounterMatch[2];
+    const op = forCounterMatch[3];
+    const rightExpr = forCounterMatch[4].trim();
+    const left = context.forCounter(forLoopId);
+    const right = parseLiteral(rightExpr);
+    if (right === undefined) {
+      console.warn(`[evaluateCondition] unparseable literal in "${expression}"`);
+      return false;
+    }
+    return compareValues(left, op, right);
   }
 
   const varMatch = expression.match(VAR_PATTERN);

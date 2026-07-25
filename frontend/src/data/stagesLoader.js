@@ -262,6 +262,10 @@ function isLoop(item) {
   return typeof item?.loop === 'object' && item.loop !== null;
 }
 
+function isForLoop(item) {
+  return typeof item?.for === 'object' && item.for !== null;
+}
+
 /**
  * `flow` 配列の要素が折り返し（turn）構文かどうかを判定する（`flowchart-turn` 仕様）。
  *
@@ -666,6 +670,10 @@ function processSubFlow(items, {
       const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx });
       endings = loopResult.endings;
       column = loopResult.column;
+    } else if (isForLoop(item)) {
+      const forResult = expandForLoop(item.for, { column, yLevel, endings, ctx });
+      endings = forResult.endings;
+      column = forResult.column;
     } else if (isCondition(item)) {
       ctx.condCounter += 1;
       const condId = `cond-${ctx.condCounter}`;
@@ -905,6 +913,140 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx }) {
   };
 }
 
+/**
+ * for ループ短縮記法 1 個を完全形式に展開する内部ヘルパー（`for-loop-shorthand` 仕様）。
+ *
+ * `flow` 要素の `for` 定義を受け取り、for-start / for-end ノードのペアを `ctx.forStarts` /
+ * `ctx.forEnds` に積み、body 内容を再帰展開して入口・ループバック・（次要素向けの）
+ * exit エッジまでを組み立てる。short-form `{ "for": { "iterations": 3, "body": [...] } }`
+ * 1 要素から、`for-loop` 仕様の runtime 機構が期待する完全形式ノード＋エッジ群を自動
+ * 生成することで、ステージデザイナーが for-start / for-end の座標・ID・loop-back
+ * エッジを手書きする負担を無くす。
+ *
+ * `expandLoop`（while / do-while ループ）と対の位置づけで、インターフェースを
+ * 揃えて（`{column, yLevel, endings, ctx}` を受け取り `{endings, column}` を返す）
+ * `processSubFlow` の if/else チェーンから同じ流儀で呼べるようにしている。
+ *
+ * 主要ステップ：
+ *   1. **バリデーション**：`Number.isInteger(iterations) && iterations >= 1` と
+ *      `Array.isArray(body)` の 2 条件を独立に検証。不正なら `console.warn` を出して
+ *      `{endings, column}` を素通しで返し、当該 for 要素をスキップする（要件 10-1/10-2）。
+ *      `expandLoop` の validate パターンと同一の safety-first フォールバック
+ *   2. **ID 採番**：`ctx.forCounter += 1` して `for-start-${N}` / `for-end-${N}` のペアを
+ *      生成。`ctx.forCounter` は `expandFlow` の ctx に載せた flow 全体で共有される
+ *      カウンタで、ネストした for でも通し番号を維持し ID 衝突を防ぐ（要件 5）
+ *   3. **for-start 追加**：`ctx.forStarts.push({id, iterations, position})`。position は
+ *      現在の `column` に応じた x 座標と yLevel（既存 slot と同じ列レイアウト）
+ *   4. **入口エッジ**：直前の全 endings から `for-start` へ `buildEdge` を積む。
+ *      condition 出口（`sourceHandle: 'true'|'false'`）の endings もそのまま扱える
+ *   5. **body の再帰展開**：`processSubFlow(forDef.body, {..., isTopLevel: false})` に
+ *      委譲。これにより body 内の通常 slot / condition / nested loop / nested for が
+ *      すべて既存の展開ロジックで処理される（要件 3）。`isTopLevel: false` を渡すことで
+ *      body 内の turn は既存ガード（"turn must be at flow top level"）で自動的に
+ *      warn + skip される（要件 10-3）
+ *   6. **for-end 追加**：`ctx.forEnds.push({id, forLoopId, position})`。position は
+ *      `bodyResult.endColumn`（body 展開後の次の空列）と yLevel。`forLoopId` は対応する
+ *      `for-start` の id で、runtime 側の `decrementForLoopCounter` がこの ID を使って
+ *      `forLoopCounters` を減算する
+ *   7. **body 末尾 → for-end エッジ**：`bodyResult.endings` の全要素から for-end へ
+ *      `buildEdge` を積む。body 内 condition の merge 出口や nested for の exit endings も
+ *      1 本ずつ for-end へ繋がる
+ *   8. **loop-back エッジ**：`for-end` の `Top` ハンドル（`id: 'loop-back'`）から
+ *      `for-start` の `Top` ハンドル（`id: 'loop-back'`）へ。`AnimatedProgressEdge` が
+ *      `targetHandleId === 'loop-back'` を検知して smoothstep で上側を回る経路を選ぶ想定
+ *   9. **exit endings を返す**：`endings: [{nodeId: forEndId, sourceHandle: 'exit'}]` を
+ *      返すことで、`processSubFlow` の次要素展開時に自動的に `for-end (exit) → 次要素`
+ *      エッジが生成される（要件 6-5、`buildEdge` の `ending.sourceHandle` 継承の仕組み）
+ *
+ * **空 body の扱い**：`body === []` の場合、`processSubFlow([])` は
+ * `{endings: [{nodeId: forStartId}], endColumn: column + 1, ...}` を返すため、
+ * for-end は `forStartColumn + 1` に配置され、`for-start → for-end` の直接エッジ 1 本
+ * と loop-back で構成される「空ループ」になる。`forLoopCounters` が iterations 回で
+ * 減衰するので暴走せず、`LOOP_MAX_VISITS` の runaway ガードもさらに保険として効く
+ * （要件 2-5）。
+ *
+ * **runtime 機構との連携**：本関数が生成する `forStarts` / `forEnds` エントリは、
+ * `expandFlow` の return を経て `expandStage` の stage オブジェクトに載り、
+ * `battleStore.initializeBattle` で `forLoopIterations` / `forLoopCounters` に
+ * 初期化される（`for-loop` 仕様の runtime 実装）。本関数は runtime 機構を一切
+ * 変更せず、ローダー層の翻訳役に徹する。
+ *
+ * Args:
+ *     forDef (object): `flow` 要素の `for` フィールド値。
+ *         iterations (number): 反復回数（1 以上の整数、上限なし）。runaway
+ *             ガードで実行時の暴走は防がれる。
+ *         body (Array<object>): ループ本体の要素配列。通常 slot / condition /
+ *             loop / nested for が並ぶ。空配列も可。
+ *     options (object): `processSubFlow` から渡る状態。
+ *         column (number): for 要素が置かれる column（for-start の x 座標算出）。
+ *         yLevel (number): for 要素の y 座標。for-start / for-end / body は
+ *             同じ yLevel（横一列）に配置される。
+ *         endings (Array<{nodeId, sourceHandle?}>): 直前の終端配列。
+ *             for-start への入口エッジを引く元。
+ *         ctx (object): 共有アキュムレータ（`forCounter` / `forStarts` /
+ *             `forEnds` / `edges` を破壊的に更新）。
+ *
+ * Returns:
+ *     {endings: Array<{nodeId, sourceHandle}>, column: number}:
+ *         `endings` は for-end の exit 出口を指す 1 要素配列（次要素向け）、
+ *         `column` は for-end の次の空列（次要素はここから配置される）。
+ *         バリデーション失敗時は入力の `{endings, column}` をそのまま素通し。
+ */
+function expandForLoop(forDef, { column, yLevel, endings, ctx }) {
+  if (!Number.isInteger(forDef.iterations) || forDef.iterations < 1) {
+    console.warn(`[stagesLoader] invalid for.iterations "${forDef.iterations}". Must be integer >= 1. Skipping.`);
+    return { endings, column };
+  }
+  if (!Array.isArray(forDef.body)) {
+    console.warn('[stagesLoader] invalid for.body. Must be an array. Skipping.');
+    return { endings, column };
+  }
+
+  ctx.forCounter += 1;
+  const forStartId = `for-start-${ctx.forCounter}`;
+  const forEndId = `for-end-${ctx.forCounter}`;
+
+  ctx.forStarts.push({
+    id: forStartId,
+    iterations: forDef.iterations,
+    position: { x: SLOT_X_START + column * SLOT_X_STEP, y: yLevel },
+  });
+
+  for (const ending of endings) {
+    ctx.edges.push(buildEdge(ending, forStartId));
+  }
+
+  const bodyResult = processSubFlow(forDef.body, {
+    startColumn: column + 1,
+    yLevel,
+    prevNodeId: forStartId,
+    prevSourceHandle: undefined,
+    ctx,
+    isTopLevel: false,
+    direction: 'right',
+  });
+
+  ctx.forEnds.push({
+    id: forEndId,
+    forLoopId: forStartId,
+    position: { x: SLOT_X_START + bodyResult.endColumn * SLOT_X_STEP, y: yLevel },
+  });
+
+  for (const ending of bodyResult.endings) {
+    ctx.edges.push(buildEdge(ending, forEndId));
+  }
+
+  ctx.edges.push(buildEdge(
+    { nodeId: forEndId, sourceHandle: 'loop-back', targetHandle: 'top' },
+    forStartId
+  ));
+
+  return {
+    endings: [{ nodeId: forEndId, sourceHandle: 'exit' }],
+    column: bodyResult.endColumn + 1,
+  };
+}
+
 const GOAL_ENTRY_HANDLE = { down: 'top', up: 'bottom', left: 'right', right: undefined };
 
 /**
@@ -1049,9 +1191,12 @@ function expandFlow(flow) {
     slotCounter: 0,
     condCounter: 0,
     mergeCounter: 0,
+    forCounter: 0,
     slots: [],
     conditions: [],
     mergeNodes: [],
+    forStarts: [],
+    forEnds: [],
     edges: [],
     turnCount: 0,
     afterTurn: false,
@@ -1063,6 +1208,8 @@ function expandFlow(flow) {
       slots: [],
       conditions: [],
       mergeNodes: [],
+      forStarts: [],
+      forEnds: [],
       edges: [],
       start: { position: { x: -120, y: 120 } },
       goal: { position: { x: 80, y: 120 } },
@@ -1092,6 +1239,8 @@ function expandFlow(flow) {
     slots: ctx.slots,
     conditions: ctx.conditions,
     mergeNodes: ctx.mergeNodes,
+    forStarts: ctx.forStarts,
+    forEnds: ctx.forEnds,
     edges: ctx.edges,
     start: { position: { x: -120, y: 120 } },
     goal: { position: goalPlacement.position },
@@ -1253,6 +1402,9 @@ function collectSlotTypeIds(raw) {
       if (isLoop(item)) {
         ids.add('loop');
         visitFlow(item.loop.body);
+      } else if (isForLoop(item)) {
+        ids.add('counter');
+        visitFlow(item.for.body);
       } else if (isCondition(item)) {
         ids.add('condition');
         visitFlow(item.true);
@@ -1339,6 +1491,8 @@ function expandStage(raw, stageId) {
     slots,
     conditions: expandConditions(raw.conditions),
     mergeNodes: [],
+    forStarts: [],
+    forEnds: [],
     start: expandStart(raw.start),
     goal: expandGoal(raw.goal, slots.length),
     edges: raw.edges ?? buildLinearEdges(slots),

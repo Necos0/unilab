@@ -594,6 +594,8 @@ const useBattleStore = create((set, get) => ({
   _enemyReflectCounter: 0,
   counterValues: {},
   activeCounterId: null,
+  forLoopCounters: {},
+  forLoopIterations: {},
   speedMultiplier: 1,
 
   /**
@@ -664,6 +666,9 @@ const useBattleStore = create((set, get) => ({
       .filter((s) => s.lockedCard?.id === 'counter' && typeof s.lockedCard.counterId === 'string')
       .map((s) => s.lockedCard.counterId);
     const counterValues = Object.fromEntries(counterIds.map((id) => [id, 0]));
+    const forLoopIterations = Object.fromEntries(
+      (stage.forStarts ?? []).map((f) => [f.id, f.iterations])
+    );
     set(() => ({
       handCards: expandHandCards(stage.cards ?? []),
       slotAssignments: buildSlotAssignmentsFromStage(stage),
@@ -692,6 +697,8 @@ const useBattleStore = create((set, get) => ({
       counterValues,
       activeCounterId: null,
       speedMultiplier: 1,
+      forLoopIterations,
+      forLoopCounters: { ...forLoopIterations },
     }));
   },
 
@@ -938,6 +945,12 @@ const useBattleStore = create((set, get) => ({
       for (const m of stage.mergeNodes ?? []) {
         nodeMap[m.id] = { type: 'merge' };
       }
+      for (const f of stage.forStarts ?? []) {
+        nodeMap[f.id] = { type: 'for-start', iterations: f.iterations };
+      }
+      for (const f of stage.forEnds ?? []) {
+        nodeMap[f.id] = { type: 'for-end', forLoopId: f.forLoopId };
+      }
 
       const edgesBySource = {};
       for (const edge of stage.edges ?? []) {
@@ -1002,6 +1015,7 @@ const useBattleStore = create((set, get) => ({
           maxPlayerHp: get().maxPlayerHp,
           maxEnemyHp: get().maxEnemyHp,
           counterValues: get().counterValues,
+          forLoopCounters: get().forLoopCounters,
         },
         maxVisits: LOOP_MAX_VISITS,
       });
@@ -1029,6 +1043,7 @@ const useBattleStore = create((set, get) => ({
           const card = state.slotAssignments[slotId];
           return card?.id ?? null;
         },
+        forCounter: (forLoopId) => state.forLoopCounters?.[forLoopId] ?? 0,
       });
 
       const selectNextEdge = (nodeId) => {
@@ -1037,6 +1052,12 @@ const useBattleStore = create((set, get) => ({
         if (node?.type === 'condition') {
           const result = evaluateCondition(node.expression, buildEvalContext(get()));
           const target = result ? 'true' : 'false';
+          return edges.find((e) => e.sourceHandle === target);
+        }
+        if (node?.type === 'for-end') {
+          const forLoopId = node.forLoopId;
+          const remaining = get().forLoopCounters[forLoopId] ?? 0;
+          const target = remaining > 0 ? 'loop-back' : 'exit';
           return edges.find((e) => e.sourceHandle === target);
         }
         return edges[0];
@@ -1095,6 +1116,11 @@ const useBattleStore = create((set, get) => ({
           }
           if (card && card.id === 'reflect') {
             get().applyReflect();
+          }
+
+          if (nodeMap[nodeId]?.type === 'for-end') {
+            const forLoopId = nodeMap[nodeId].forLoopId;
+            get().decrementForLoopCounter(forLoopId);
           }
 
           if (nodeId === 'goal') {
@@ -1606,6 +1632,16 @@ const useBattleStore = create((set, get) => ({
     };
    }),
 
+   decrementForLoopCounter: (forLoopId) => set((s) => {
+    if (s.forLoopCounters[forLoopId] === undefined) return s;
+    return {
+      forLoopCounters: {
+        ...s.forLoopCounters,
+        [forLoopId]: Math.max(0, s.forLoopCounters[forLoopId] - 1),
+      },
+    };
+   }),
+
    /**
     * 勝利演出シーケンスを開始する。
     *
@@ -1796,6 +1832,7 @@ const useBattleStore = create((set, get) => ({
         Object.keys(state.counterValues).map((id) => [id, 0])
       ),
       activeCounterId: null,
+      forLoopCounters: { ...state.forLoopIterations },
    }));
   },
 }));
