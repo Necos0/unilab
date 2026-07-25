@@ -241,6 +241,10 @@ function edgesToFlowEdges(edges, slots, conditions, mergeNodes, forStarts, forEn
       targetHandle: edge.targetHandle,
       type: 'animated-progress',
       markerEnd: { type: MarkerType.ArrowClosed, color: '#6a6a78' },
+      // `loop-body-nesting` / `for-loop-shorthand`: loop-back エッジは
+      // `stagesLoader` が `data.loopDepth` を付与しているので、それを保持して
+      // `AnimatedProgressEdge` が smoothstep offset の算出に使えるようにする。
+      data: edge.data,
     }));
 }
 

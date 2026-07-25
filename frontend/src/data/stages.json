@@ -376,25 +376,61 @@
     },
     "4-4": {
       "enemyId": "dragon",
-      "maxEnemyHp": 150,
+      "maxEnemyHp": 180,
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 150 },
-        { "id": "guard", "power": 30 },
-        { "id": "heal", "power": 30 }
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 5 },
+        { "id": "guard", "power": 10 },
+        { "id": "heal", "power": 20 },
+        { "id": "heal", "power": 15 },
+        { "id": "reflect" }
       ],
       "flow": [
-        {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "lockedCard": { "id": "monster", "power": 95 } },
         {
-          "condition": "enemyHp <= 50",
-          "label": "敵のHPが50以下?",
-          "true": [
-            { "multiplier": 2 }
-          ],
-          "false": [
-            { "lockedCard": { "id": "monster", "power": 40 } }
-          ]
+          "loop": {
+            "mode": "pre",
+            "condition": "enemyHp <= 30",
+            "label": "敵のHPが30以下?",
+            "trueDir": "down",
+            "falseDir": "right",
+            "body": [
+              {
+                "condition": "playerHp <= 5",
+                "label": "自分のHPが5以下",
+                "true": [],
+                "false": [
+                  { "lockedCard": { "id": "monster", "power": 100 } }
+                ]
+              },
+              { "lockedCard": { "id": "heal", "power": 20 } },
+              {
+                "for": {
+                  "iterations": 3,
+                  "body": [
+                    {
+                      "condition": "forCounter('for-start-1') === 2",
+                      "label": "のこり2回？",
+                      "true": [
+                        { "lockedCard": { "id": "guard", "power": 5 } },
+                        { "lockedCard": { "id": "monster", "power": 30 } },
+                        {},
+                        { "lockedCard": { "id": "monster", "power": 10 } },
+                        {}
+                      ],
+                      "false": [
+                        {},
+                        { "lockedCard": { "id": "monster", "power": 15 } },
+                        { "multiplier": 2 }
+                      ]
+                    }
+                  ]
+                }
+              },
+              { "multiplier": 2 },
+              { "lockedCard": { "id": "monster", "power": 20 } }
+            ]
+          }
         }
       ],
       "secondPhase": {
