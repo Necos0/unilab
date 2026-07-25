@@ -621,14 +621,15 @@ function buildBodySlot(ctx, raw, position) {
  *         `resolveGoalPlacement` に渡し、goal の配置とハンドル指定を決めるのに使う
  *         （`flowchart-turn` 仕様）。
  */
-function processSubFlow(items, { 
-  startColumn, 
-  yLevel, 
-  prevNodeId, 
-  prevSourceHandle, 
+function processSubFlow(items, {
+  startColumn,
+  yLevel,
+  prevNodeId,
+  prevSourceHandle,
   ctx,
   isTopLevel = false,
   direction = 'right',
+  nestDepth = 0,
 }) {
   let column = startColumn;
   let currentYLevel = yLevel;
@@ -667,11 +668,11 @@ function processSubFlow(items, {
       ctx.afterTurn = true;
       continue;
     } else if (isLoop(item)) {
-      const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx });
+      const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx, nestDepth });
       endings = loopResult.endings;
       column = loopResult.column;
     } else if (isForLoop(item)) {
-      const forResult = expandForLoop(item.for, { column, yLevel, endings, ctx });
+      const forResult = expandForLoop(item.for, { column, yLevel, endings, ctx, nestDepth });
       endings = forResult.endings;
       column = forResult.column;
     } else if (isCondition(item)) {
@@ -706,6 +707,7 @@ function processSubFlow(items, {
         ctx,
         isTopLevel: false,
         direction: currentDirection,
+        nestDepth,
       });
 
       const falseItems = item.false ?? [];
@@ -717,6 +719,7 @@ function processSubFlow(items, {
         ctx,
         isTopLevel: false,
         direction: currentDirection,
+        nestDepth,
       });
 
       const mergeColumn = currentDirection === 'right'
@@ -813,7 +816,7 @@ function processSubFlow(items, {
  *     {endings: Array<{nodeId, sourceHandle}>, column: number}:
  *         脱出側の終端（cond の `true`）と、ループ後の次 column。
  */
-function expandLoop(loopDef, { column, yLevel, endings, ctx }) {
+function expandLoop(loopDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
   if (loopDef.mode !== undefined && loopDef.mode !== 'pre' && loopDef.mode !== 'post') {
     console.warn(`[stagesLoader] invalid loop mode "${loopDef.mode}", falling back to "pre"`);
   }
@@ -858,54 +861,75 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx }) {
     pushCond(condColumn);
     ctx.edges.push(buildEdge({ nodeId: mergeId }, condId));
 
-    let bodyColumn = condColumn + 1;
-    let prevId = condId;
-    let prevHandle = 'false';
-    let lastBodyId = null;
-    for (const raw of loopDef.body) {
-      const slotId = buildBodySlot(ctx, raw, {
-        x: SLOT_X_START + bodyColumn * SLOT_X_STEP,
-        y: yLevel,
-      });
-      ctx.edges.push(buildEdge({ nodeId: prevId, sourceHandle: prevHandle }, slotId));
-      prevId = slotId;
-      prevHandle = undefined;
-      lastBodyId = slotId;
-      bodyColumn += 1;
-    }
+    // body を processSubFlow に再帰委譲。condition / for / ネスト loop / 通常
+    // slot が body 内で使えるようになる（`loop-body-nesting` 拡張）。isTopLevel:
+    // false により body 内 turn は既存ガードで自動的に warn + skip される。
+    const bodyResult = processSubFlow(loopDef.body, {
+      startColumn: condColumn + 1,
+      yLevel,
+      prevNodeId: condId,
+      prevSourceHandle: 'false',
+      ctx,
+      isTopLevel: false,
+      direction: 'right',
+      nestDepth: nestDepth + 1,
+    });
 
-    if (lastBodyId) {
-      ctx.edges.push(buildEdge({ nodeId: lastBodyId, sourceHandle: 'loop-out', targetHandle: 'top' }, mergeId));
-    } else {
-      ctx.edges.push(buildEdge({ nodeId: condId, sourceHandle: 'false', targetHandle: 'top' }, mergeId));
+    // body の各 ending → merge の top へ smoothstep で戻る。
+    //   - slot（`^slot-` の id）なら sourceHandle: 'loop-out'（既存挙動維持、
+    //     slot の左上ハンドルから上に出る自然な戻り経路）
+    //   - それ以外（cond の false 直接、for-end の exit、merge など）は
+    //     ending 自身の sourceHandle を尊重する
+    // targetHandle: 'top' は常に付けて、AnimatedProgressEdge の shouldUseStep が
+    // smoothstep（U 字経路）を選ぶようにする。body が空の場合 endings は初期値
+    // [{ nodeId: condId, sourceHandle: 'false' }] のままなので、自然に「cond.false
+    // → merge.top」の従来挙動になる。
+    // `data: { loopDepth }` を付与することで、AnimatedProgressEdge が smoothstep の
+    // offset を depth に応じて調整し、ネストしたループの戻り弧同士が重ならない
+    // ようにする（外側 depth ほど offset 大→ 弧が高く立ち上がる）。
+    for (const ending of bodyResult.endings) {
+      const isSlot = /^slot-/.test(ending.nodeId);
+      const loopBackEdge = buildEdge({
+        nodeId: ending.nodeId,
+        sourceHandle: isSlot ? 'loop-out' : ending.sourceHandle,
+        targetHandle: 'top',
+      }, mergeId);
+      loopBackEdge.data = { loopDepth: nestDepth };
+      ctx.edges.push(loopBackEdge);
     }
 
     return {
       endings: [{ nodeId: condId, sourceHandle: 'true' }],
-      column: bodyColumn,
+      column: bodyResult.endColumn,
     };
   }
 
-  let bodyColumn = mergeColumn + 1;
-  let prevId = mergeId;
-  let prevHandle = undefined;
-  let lastBodyId = null;
-  for (const raw of loopDef.body) {
-    const slotId = buildBodySlot(ctx, raw, {
-      x: SLOT_X_START + bodyColumn * SLOT_X_STEP,
-      y: yLevel,
-    });
-    ctx.edges.push(buildEdge({ nodeId: prevId, sourceHandle: prevHandle }, slotId));
-    prevId = slotId;
-    prevHandle = undefined;
-    lastBodyId = slotId;
-    bodyColumn += 1;
-  }
+  // post mode: body を先に展開してから cond をその右に置く
+  const bodyResult = processSubFlow(loopDef.body, {
+    startColumn: mergeColumn + 1,
+    yLevel,
+    prevNodeId: mergeId,
+    prevSourceHandle: undefined,
+    ctx,
+    isTopLevel: false,
+    direction: 'right',
+    nestDepth: nestDepth + 1,
+  });
 
-  const condColumn = bodyColumn;
+  const condColumn = bodyResult.endColumn;
   pushCond(condColumn);
-  ctx.edges.push(buildEdge({ nodeId: lastBodyId ?? mergeId }, condId));
-  ctx.edges.push(buildEdge({ nodeId: condId, sourceHandle: 'false', targetHandle: 'top' }, mergeId));
+
+  // body の ending → cond へ（線形フォワード、smoothstep 不要）。
+  // body が空の場合 endings は [{ nodeId: mergeId }] なので merge → cond になり
+  // 従来挙動と一致する。
+  for (const ending of bodyResult.endings) {
+    ctx.edges.push(buildEdge(ending, condId));
+  }
+  // cond false → merge.top（ループバック、smoothstep）。data.loopDepth で
+  // ネストの深さを AnimatedProgressEdge に伝え、外側ほど弧を高く描かせる。
+  const loopBackEdge = buildEdge({ nodeId: condId, sourceHandle: 'false', targetHandle: 'top' }, mergeId);
+  loopBackEdge.data = { loopDepth: nestDepth };
+  ctx.edges.push(loopBackEdge);
 
   return {
     endings: [{ nodeId: condId, sourceHandle: 'true' }],
@@ -992,7 +1016,7 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx }) {
  *         `column` は for-end の次の空列（次要素はここから配置される）。
  *         バリデーション失敗時は入力の `{endings, column}` をそのまま素通し。
  */
-function expandForLoop(forDef, { column, yLevel, endings, ctx }) {
+function expandForLoop(forDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
   if (!Number.isInteger(forDef.iterations) || forDef.iterations < 1) {
     console.warn(`[stagesLoader] invalid for.iterations "${forDef.iterations}". Must be integer >= 1. Skipping.`);
     return { endings, column };
@@ -1024,6 +1048,7 @@ function expandForLoop(forDef, { column, yLevel, endings, ctx }) {
     ctx,
     isTopLevel: false,
     direction: 'right',
+    nestDepth: nestDepth + 1,
   });
 
   ctx.forEnds.push({
@@ -1036,10 +1061,15 @@ function expandForLoop(forDef, { column, yLevel, endings, ctx }) {
     ctx.edges.push(buildEdge(ending, forEndId));
   }
 
-  ctx.edges.push(buildEdge(
+  // loop-back エッジに data.loopDepth を付与して、AnimatedProgressEdge が
+  // ネスト深さに応じた offset で smoothstep 経路を描けるようにする（外側 depth
+  // ほど弧が高く、内側の弧の上を通す）。
+  const forLoopBackEdge = buildEdge(
     { nodeId: forEndId, sourceHandle: 'loop-back', targetHandle: 'top' },
     forStartId
-  ));
+  );
+  forLoopBackEdge.data = { loopDepth: nestDepth };
+  ctx.edges.push(forLoopBackEdge);
 
   return {
     endings: [{ nodeId: forEndId, sourceHandle: 'exit' }],

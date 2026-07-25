@@ -118,19 +118,33 @@ import styles from './AnimatedProgressEdge.module.css';
  * Returns:
  *     JSX.Element: SVG `<path>` ＋ 実行中の `<circle>` を含むフラグメント。
  */
-function AnimatedProgressEdge({ 
-  id, 
-  sourceX, sourceY, targetX, targetY, 
+function AnimatedProgressEdge({
+  id,
+  data,
+  sourceX, sourceY, targetX, targetY,
   sourcePosition, targetPosition,
   sourceHandleId, targetHandleId,
-  markerEnd, 
+  markerEnd,
 }) {
   const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom' || targetHandleId === 'top';
-  const [edgePath] = shouldUseStep 
-    ? getSmoothStepPath({ 
+  /*
+   * ネストしたループのループバックエッジは stagesLoader が `data.loopDepth`
+   * （0 = 最外側、内側ほど大）を付与している。外側 depth ほど smoothstep の
+   * `offset` を大きくして立ち上がりを高くし、内側の弧の上を通すことで視覚的な
+   * 重なりを回避する。ループバック以外のエッジ（cond の false 分岐、merge への
+   * 下からの流入など）は data.loopDepth を持たないため、React Flow のデフォルト
+   * 相当の 20 を使う。
+   */
+  const loopDepth = typeof data?.loopDepth === 'number' ? data.loopDepth : null;
+  const stepOffset = loopDepth !== null
+    ? Math.max(20, 80 - loopDepth * 30)
+    : 20;
+  const [edgePath] = shouldUseStep
+    ? getSmoothStepPath({
       sourceX, sourceY, sourcePosition,
       targetX, targetY, targetPosition,
       borderRadius: 5,
+      offset: stepOffset,
     })
     : getStraightPath({ sourceX, sourceY, targetX, targetY });
 
