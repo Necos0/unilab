@@ -1430,10 +1430,17 @@ function collectSlotTypeIds(raw) {
     }
     for (const item of items) {
       if (isLoop(item)) {
-        ids.add('loop');
+        // while / do-while ループは数字表示を持たず、`slot_help.json` の
+        // `loop` エントリ（カウントマス、「枠に書かれたカウントの数字…」）の
+        // 説明と一致しないため slotTypeIds には追加しない。body の再帰は継続
+        // して内部の for / condition / counter 等の検出は行う。
         visitFlow(item.loop.body);
       } else if (isForLoop(item)) {
-        ids.add('counter');
+        // for ループは for-start に残回数の大きな数字を表示し、`loop`
+        // エントリ（カウントマス）の説明「枠に書かれたカウントの数字の数だけ
+        // 枠の中をくりかえす。0 になったらつぎへ進む」と概念的に一致する。
+        // 4-2 での for 初登場でカウントマスヘルプが解禁される。
+        ids.add('loop');
         visitFlow(item.for.body);
       } else if (isCondition(item)) {
         ids.add('condition');
