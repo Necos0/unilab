@@ -68,13 +68,14 @@ const CARD_ACCENTS = {
  * マス種別ごとのテーマ色（アクセント色）。
  *
  * 実戦の見た目に寄せられるものは寄せる：パワーアップ（counter）はペアスロット
- * の金色アウトライン（`SlotNode` の `.counterPaired` #ffd54a）、条件分岐は実行
- * ハイライトの白（#e5e5ff）。倍率・種類指定・カウント（ループ）は戦闘画面に
- * 固有色が無いため、カテゴリ内で識別しやすい互いに離れた色を割り当てる。
+ * の金色アウトライン（`SlotNode` の `.counterPaired` #ffd54a）、カウント（for）
+ * は for-start / for-end ノードの金色枠（`ForNode` の #ffd54a）、条件分岐は
+ * 実行ハイライトの白（#e5e5ff）。倍率・種類指定は戦闘画面に固有色が無いため、
+ * カテゴリ内で識別しやすい互いに離れた色を割り当てる。
  */
 const SLOT_ACCENTS = {
   condition: '#e5e5ff',
-  loop: '#4ad0c8',
+  loop: '#ffd54a',
   multiplier: '#c792ea',
   acceptOnly: '#ff6a6a',
   counter: '#ffd54a',

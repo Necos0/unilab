@@ -2,10 +2,11 @@
  * マス説明ヘルプのミニ図解（SlotHelpVisual）。
  *
  * `HelpWindow` の額縁（.cardFrame、カード画像 120×180 と同寸）に収まる
- * 静的なマスのモック描画。色・寸法は戦闘画面のフローチャート
+ * 静的なマスのモック描画。色・寸法・形は戦闘画面のフローチャート
  * （SlotNode 80×120 の点線枠 #4a4a52 / 地色 #15151c、ConditionNode の
- * ひし形、MultiplierIndicator の白文字、counterPaired の金アウトライン
- * #ffd54a）から移植し、ヘルプと実戦が同じ見た目で結びつくようにする。
+ * ひし形、ForStartNode / ForEndNode の金色角カット枠 #ffd54a、
+ * MultiplierIndicator の白文字、counterPaired の金アウトライン #ffd54a）
+ * から移植し、ヘルプと実戦が同じ見た目で結びつくようにする。
  */
 .root {
   width: 120px;
@@ -31,50 +32,34 @@
   border-color: #ff4d4d;
 }
 
-/* パワーアップ：SlotNode の .counterPaired と同じ金アウトライン。 */
-.slotCounter {
-  outline: 2px solid #ffd54a;
-  outline-offset: 2px;
-}
-
-/* MultiplierIndicator と同じ意匠の右上バッジ。 */
+/*
+ * MultiplierIndicator と同じ意匠の右上バッジ
+ * （position / フォント / 白 #f5f5f5 / text-shadow を実物の CSS から移植）。
+ */
 .multiplierBadge {
   position: absolute;
   top: 2px;
   right: 2px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.7rem;
+  font-size: 11px;
+  font-weight: bold;
   color: #f5f5f5;
-  text-shadow:
-    1px 1px 0 rgba(0, 0, 0, 0.9),
-    0 0 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
 }
 
-/* RestrictedSlotIcon と同じ右上アイコン枠。 */
+/*
+ * RestrictedSlotIcon と同じ左上アイコン（実物の .icon は
+ * top/left 2px・12×12px。multiplier の右上バッジと左右で分離する配置）。
+ */
 .acceptIcon {
   position: absolute;
   top: 2px;
-  right: 2px;
-  width: 14px;
-  height: 14px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
 }
 
-/* パワーアップの倍率が上がっていく様子（x0→x1→x2）。 */
-.counterSteps {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.6rem;
-  line-height: 1.5;
-  text-align: center;
-  color: #ffd54a;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
-}
-
-/* 条件マス：ひし形＋〇/×の出口マークを相対配置で重ねる。 */
+/* 条件マス：ひし形＋はい/いいえの出口ラベルを相対配置で重ねる。 */
 .conditionWrap {
   position: relative;
   width: 120px;
@@ -110,71 +95,155 @@
   font-size: 1.2rem;
 }
 
-/* 条件の出口マーク（右=〇、下=×）。 */
+/*
+ * 条件の出口ラベル（右=はい、下=いいえ）。実戦のエッジラベル
+ * （AnimatedProgressEdge の .handleLabel、白 #f5f5f5 の太字＋暗い縁取り）
+ * と同じ意匠にする。
+ */
 .exitMark {
   position: absolute;
   font-family: 'DotGothic16', monospace;
-  font-size: 0.95rem;
-  color: #c8bfa0;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #f5f5f5;
+  text-shadow:
+    1px 1px 0 #12121a,
+    -1px 1px 0 #12121a,
+    1px -1px 0 #12121a,
+    -1px -1px 0 #12121a;
 }
 
 /* 額縁（.cardFrame）の内側に収まるよう、ラップ外へは出さない。 */
 .exitTrue {
-  top: 52px;
-  right: -4px;
-  color: #6ee86e;
+  top: 54px;
+  right: -6px;
 }
 
 .exitFalse {
-  bottom: 8px;
-  left: 46px;
-  color: #ff7a7a;
+  bottom: 6px;
+  left: 44px;
 }
 
-/* カウントマス：繰り返し範囲を表す点線枠。 */
-.loopFrame {
+/* カウントマス：for-start / for-end のペア＋戻りの弧のラップ。 */
+.loopWrap {
   position: relative;
-  width: 110px;
-  height: 150px;
-  border: 2px dashed #6a6a78;
-  border-radius: 10px;
+  width: 120px;
+  padding-top: 18px;
+}
+
+/* for-start / スロット / for-end の横並び。 */
+.loopRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
+  gap: 4px;
 }
 
-/* 枠に書かれたカウント数字。 */
-.loopCount {
+/*
+ * ForStartNode / ForEndNode（80×120）を縮小移植した金色の角カット枠。
+ * 「金色の外側＋暗い内側 2px inset」の 2 層構造（ForNode.module.css と
+ * 同じ手法）で、clip-path の斜辺を含む全周に金色の輪郭を出す。
+ */
+.forNode {
+  position: relative;
+  width: 36px;
+  height: 54px;
+  background: #ffd54a;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.forNode::before {
+  content: '';
   position: absolute;
-  top: -12px;
-  left: 8px;
-  padding: 0 6px;
-  background: #140f22;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.85rem;
-  color: #4ad0c8;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+  inset: 2px;
+  background: #15151c;
+}
+
+/* 左上・左下の角カット＝開始（ForNode の .start と同じ clip-path）。 */
+.forStart,
+.forStart::before {
+  clip-path: polygon(0 20%, 20% 0, 100% 0, 100% 100%, 20% 100%, 0 80%);
+}
+
+/* 右上・右下の角カット＝終了（ForNode の .end と同じ clip-path）。 */
+.forEnd,
+.forEnd::before {
+  clip-path: polygon(0 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 0 100%);
+}
+
+/* 開始側に表示するカウント数字（ForNode の .count と同じ金文字）。 */
+.forCount {
+  position: relative;
+  z-index: 1;
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  color: #ffd54a;
 }
 
 /* 枠内の小さめスロット（繰り返す中身の代表）。 */
 .slotMini {
-  width: 56px;
-  height: 84px;
+  width: 30px;
+  height: 46px;
+  border: 2px dashed #4a4a52;
+  border-radius: 4px;
+  background: #15151c;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* for-end の上から for-start の上へ戻るループバックの弧。 */
+.loopBackArc {
+  position: absolute;
+  top: 2px;
+  left: 18px;
+  right: 18px;
+  height: 14px;
+  border: 2px solid #6a6a78;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  box-sizing: border-box;
+}
+
+/* パワーアップマス：カウンタカード入りスロット＋ペアの倍率マスの横並び。 */
+.counterRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* 縮小版スロット（2 マス並べて額縁に収めるため 80×120 の 0.65 倍）。 */
+.slotSmall {
+  position: relative;
+  width: 52px;
+  height: 78px;
   border: 2px dashed #4a4a52;
   border-radius: 6px;
   background: #15151c;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
-/* 繰り返しの戻り矢印。 */
-.loopArrow {
-  position: absolute;
-  bottom: 2px;
-  right: 8px;
-  font-family: 'DotGothic16', monospace;
-  font-size: 1.3rem;
-  color: #4ad0c8;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+/* パワーアップ：SlotNode の .counterPaired と同じ金アウトライン。 */
+.slotCounter {
+  outline: 2px solid #ffd54a;
+  outline-offset: 2px;
+}
+
+/* カードが入っているスロット（SlotNode の .filled と同じく点線を消す）。 */
+.slotFilled {
+  border-style: none;
+  background: transparent;
+}
+
+/* スロットに収まるカウンタカード画像。 */
+.counterCard {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }

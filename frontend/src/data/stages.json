@@ -162,7 +162,7 @@
         {},
         {
           "condition": "playerHp > 50",
-          "label": "自分のHPが50より大きい",
+          "label": "自分《じぶん》のHPが50より大《おお》きい",
           "true": [
             { "lockedCard": { "id": "attack", "power": 20 } }
           ],
@@ -185,7 +185,7 @@
         { "lockedCard": { "id": "monster", "power": 15 } },
         {
           "condition": "slot('slot-1') === 'attack'",
-          "label": "(1)が攻撃カード",
+          "label": "(1)が攻撃《こうげき》カード",
           "true": [
             {},
             { "lockedCard": { "id": "monster", "power": 20 } }
@@ -219,7 +219,7 @@
         {},
         {
           "condition": "enemyHp === 5",
-          "label": "敵のHPが5？",
+          "label": "敵《てき》のHPが5？",
           "true":[],
           "false":[
             { "lockedCard": { "id": "monster", "power": 100} }
@@ -247,7 +247,7 @@
         {},
         {
           "condition": "playerHp === 40 && enemyHp === 30",
-          "label": "自分のHPが40で敵のHPも30",
+          "label": "自分《じぶん》のHPが40で敵《てき》のHPも30",
           "true":[],
           "false":[
             { "lockedCard": { "id": "monster", "power": 100} }
@@ -258,7 +258,7 @@
         {},
         {
           "condition": "enemyHp === 20",
-          "label": "敵のHPが20",
+          "label": "敵《てき》のHPが20",
           "true":[],
           "false":[
             { "lockedCard": { "id": "monster", "power": 100 } }
@@ -269,7 +269,7 @@
         { "lockedCard": { "id": "monster", "power": 5 } },
         {
           "condition": "playerHp === 10",
-          "label": "自分のHPが10",
+          "label": "自分《じぶん》のHPが10",
           "true": [],
           "false": [
             { "lockedCard": { "id": "monster", "power": 100 } }
@@ -292,7 +292,7 @@
           "loop": {
             "mode": "pre",
             "condition": "enemyHp <= 0",
-            "label": "敵のHPが0?",
+            "label": "敵《てき》のHPが0?",
             "trueDir": "down",
             "falseDir": "right",
             "body": [
@@ -321,7 +321,7 @@
             "body": [
               {
                 "condition": "forCounter('for-start-1') === 2",
-                "label": "のこり2回？",
+                "label": "のこり2回《かい》？",
                 "true": [
                   {},
                   { "lockedCard": { "id": "monster", "power": 10 } },
@@ -355,7 +355,7 @@
           "loop": {
             "mode": "post",
             "condition": "playerHp <= 50 && enemyHp <= 50",
-            "label": "自分のHPが50以下で敵のHPも50以下",
+            "label": "自分《じぶん》のHPが50以下《いか》で敵《てき》のHPも50以下《いか》",
             "trueDir": "right",
             "falseDir": "up",
             "body": [
@@ -391,13 +391,13 @@
           "loop": {
             "mode": "pre",
             "condition": "enemyHp <= 30",
-            "label": "敵のHPが30以下?",
+            "label": "敵《てき》のHPが30以下《いか》?",
             "trueDir": "down",
             "falseDir": "right",
             "body": [
               {
                 "condition": "playerHp <= 5",
-                "label": "自分のHPが5以下",
+                "label": "自分《じぶん》のHPが5以下《いか》",
                 "true": [],
                 "false": [
                   { "lockedCard": { "id": "monster", "power": 100 } }
@@ -410,7 +410,7 @@
                   "body": [
                     {
                       "condition": "forCounter('for-start-1') === 2",
-                      "label": "のこり2回？",
+                      "label": "のこり2回《かい》？",
                       "true": [
                         { "lockedCard": { "id": "guard", "power": 5 } },
                         { "lockedCard": { "id": "monster", "power": 30 } },
@@ -444,7 +444,7 @@
             "loop": {
               "mode": "post",
               "condition": "enemyHp <= 0",
-              "label": "敵のHPが0になった?",
+              "label": "敵《てき》のHPが0になった?",
               "trueDir": "right",
               "falseDir": "up",
               "body": [
@@ -485,7 +485,7 @@
         { "lockedCard": { "id": "monster", "power": 30 } },
         {
           "condition": "enemyHp === 40",
-          "label": "敵のHPが40?",
+          "label": "敵《てき》のHPが40?",
           "true": [
             { "multiplier": 4 }
           ],

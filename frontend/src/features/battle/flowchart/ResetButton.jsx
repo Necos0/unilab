@@ -27,6 +27,10 @@ import styles from './ResetButton.module.css';
   * disable 属性も加える設計。「やり直す」直後（`failPhase: null`）には通常通り
   * 押せる状態に戻る。
   *
+  * ルート要素の `data-cutscene-point="resetButton"` はカットシーンの指差し
+  * 誘導（`CutscenePointer`）の対象にするためのアンカー。2-1 入場時の
+  * リセットボタンチュートリアル（cutscenes.json の `stage2-1-enter`）が参照する。
+  *
   * Args:
 
   *     props (object): React プロパティ。                                     
@@ -50,7 +54,7 @@ function ResetButton({ stage }) {
   };
 
   return (
-    <button type="button" className={styles.button} onClick={handleClick} aria-label="リセット" disabled={isDisabled}>
+    <button type="button" className={styles.button} onClick={handleClick} aria-label="リセット" disabled={isDisabled} data-cutscene-point="resetButton">
       <img className={styles.icon} src="/icons/flowchart/reset.svg" alt="" draggable={false}/>
     </button>
   );

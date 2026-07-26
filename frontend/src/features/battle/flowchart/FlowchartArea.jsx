@@ -13,6 +13,7 @@ import ForStartNode from './ForStartNode';
 import ForEndNode from './ForEndNode';
 import AnimatedProgressEdge from './AnimatedProgressEdge';
 import ZoomControls from './ZoomControls';
+import MagnifierLens from './MagnifierLens';
 import useBattleStore from '../../../stores/battleStore';
 import styles from './FlowchartArea.module.css';
 
@@ -122,8 +123,8 @@ function conditionsToNodes(conditions) {
     id: c.id,
     type: 'condition',
     position: c.position,
-    data: { 
-      expression: c.expression, 
+    data: {
+      expression: c.expression,
       label: c.label,
       trueDir: c.trueDir,
       falseDir: c.falseDir,
@@ -388,6 +389,7 @@ function FlowchartArea({ stage }) {
       >
         <ZoomControls />
       </ReactFlow>
+      <MagnifierLens containerRef={canvasRef} />
     </div>
   );
 }

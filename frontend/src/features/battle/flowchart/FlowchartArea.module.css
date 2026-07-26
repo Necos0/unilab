@@ -1,6 +1,8 @@
 .canvas {
   width: 100%;
   height: 100%;
+  /* 虫眼鏡レンズ（MagnifierLens）の絶対配置の基準にする */
+  position: relative;
   /* React Flow の背景色を BattleScreen 側の .flowchartArea と揃える
      （デフォルトは transparent だが、明示しておく方が事故を避けやすい） */
   --xy-background-color-default: #12121a;

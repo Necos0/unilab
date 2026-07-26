@@ -47,6 +47,10 @@ import styles from './ForNode.module.css';
  * `for-start` は dnd-kit のドロップターゲットではない（`useDroppable` を
  * 呼ばない）。カードを配置する概念がないため。
  *
+ * ルート要素の `data-cutscene-point={id}`（例: `for-start-1`）はカットシーンの
+ * 指差し誘導（`CutscenePointer`）の対象にするためのアンカー。4-2 入場時の
+ * カウントマスチュートリアル（cutscenes.json の `stage4-2-enter`）が参照する。
+ *
  * Args:
  *     props (object): React Flow からカスタムノードに渡される props。
  *         id (string): for-start ノード ID（`stages.json` の `forStarts[].id`
@@ -78,7 +82,7 @@ function ForStartNode({ id, data }) {
     .join(' ');
   
   return (
-    <div className={className}>
+    <div className={className} data-cutscene-point={id}>
       <span className={styles.count}>{remaining}</span>
       <Handle
         type="target"

@@ -97,8 +97,12 @@ import styles from './AnimatedProgressEdge.module.css';
  * middle` でセンタリング** する：スロット間隔の短縮（`SLOT_X_STEP` 200→160）で
  * cond と隣ノードの隙間が 20px しかなくなり、従来の「頂点の右に開始位置を置く」
  * 方式だと `はい`／`いいえ` が隣のカードに重なったため。センタリングなら
- * `いいえ`（約 39px）でも半分ずつ左右に逃げて隙間に収まる。縦出口（上／下）は
- * 従来どおり頂点の右横にずらす（下方向は次の行まで空間があるため）。
+ * `いいえ`（約 39px）でも半分ずつ左右に逃げて隙間に収まる。持ち上げ量は
+ * `dy: -16`：`-8` だと菱形の斜辺（右頂点の少し上はまだ幅が広い）に
+ * `いいえ` の左端が約 10px 重なって読みにくかったため（4-4 で顕在化）、
+ * 斜辺が内側へ引っ込む高さまで持ち上げて重なりをほぼ解消する。縦出口
+ * （上／下）は従来どおり頂点の右横にずらす（下方向は次の行まで空間が
+ * あるため）。
  * スタイルは `.handleLabel` で `fill: #f5f5f5` ／ `font-size: 13px`
  * ／ `font-weight: bold`、`paint-order: stroke` + キャンバス背景色（`#12121a`）の
  * 3px 縁取りで、菱形の斜辺やエッジ線にかかっても文字が読めるようにする。
@@ -155,11 +159,11 @@ function AnimatedProgressEdge({
   const isTraversed = useBattleStore((s) => s.traversedEdgeIds.includes(id));
 
   const labelPos = {
-    [Position.Right]: { dx: 0, dy: -8, anchor: 'middle' },
-    [Position.Left]: { dx: 0, dy: -8, anchor: 'middle' },
+    [Position.Right]: { dx: 0, dy: -16, anchor: 'middle' },
+    [Position.Left]: { dx: 0, dy: -16, anchor: 'middle' },
     [Position.Top]: { dx: 8, dy: -8, anchor: 'start' },
     [Position.Bottom]: { dx: 8, dy: 16, anchor: 'start' },
-  }[sourcePosition] ?? { dx: 0, dy: -8, anchor: 'middle' };
+  }[sourcePosition] ?? { dx: 0, dy: -16, anchor: 'middle' };
 
   const pathClassName = [
     'react-flow__edge-path',

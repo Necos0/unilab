@@ -8,14 +8,18 @@ import styles from './SlotHelpVisual.module.css';
  * 再現する。実物のノード（`SlotNode` / `ConditionNode` 等）は React Flow の
  * コンテキスト（Handle・zustand 購読）に依存していてモーダル内では使えない
  * ため、寸法・色・意匠だけを移植したモック描画にする：
- *   - `condition`  : ひし形（`ConditionNode` の clip-path 意匠）＋〇/×の出口
- *   - `loop`       : 点線の繰り返し枠＋カウント数字＋戻り矢印（↻）
+ *   - `condition`  : ひし形（`ConditionNode` の clip-path 意匠）＋
+ *     「はい」「いいえ」の出口ラベル（`AnimatedProgressEdge` の
+ *     `.handleLabel` と同じ白文字）
+ *   - `loop`       : for-start / for-end のペア（`ForStartNode` /
+ *     `ForEndNode` の金色角カット枠 + カウント数字）＋間のスロット＋
+ *     戻りの弧
  *   - `multiplier` : 点線スロット（`SlotNode` 80×120）＋右上の「x2」
- *     （`MultiplierIndicator` と同じ Press Start 2P の白文字）
- *   - `acceptOnly` : 赤枠スロット（`.acceptAttack`）＋右上の剣アイコン
- *     （`RestrictedSlotIcon` の attack と同形・同色）
- *   - `counter`    : 金色アウトラインのスロット（`.counterPaired`）＋
- *     「x0→x1→x2」の増加表示
+ *     （`MultiplierIndicator` と同じ Press Start 2P 11px 白文字）
+ *   - `acceptOnly` : 赤枠スロット（`.acceptAttack`）＋左上の剣アイコン
+ *     （`RestrictedSlotIcon` の attack と同形・同色・同配置）
+ *   - `counter`    : カウンタカード入りスロットと、ペアの倍率マス
+ *     （どちらも `.counterPaired` と同じ金色アウトライン）の 2 マス構成
  *
  * Args:
  *     props (object): React プロパティ。
@@ -47,7 +51,9 @@ function SlotHelpVisual({ typeId }) {
 }
 
 /**
- * 条件マスの図解。ひし形＋右へ「〇」・下へ「×」の 2 つの出口を描く。
+ * 条件マスの図解。ひし形＋右へ「はい」・下へ「いいえ」の 2 つの出口を描く。
+ * 出口ラベルは実戦のエッジラベル（`AnimatedProgressEdge` の はい/いいえ）と
+ * 同じ白文字にする。
  *
  * Returns:
  *     JSX.Element: 条件マスの図解要素。
@@ -58,30 +64,39 @@ function ConditionVisual() {
       <div className={styles.diamond}>
         <span className={styles.diamondText}>？</span>
       </div>
-      <span className={`${styles.exitMark} ${styles.exitTrue}`}>→〇</span>
-      <span className={`${styles.exitMark} ${styles.exitFalse}`}>↓×</span>
+      <span className={`${styles.exitMark} ${styles.exitTrue}`}>→はい</span>
+      <span className={`${styles.exitMark} ${styles.exitFalse}`}>↓いいえ</span>
     </div>
   );
 }
 
 /**
- * カウントマス（for）の図解。点線の繰り返し枠にカウント数字と戻り矢印を描く。
+ * カウントマス（for）の図解。実物の `ForStartNode` / `ForEndNode` と同じ
+ * 金色の角カット枠（左角カット＝開始、右角カット＝終了）を縮小して並べ、
+ * 間に繰り返す中身のスロット、上に戻りの弧を描く。開始側にはカウント数字
+ * （実物と同じ Press Start 2P の金文字）を表示する。
  *
  * Returns:
  *     JSX.Element: カウントマスの図解要素。
  */
 function LoopVisual() {
   return (
-    <div className={styles.loopFrame}>
-      <span className={styles.loopCount}>3</span>
-      <div className={styles.slotMini} />
-      <span className={styles.loopArrow}>↻</span>
+    <div className={styles.loopWrap}>
+      <div className={styles.loopBackArc} />
+      <div className={styles.loopRow}>
+        <div className={`${styles.forNode} ${styles.forStart}`}>
+          <span className={styles.forCount}>3</span>
+        </div>
+        <div className={styles.slotMini} />
+        <div className={`${styles.forNode} ${styles.forEnd}`} />
+      </div>
     </div>
   );
 }
 
 /**
- * 倍率マスの図解。空スロットの右上に「x2」を重ねる。
+ * 倍率マスの図解。空スロットの右上に「x2」（`MultiplierIndicator` と同じ
+ * 意匠）を重ねる。
  *
  * Returns:
  *     JSX.Element: 倍率マスの図解要素。
@@ -95,8 +110,8 @@ function MultiplierVisual() {
 }
 
 /**
- * 種類指定マスの図解。赤枠スロットの右上に剣アイコン（attack 指定の例）を
- * 重ねる。アイコンの形・色は `RestrictedSlotIcon` の attack と同一。
+ * 種類指定マスの図解。赤枠スロットの左上に剣アイコン（attack 指定の例）を
+ * 重ねる。アイコンの形・色・配置は `RestrictedSlotIcon` の attack と同一。
  *
  * Returns:
  *     JSX.Element: 種類指定マスの図解要素。
@@ -118,22 +133,27 @@ function AcceptOnlyVisual() {
 }
 
 /**
- * パワーアップマスの図解。金色アウトラインのスロットに、通るたびに倍率が
- * 上がる様子（x0→x1→x2）を重ねる。
+ * パワーアップマスの図解。実戦（4-3）と同じ「カウンタカード入りスロット＋
+ * ペアの倍率マス」の 2 マス構成を縮小して並べる。どちらも `SlotNode` の
+ * `.counterPaired` と同じ金色アウトラインで、ペアであることを示す。
  *
  * Returns:
  *     JSX.Element: パワーアップマスの図解要素。
  */
 function CounterVisual() {
   return (
-    <div className={`${styles.slot} ${styles.slotCounter}`}>
-      <span className={styles.counterSteps}>
-        x0
-        <br />↓<br />
-        x1
-        <br />↓<br />
-        x2
-      </span>
+    <div className={styles.counterRow}>
+      <div className={`${styles.slotSmall} ${styles.slotCounter} ${styles.slotFilled}`}>
+        <img
+          className={styles.counterCard}
+          src="/cards/counter.png"
+          alt=""
+          draggable={false}
+        />
+      </div>
+      <div className={`${styles.slotSmall} ${styles.slotCounter}`}>
+        <span className={styles.multiplierBadge}>x2</span>
+      </div>
     </div>
   );
 }

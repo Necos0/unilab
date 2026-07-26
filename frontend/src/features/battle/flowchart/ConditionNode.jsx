@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import useBattleStore from '../../../stores/battleStore';
+import tokenizeFurigana from '../../cutscene/tokenizeFurigana';
 import styles from './ConditionNode.module.css';
 
 const DIRECTION_TO_POSITION = {
@@ -90,6 +91,18 @@ function directionToPosition(dir, fallback) {
  * ともに未定義の異常時は最終フォールバックの `?? ''` で空文字になり、
  * `undefined` 表示やフォントサイズ計算（`text.length`）のクラッシュを防ぐ。
  *
+ * ラベル内の `漢字《ふりがな》` 記法は `tokenizeFurigana` でトークン化し、
+ * ルビ対象は `<ruby>` 要素で描画する（吹き出し `RoboBubble` と同じ記法・
+ * 同じ仕組み）。フォントサイズ計算にはルビ記号（`《よみ》`）を除いた
+ * 表示文字数を使い、記法の有無でサイズが変わらないようにする。
+ *
+ * 虫眼鏡（`MagnifierLens`）連携：菱形内の条件文とエッジの はい/いいえ
+ * ラベルは縮小表示で小さく読みにくいため、カーソルが近づいたときだけ
+ * 画面表示そのものを丸く拡大する虫眼鏡レンズを `FlowchartArea` が重ねる。
+ * 本コンポーネントはその対象であることを示すアンカー
+ * `data-magnifier-target` をルート要素に付けるだけで、表示判定
+ * （矩形との距離計測）・カーソルの非表示はすべて `MagnifierLens` 側が行う。
+ *
  * 表示テキストのフォントサイズは文字数に応じて動的に縮小する（`fontSizePx`）。
  * 菱形は固定サイズ（CSS 側 140×120px）で上下頂点へ近づくほど横幅が狭まるため、
  * 長いラベルが複数行に折り返すと矩形ブロックの角が斜辺をはみ出して clip-path に
@@ -123,7 +136,7 @@ function ConditionNode({ id, data }) {
   const truePosition = directionToPosition(data.trueDir, Position.Right);
   const falsePosition = directionToPosition(data.falseDir, Position.Bottom);
 
-  const className = [
+  const diamondClassName = [
     styles.diamond,
     isActive && styles.active,
     isTraversed && styles.traversed,
@@ -132,14 +145,25 @@ function ConditionNode({ id, data }) {
     .join(' ');
 
   const text = data.label ?? data.expression ?? '';
-  const fontSizePx = Math.max(8, Math.min(14, 50 / Math.sqrt(text.length)));
+  const displayLength = text.replace(/《[^》]*》/g, '').length;
+  const fontSizePx = Math.max(8, Math.min(14, 50 / Math.sqrt(displayLength)));
+  const textNodes = tokenizeFurigana(text).map((token, index) =>
+    token.type === 'ruby' ? (
+      <ruby key={index}>
+        {token.base}
+        <rt>{token.ruby}</rt>
+      </ruby>
+    ) : (
+      <span key={index}>{token.value}</span>
+    ),
+  );
   /*
    * `data-cutscene-point={id}`（例: `cond-1`）はカットシーンの指差し誘導
    * （`CutscenePointer`）の対象にするための目印。`SlotNode` の同属性と
    * 同じ仕組みで、step 側の `point` に条件ノード id を書くと枠取りされる。
    */
   return (
-    <div className={className} data-cutscene-point={id}>
+    <div className={styles.root} data-cutscene-point={id} data-magnifier-target>
       <Handle
         type="target"
         position={Position.Left}
@@ -174,8 +198,10 @@ function ConditionNode({ id, data }) {
         className={styles.handle}
         isConnectable={false}
       />
-      <div className={styles.expression} style={{ fontSize: `${fontSizePx}px` }}>
-        {text}
+      <div className={diamondClassName}>
+        <div className={styles.expression} style={{ fontSize: `${fontSizePx}px` }}>
+          {textNodes}
+        </div>
       </div>
     </div>
   );

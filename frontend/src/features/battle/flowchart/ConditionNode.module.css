@@ -1,13 +1,23 @@
-.diamond {
+/*
+ * ノードのルート。clip-path を持たない菱形（.diamond）のラッパー。
+ * 虫眼鏡レンズ（MagnifierLens）が data-magnifier-target 属性を目印に
+ * この矩形を計測して表示判定するため、ノード全体と同寸にしておく。
+ */
+.root {
+  position: relative;
   width: 140px;
   height: 120px;
+}
+
+.diamond {
+  position: absolute;
+  inset: 0;
   background: #4a4a52;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  position: relative;
 }
 
 .diamond::before {
@@ -61,3 +71,4 @@
 .diamond.traversed {
   filter: brightness(1.6) drop-shadow(0 0 10px rgba(229, 229, 255, 0.9));
 }
+

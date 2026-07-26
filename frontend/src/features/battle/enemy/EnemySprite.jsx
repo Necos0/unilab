@@ -126,7 +126,7 @@ function EnemySprite({ enemyId, state = 'idle', className }) {
         onAnimationEnd={() => setConsumedDamageId(lastDamageId)}
         onLoad={onImageLoad}
         src={src}
-        alt={enemy.displayName}
+        alt={enemy.displayName.replace(/《[^》]*》/g, '')}
         draggable={false}
       />
     </div>

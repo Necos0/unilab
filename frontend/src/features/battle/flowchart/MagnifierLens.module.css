@@ -1,0 +1,112 @@
+/*
+ * 虫眼鏡レンズ（MagnifierLens）。
+ *
+ * 丸いレンズ（金属風の金枠＋ガラスの照り返し）と斜めの持ち手で
+ * 「虫眼鏡を画面にかざしている」見た目を作る。中身（.content）には
+ * React Flow の viewport のクローンが入り、コンポーネント側が
+ * translate + scale で拡大位置を合わせる。レンズ全体は pointer-events:
+ * none で、下のノードのホバー判定・カード操作を一切妨げない。
+ */
+.lens {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.lens.hidden {
+  display: none;
+}
+
+/*
+ * レンズ表示中にキャンバス（FlowchartArea の .canvas）へ付けるクラス。
+ * 配下の全要素のカーソルを消し、レンズ自体をカーソルとして見せる。
+ * ノード単位の cursor: none だと境界を跨ぐたびにシステムカーソルが
+ * 出入りしてちらつくため、キャンバス全体に一括で効かせる。
+ */
+.magnifying,
+.magnifying * {
+  cursor: none !important;
+}
+
+/*
+ * ガラス面（丸い拡大表示部）。金枠は border ではなく box-shadow のリングで
+ * 描く：border だと子要素（.content）の原点が枠の太さ分ずれて、拡大の
+ * 中心がカーソル位置から数 px ずれてしまうため。
+ */
+.glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #12121a;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 5px #f0c040,
+    0 8px 24px rgba(0, 0, 0, 0.7),
+    inset 0 0 18px rgba(0, 0, 0, 0.55);
+}
+
+/* クローンを収める層。transform はコンポーネント側が style で与える。
+   inset: 0 でガラス面と同寸の箱にし、クローン内の width/height: 100%
+   （.react-flow__container 等）が 0 に潰れないようにする。 */
+.content {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+/*
+ * クローン内の要素はポインタを一切受けない。xyflow の CSS は
+ * .react-flow__node { pointer-events: all } などを持つため、.lens の
+ * pointer-events: none だけでは子孫側で再有効化されてしまい、レンズが
+ * 下のノードへの pointermove を奪って表示判定がちらつく。
+ */
+.content * {
+  pointer-events: none !important;
+}
+
+/*
+ * xyflow の CSS のうち、この 2 つだけは `.react-flow` コンテナ配下限定の
+ * セレクタ（`.react-flow .react-flow__edges` など）で定義されているため、
+ * `.react-flow` の外に置かれるクローンには効かない。効かないとエッジの
+ * <svg> が static 配置＋overflow: hidden（SVG の既定）になり、パスが
+ * クリップされてレンズ内でエッジだけ消える。同じ宣言をレンズ内向けに
+ * ここで再定義する。
+ */
+.content :global(.react-flow__edges) {
+  position: absolute;
+}
+
+.content :global(.react-flow__edges svg) {
+  overflow: visible;
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ガラスの照り返し。左上にうっすら白いハイライトを乗せる。 */
+.glare {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 25%,
+    rgba(255, 255, 255, 0.18) 0,
+    rgba(255, 255, 255, 0.05) 22%,
+    transparent 45%
+  );
+}
+
+/* 右下へ斜めに伸びる持ち手。金枠と同系色のグラデーションで金属風にする。 */
+.handle {
+  position: absolute;
+  right: 6px;
+  bottom: -46px;
+  width: 16px;
+  height: 64px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f0c040 0%, #a87820 60%, #7a5010 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  transform: rotate(-45deg);
+  transform-origin: top center;
+}

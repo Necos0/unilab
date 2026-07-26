@@ -1,3 +1,4 @@
+import tokenizeFurigana from '../cutscene/tokenizeFurigana';
 import styles from './EncounterBanner.module.css';
 
 /**
@@ -12,9 +13,9 @@ import styles from './EncounterBanner.module.css';
  * `EncounterBanner.module.css` 側のアニメーション定義と、`BattleScreen`
  * 側のフェーズ時間で同期させる）。
  *
- * 敵名は `enemies.json` の `displayName` をそのまま使う。現状すべて
- * カタカナ表記のため、ふりがな（ルビ）は不要（漢字入りの敵名を追加する
- * 場合は `tokenizeFurigana` の導入を検討すること）。
+ * 敵名は `enemies.json` の `displayName` を使う。`青龍《セイリュウ》` の
+ * ように `漢字《ふりがな》` 記法を含む名前に対応するため、文言全体を
+ * `tokenizeFurigana` でトークン化し、ルビ対象は `<ruby>` 要素で描画する。
  *
  * ボスステージ（`isBoss`）では文言が「ボスの 〇〇が あらわれた!!」に
  * 変わり、赤基調・大きめの文字・赤いグロー明滅つきのボス版スタイル
@@ -35,9 +36,19 @@ function EncounterBanner({ enemyName, isBoss = false }) {
   const message = isBoss
     ? `ボスの ${enemyName}が あらわれた!!`
     : `${enemyName}が あらわれた!`;
+  const textNodes = tokenizeFurigana(message).map((token, index) =>
+    token.type === 'ruby' ? (
+      <ruby key={index}>
+        {token.base}
+        <rt>{token.ruby}</rt>
+      </ruby>
+    ) : (
+      <span key={index}>{token.value}</span>
+    ),
+  );
   return (
     <div className={className} role="status">
-      <span className={styles.text}>{message}</span>
+      <span className={styles.text}>{textNodes}</span>
     </div>
   );
 }
