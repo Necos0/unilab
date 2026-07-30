@@ -2,8 +2,12 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  /* 12px だとカードの色合いに埋もれて種類の判別がしづらかったため、
+     2.5 倍の 30px に拡大。スロット 80×120 の左上に置いても中央のカード
+     絵に大きく被らないサイズ。右上の `MultiplierIndicator` は 33px 幅の
+     右詰めなので、左端 30px と衝突しない。 */
+  width: 30px;
+  height: 30px;
   pointer-events: none;
   z-index: 2;
 }
