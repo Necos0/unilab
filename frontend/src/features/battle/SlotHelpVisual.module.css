@@ -34,7 +34,10 @@
 
 /*
  * MultiplierIndicator と同じ意匠の右上バッジ
- * （position / フォント / 白 #f5f5f5 / text-shadow を実物の CSS から移植）。
+ * （position / フォント / 黒文字 + 5px 白輪郭を実物の CSS から移植）。
+ * `-webkit-text-stroke` で白のアウトラインを描き、`paint-order: stroke fill`
+ * で stroke → fill の順にすることで、白輪郭の内側に黒文字が乗る（実物と同じ
+ * カードの色合いに埋もれない視認性）。
  */
 .multiplierBadge {
   position: absolute;
@@ -43,20 +46,21 @@
   font-family: 'Press Start 2P', monospace;
   font-size: 11px;
   font-weight: bold;
-  color: #f5f5f5;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  color: #000;
+  -webkit-text-stroke: 5px #fff;
+  paint-order: stroke fill;
 }
 
 /*
  * RestrictedSlotIcon と同じ左上アイコン（実物の .icon は
- * top/left 2px・12×12px。multiplier の右上バッジと左右で分離する配置）。
+ * top/left 2px・30×30px。multiplier の右上バッジと左右で分離する配置）。
  */
 .acceptIcon {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  width: 30px;
+  height: 30px;
 }
 
 /* 条件マス：ひし形＋はい/いいえの出口ラベルを相対配置で重ねる。 */
