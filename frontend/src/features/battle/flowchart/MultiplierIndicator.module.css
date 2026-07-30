@@ -2,12 +2,17 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  color: #f5f5f5;
+  /* 黒文字 + 太めの白輪郭で、カードの色合いに埋もれず視認できるようにする。
+     `-webkit-text-stroke` で白のアウトラインを描き、`paint-order: stroke fill`
+     で stroke → fill の順に描画することで、白輪郭の内側に黒文字が乗る形になる
+     （順序を指定しないと stroke が fill の上に重なって文字が太って見える）。 */
+  color: #000;
+  -webkit-text-stroke: 5px #fff;
+  paint-order: stroke fill;
   font-family: 'Press Start 2P', monospace;
   /* スロット幅 80px の右上に「x10」（3 文字 ≒ 33px）が収まる範囲での拡大 */
   font-size: 11px;
   font-weight: bold;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   z-index: 2;
   user-select: none;
