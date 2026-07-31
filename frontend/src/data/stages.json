@@ -216,6 +216,7 @@
         {},
         { "multiplier": 3 },
         { "multiplier": 2 },
+        { "turn": {} },
         {},
         {
           "condition": "enemyHp === 5",
