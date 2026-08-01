@@ -237,14 +237,14 @@
         { "id": "attack", "power": 20 },
         { "id": "attack", "power": 20 },
         { "id": "attack", "power": 10 },
-        { "id": "guard", "power": 20 },
+        { "id": "guard", "power": 30 },
         { "id": "guard", "power": 10 },
         { "id": "heal", "power": 20 },
         { "id": "heal", "power": 10 }
       ],
       "flow":[
         {},
-        { "lockedCard": { "id": "monster", "power": 80 } },
+        { "lockedCard": { "id": "monster", "power": 90 } },
         {},
         {
           "condition": "playerHp === 40 && enemyHp === 30",
