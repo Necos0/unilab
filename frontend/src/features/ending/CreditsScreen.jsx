@@ -148,6 +148,10 @@ function renderLineText(text) {
  *         testLines (Array, optional): テストプレイ用の行データ（プレース
  *             ホルダ未置換のまま渡してよい）。省略時は `ending_credits.json`。
  *         testCoins (Array, optional): テストプレイ用のコイン配置。
+ *         testStartY (number, optional): テストプレイの開始位置（ワールド
+ *             座標の px。エディタのキャンバスのスクロール位置をそのまま
+ *             渡す）。0 以下なら通常どおり最初から始める。主人公は開始
+ *             画面内で見えるいちばん上の乗れる行の上に出現する。
  *         onExitTest (function, optional): テストモードでエディタへ戻るとき
  *             に呼ぶ（引数なし）。渡すとテストモードになる。
  *
@@ -158,6 +162,7 @@ function CreditsScreen({
   onFinish,
   testLines = null,
   testCoins = null,
+  testStartY = 0,
   onExitTest = null,
 }) {
   const isTestMode = onExitTest !== null;
@@ -253,28 +258,61 @@ function CreditsScreen({
     const viewportW = () => root.clientWidth;
     const viewportH = () => root.clientHeight;
 
-    /* ゲームの可変状態。React を介さずループ内だけで書き換える。 */
-    const firstPlatform = platformsRef.current[0] ?? {
-      x: FALLBACK_LINE_X_PX,
-      top: 0,
-      width: 200,
-    };
+    /*
+     * スクロールの開始位置。通常は最初の行が画面下寄りに来る位置から。
+     * エディタのテストプレイ（`testStartY` > 0）では、エディタで見えていた
+     * 場所（キャンバスのスクロール位置＝画面上端のワールド座標）から始める。
+     */
+    let startScrollY =
+      isTestMode && testStartY > 0 ? testStartY : -viewportH() * 0.62;
+
+    /*
+     * 出現する足場。開始画面内（上端マージンより下〜画面の上から 3/4）に
+     * 見えている、いちばん上の乗れる行を選ぶ。横位置が画面外の行は除く。
+     * 画面内に無ければ、それより下で最初に現れる行まで探し、そこが画面の
+     * 下すぎる場合はスクロール開始位置のほうを行が見える所まで調整する
+     * （プレイヤーが必ず地面の上から始められることを最優先にする）。
+     */
+    const minSpawnTop = startScrollY + TOP_MARGIN_PX + PLAYER_HEIGHT_PX + 4;
+    const reachable = platformsRef.current.filter(
+      (p) => p.x < viewportW() - 60 && p.top >= minSpawnTop,
+    );
+    const spawnPlatform = reachable.find(
+      (p) => p.top <= startScrollY + viewportH() * 0.75,
+    ) ??
+      reachable[0] ?? {
+        x: FALLBACK_LINE_X_PX,
+        top: startScrollY + viewportH() * 0.6,
+        width: 200,
+      };
+    if (spawnPlatform.top > startScrollY + viewportH() * 0.8) {
+      startScrollY = spawnPlatform.top - viewportH() * 0.6;
+    }
+
     /*
      * ロール全体の再生時間（ms）。スクロールの開始位置から終了位置までを
      * 速度で割って出す。「のれてた わりあい」の分母で、乗れている時間が
-     * 積み上がるほど 0% から 100% へ増えていく。
+     * 積み上がるほど 0% から 100% へ増えていく（途中スタートのテスト
+     * プレイでは残り区間が分母になる）。
      */
     const lastLineY = (lines.length - 1) * LINE_STEP_PX;
-    const totalPlayMs =
-      ((lastLineY - viewportH() * 0.45 + viewportH() * 0.62) /
-        SCROLL_SPEED_PX_S) *
-      1000;
+    const totalPlayMs = Math.max(
+      ((lastLineY - viewportH() * 0.45 - startScrollY) / SCROLL_SPEED_PX_S) *
+        1000,
+      1000,
+    );
     const game = {
       phase: 'intro',
-      scrollY: -viewportH() * 0.62,
+      scrollY: startScrollY,
       player: {
-        x: firstPlatform.x + Math.min(80, firstPlatform.width * 0.4),
-        y: firstPlatform.top,
+        x: Math.max(
+          PLAYER_WIDTH_PX,
+          Math.min(
+            spawnPlatform.x + Math.min(80, spawnPlatform.width * 0.4),
+            viewportW() - PLAYER_WIDTH_PX,
+          ),
+        ),
+        y: spawnPlatform.top,
         vy: 0,
         facing: 'right',
         onGround: true,

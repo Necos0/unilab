@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import styles from './CreditsEditorScreen.module.css';
 import CreditsScreen from '../CreditsScreen.jsx';
 import CREDITS_DATA from '../../../data/ending_credits.json';
@@ -120,7 +120,10 @@ function toSampleText(text) {
  *     モードのダブルクリック削除も残している）。
  *   - 「テストプレイ」: 編集中の下書きをそのまま `CreditsScreen` で遊べる。
  *     JSON を書き出さなくても挙動を確かめられ、「← エディタへ」で編集に戻る
- *     （編集内容は保持される）。
+ *     （編集内容は保持される）。開始位置はロールの最初からではなく、いま
+ *     キャンバスで見えている場所（スクロール位置）から。主人公はその画面内
+ *     で見えるいちばん上の乗れる行の上に出現し、戻るとスクロール位置も
+ *     復元される（編集中の場所をすぐ確かめるため）。
  *
  * 行を追加・削除すると、それより下にあるコインの縦位置も 1 行ぶん
  * （96px）自動でずらし、置いたコインと行の関係が崩れないようにする。
@@ -157,6 +160,11 @@ function CreditsEditorScreen({ onExit }) {
   /* 編集パネルを開いている行の index。null なら非表示。 */
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isTesting, setIsTesting] = useState(false);
+  /*
+   * テストプレイ開始時のキャンバスのスクロール位置（px）。ゲームの開始
+   * 位置として渡し、エディタへ戻ったときのスクロール復元にも使う。
+   */
+  const [testStartY, setTestStartY] = useState(0);
   const [copyFeedback, setCopyFeedback] = useState('');
   /* 「JSON を読みこむ」パネルの表示と、貼り付け内容・エラーメッセージ。 */
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -164,6 +172,8 @@ function CreditsEditorScreen({ onExit }) {
   const [importError, setImportError] = useState('');
 
   const worldRef = useRef(null);
+  /* スクロールするキャンバス外枠。テストプレイの開始位置の取得・復元に使う。 */
+  const canvasRef = useRef(null);
   /*
    * ドラッグ中の対象。`{type: 'line'|'coin', index, startClientX,
    * startClientY, originX, originY}` を保持し、pointermove で差分を足す。
@@ -172,6 +182,22 @@ function CreditsEditorScreen({ onExit }) {
 
   const worldHeight = lines.length * LINE_STEP_PX + WORLD_BOTTOM_PAD_PX;
   const selectedLine = selectedIndex !== null ? lines[selectedIndex] : null;
+
+  /**
+   * テストプレイを始める。いまキャンバスで見えている場所（スクロール位置）
+   * を記録し、ゲームをそこから開始させる。
+   */
+  const handleStartTest = useCallback(() => {
+    setTestStartY(canvasRef.current?.scrollTop ?? 0);
+    setIsTesting(true);
+  }, []);
+
+  /* テストプレイから戻ったら、キャンバスのスクロール位置を復元する。 */
+  useLayoutEffect(() => {
+    if (!isTesting && canvasRef.current) {
+      canvasRef.current.scrollTop = testStartY;
+    }
+  }, [isTesting, testStartY]);
 
   /** 現在の編集内容を、保存用の JSON 文字列に変換する。 */
   const buildJson = useCallback(() => {
@@ -434,6 +460,7 @@ function CreditsEditorScreen({ onExit }) {
       <CreditsScreen
         testLines={lines}
         testCoins={coins}
+        testStartY={testStartY}
         onExitTest={() => setIsTesting(false)}
       />
     );
@@ -468,7 +495,7 @@ function CreditsEditorScreen({ onExit }) {
           <button
             type="button"
             className={styles.testButton}
-            onClick={() => setIsTesting(true)}
+            onClick={handleStartTest}
           >
             ▶ テストプレイ
           </button>
@@ -515,7 +542,7 @@ function CreditsEditorScreen({ onExit }) {
         を丸ごと置き換える。通し確認は隠しコマンド <code>wqend</code>。
       </p>
 
-      <div className={styles.canvas}>
+      <div className={styles.canvas} ref={canvasRef}>
         <div
           className={styles.world}
           ref={worldRef}
