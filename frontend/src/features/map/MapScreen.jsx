@@ -8,6 +8,7 @@ import MapOverlay from './MapOverlay';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
 import MapTravelButton from './MapTravelButton';
+import BackToTitleButton from './BackToTitleButton';
 import MapRegionScrolls from './MapRegionScrolls';
 import MapSwitchTransition from './MapSwitchTransition';
 import WorldUnlockCutscene from './WorldUnlockCutscene';
@@ -56,11 +57,13 @@ const OVERWORLD_MAP_ID = 'map_0';
  *     props (object): React プロパティ。
  *         onStartBattle (function): ランドマーク詳細パネルの「たたかう」
  *             ボタン押下時に `stageId` を渡して呼ぶ関数。
+ *         onBackToTitle (function): 左上「タイトルに もどる」ボタン押下時に
+ *             呼ぶ関数（引数なし）。親（`App`）がタイトル画面へ切り替える。
  *
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle }) {
+function MapScreen({ onStartBattle, onBackToTitle }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -275,6 +278,14 @@ function MapScreen({ onStartBattle }) {
           {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
+        {/*
+          左上の「タイトルに もどる」ボタン。エディタ中は編集 UI と重なるので
+          隠し、ワールド解放シネマ中も演出に集中させるため隠す（右上の
+          マップ移動ボタンと同じ方針）。
+        */}
+        {!isEditing && pendingWorldUnlock === null && (
+          <BackToTitleButton onClick={onBackToTitle} />
+        )}
         {!isEditing &&
           currentMapId !== OVERWORLD_MAP_ID &&
           unlockedWorlds.length > 0 &&

@@ -323,7 +323,12 @@ const useProgressStore = create(
    * から再生されるカットシーンや初回挑戦の挙動をテストできる。既出カード
    * （`seenCardIds`）は「クリア済みステージ＋対象ステージ」に登場するカード
    * （手札＋スロットのロックカード）に、既出マス（`seenSlotTypeIds`）は同じ
-   * 範囲に登場する特殊マス種別に巻き戻す。対象ステージ自身を含めるのは
+   * 範囲に登場する特殊マス種別に巻き戻す。ボスの第二形態（`secondPhase`、
+   * 4-4 のひっさつカード等）も同じステージの一部として収集する。これを
+   * 落とすと、`wqend`（4-4 クリア済み相当）で作った進行状態なのに
+   * ひっさつカードの説明がヘルプで「？？？」のまま伏せられてしまい、
+   * 実プレイ（第二形態突入時に `BattleScreen` が既出記録する）と食い違う。
+   * 対象ステージ自身を含めるのは
    * 開発用途への配慮：「解放レベル」で解放した地点の説明ヘルプを、戦闘に
    * 入らなくてもすぐ確認できるようにするため（初見プレイの解放タイミング
    * 自体は、通常プレイの戦闘入場時記録で再現される）。
@@ -361,25 +366,22 @@ const useProgressStore = create(
     const seenSourceStageIds = [...clearedStageIds, targetStageId].filter(
       (id) => stagesData.stages[id],
     );
+    const seenPhases = seenSourceStageIds.flatMap((id) => {
+      const stage = stagesData.stages[id];
+      return stage.secondPhase ? [stage, stage.secondPhase] : [stage];
+    });
     const seenCardIds = Array.from(
       new Set(
-        seenSourceStageIds.flatMap((id) => {
-          const stage = stagesData.stages[id];
-          return [
-            ...(stage.cards ?? []).map((card) => card.id),
-            ...(stage.slots ?? [])
-              .map((slot) => slot.lockedCard?.id)
-              .filter(Boolean),
-          ];
-        }),
+        seenPhases.flatMap((phase) => [
+          ...(phase.cards ?? []).map((card) => card.id),
+          ...(phase.slots ?? [])
+            .map((slot) => slot.lockedCard?.id)
+            .filter(Boolean),
+        ]),
       ),
     );
     const seenSlotTypeIds = Array.from(
-      new Set(
-        seenSourceStageIds.flatMap(
-          (id) => stagesData.stages[id].slotTypeIds ?? [],
-        ),
-      ),
+      new Set(seenPhases.flatMap((phase) => phase.slotTypeIds ?? [])),
     );
     set({
       clearedStageIds,

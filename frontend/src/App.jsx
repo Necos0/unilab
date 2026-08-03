@@ -216,6 +216,15 @@ function App() {
     setScreen('title');
   }, []);
 
+  /*
+   * マップ画面左上の「タイトルに もどる」ボタン。進行状況・マップ上の
+   * 現在位置は各ストアが localStorage へ常時保存しているため、単純な
+   * 画面切替だけでよい（タイトルの「スタート」で同じ場所から再開できる）。
+   */
+  const handleBackToTitle = useCallback(() => {
+    setScreen('title');
+  }, []);
+
   const handleDebugCutsceneFlow = useCallback(() => {
     setScreen((prev) => {
       if (prev === 'cutsceneflow') {
@@ -522,7 +531,10 @@ function App() {
     currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;
   } else {
     currentScreen = (
-      <MapScreen onStartBattle={handleStartBattle} />
+      <MapScreen
+        onStartBattle={handleStartBattle}
+        onBackToTitle={handleBackToTitle}
+      />
     );
   }
 

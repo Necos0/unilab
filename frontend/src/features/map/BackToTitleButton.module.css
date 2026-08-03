@@ -1,0 +1,39 @@
+/* マップ画面の左上にオーバーレイ表示する「タイトルに もどる」ボタン。
+   タイトル画面の `.endingButton` と同じダーク地＋金枠の意匠で、マップの
+   主要導線より控えめに見せる。z-index は右上のマップ移動ボタン
+   （`MapTravelButton` の 10）と同じ層に置く。 */
+.button {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.45rem 1.1rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  letter-spacing: 0.1em;
+  color: #f0c040;
+  background: rgba(20, 16, 12, 0.82);
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  animation: backToTitleFadeIn 0.6s ease-out both;
+  transition: filter 0.15s;
+}
+
+@keyframes backToTitleFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.button:hover {
+  filter: brightness(1.2);
+}
+
+.button:active {
+  filter: brightness(0.9);
+}
