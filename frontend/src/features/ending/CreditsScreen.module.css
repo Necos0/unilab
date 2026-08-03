@@ -249,11 +249,11 @@
   letter-spacing: 0.06em;
 }
 
-/* 成績と退出ボタンのパネル。「Thank You」の下の固定位置に出す。 */
+/* 成績と退出ボタンのパネル。「Thank You」のすぐ下の固定位置に出す。 */
 .resultPanel {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 44%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
