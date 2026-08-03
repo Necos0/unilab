@@ -1,6 +1,7 @@
 /*
  * 最終ボス撃破後のフィナーレ演出。画面全体が白い光で満たされ（1.6s）、
- * その後「つぎへ」ボタンがフェードインする（0.8s、白化完了後に開始）。
+ * 白くなり切ってから「THE END」が浮かび上がる（1.0s、1800ms から開始）。
+ * THE END が出そろってから約 2 秒後に「つぎへ」ボタンがフェードインする。
  */
 
 .overlay {
@@ -21,8 +22,17 @@
     flex-direction: column;
     align-items: center;
     gap: 2.5rem;
+}
+
+.theEnd {
+    margin: 0;
+    font-family: 'DotGothic16', 'Press Start 2P', monospace;
+    font-size: 2rem;
+    letter-spacing: 6px;
+    color: #33333d;
     opacity: 0;
-    animation: finaleContentIn 800ms ease-out 1800ms forwards;
+    /* 白化完了（1600ms）後に浮かび上がる（完了 ~2800ms） */
+    animation: finaleFadeIn 1000ms ease-out 1800ms forwards;
 }
 
 .button {
@@ -36,6 +46,11 @@
     padding: 0.7rem 1.4rem;
     letter-spacing: 1px;
     cursor: pointer;
+    opacity: 0;
+    /* フェードイン前は透明なので誤クリックを防ぐ（キーフレームで解除） */
+    pointer-events: none;
+    /* THE END 表示（~2800ms）から約 2 秒後にフェードイン */
+    animation: finaleButtonIn 800ms ease-out 4800ms forwards;
     transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
 }
 
@@ -52,7 +67,12 @@
     to   { opacity: 1; }
 }
 
-@keyframes finaleContentIn {
+@keyframes finaleFadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
+}
+
+@keyframes finaleButtonIn {
+    from { opacity: 0; pointer-events: none; }
+    to   { opacity: 1; pointer-events: auto; }
 }

@@ -16,8 +16,13 @@ const WORLD_BOTTOM_PAD_PX = 300;
 const NEW_LINE_TEXT = 'あたらしい ぎょう';
 const NEW_LINE_X = 176;
 
-/* 行の種類の選択肢。ラベルは足場としての性質が分かる書き方にする。 */
+/*
+ * 行の種類の選択肢。ラベルは足場としての性質が分かる書き方にする。
+ * `title` は本番では x を無視して常に画面中央寄せになる（エディタの
+ * キャンバス上では選択しやすいよう x の位置にそのまま出す）。
+ */
 const KIND_OPTIONS = [
+  { value: 'title', label: 'タイトル（かたい足場・金・大、本番では中央固定）' },
   { value: 'tag', label: 'タグ（かたい足場・金）' },
   { value: 'text', label: 'テキスト（ふつうの足場・白）' },
   { value: 'comment', label: 'コメント（のれない・グレー）' },
@@ -113,7 +118,7 @@ function toSampleText(text) {
  * GUI で編集する：
  *   - 「うごかす」モード: 行をドラッグして横位置（`x`）を変える。行を
  *     クリックすると下部に編集パネルが開き、表示テキスト・行の種類
- *     （タグ / テキスト / コメント / くうはく）の変更、行の追加・削除が
+ *     （タイトル / タグ / テキスト / コメント / くうはく）の変更、行の追加・削除が
  *     できる。コインはドラッグで自由に動かせ、ダブルクリックで削除する。
  *     テキスト中の空白は足場にならないので、1 行の中でスペースを広く
  *     （プレイヤー幅の 30px より広く）あけると、そこがすり抜けて
@@ -453,6 +458,7 @@ function CreditsEditorScreen({ onExit }) {
   }, [selectedIndex, lines.length]);
 
   const lineClassByKind = {
+    title: styles.titleLine,
     tag: styles.tagLine,
     text: styles.textLine,
     comment: styles.commentLine,
