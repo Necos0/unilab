@@ -222,6 +222,23 @@ unilab/
         │   ├── buildSpriteFileName.js      ← 命名規則のファイル名を組み立てる(純関数)
         │   └── sanitizeId.js               ← 入力名を snake_case の ID へ正規化(純関数)
         └── features/             ← 機能単位で分割
+            ├── lanebattle/       ← おまけミニゲーム「陣取り合戦」(レーン大戦争。隠しコマンド wqinouelabegg で起動)
+            │   │                    ※ 本編から隔離。既存コードへの変更は main.jsx への1行マウントのみ
+            │   ├── LaneBattleGate.jsx     ← 隠しコマンド検出＋全画面オーバーレイの入口
+            │   ├── LaneBattleApp.jsx      ← 編成→対戦→結果のフェーズ統合
+            │   ├── DeckBuilder.jsx        ← 16体から6体デッキ編成
+            │   ├── BattleView.jsx         ← アリーナ(HUD・レーン・見分けモード)
+            │   ├── HandBar.jsx            ← 手札3枚＋つぎ(クラロワ的ローテ)
+            │   ├── ResultOverlay.jsx      ← 勝敗・スコア・自己ベスト・再戦/終了
+            │   ├── LbSprite.jsx           ← UI用の静止スプライト
+            │   ├── lanebattle.css         ← 全スタイル(.lb-root スコープの単一シート)
+            │   ├── engine/    ← React非依存の対戦エンジン(rAFループで命令的にレーン描画)
+            │   │   ├── createLaneBattleEngine.js  ← 進軍・戦闘・特殊能力・CPU AI・スコア
+            │   │   ├── deriveUnitDef.js           ← maxHp/sizeRatioから既定値算出＋上書き
+            │   │   ├── createDeck.js              ← 6枚デッキ・手札3のローテ(自陣/CPU共通)
+            │   │   └── laneSprite.js              ← 1ユニットのDOM(getEnemyFramePathを再利用)
+            │   ├── hooks/     ← useHiddenCommand / useLaneBattleEngine / useLaneBattleBest
+            │   └── data/      ← lanebattle_config.json / lanebattle_units.json(バランス調整の集約点)
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
             │   ├── BattleScreen.module.css

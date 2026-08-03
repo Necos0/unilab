@@ -1,0 +1,698 @@
+/*
+ * なかまの城（レーン大戦争）ミニゲームの全スタイル。
+ *
+ * すべてのセレクタを `.lb-root` 配下にスコープする。レーン上のユニットや
+ * エフェクトはエンジンが素の class 名（.unit / .aura / .stage / .hpbar /
+ * .ring / .shot）で DOM を生成するため、CSS Modules（クラス名ハッシュ化）
+ * ではなく、この 1 枚のスコープ付きスタイルシートに集約している。
+ */
+
+.lb-root {
+  --you: #2e7df0;
+  --cpu: #ea4e38;
+  --gold: #f5a524;
+  --win: #35c26f;
+  --ink: #edeefa;
+  --dim: #a6a9c9;
+  --panel: #1b1e3e;
+  --panel2: #171a34;
+  --line: #2c2f58;
+  --disp: 'Hiragino Maru Gothic ProN', 'Hiragino Maru Gothic Pro', 'Yu Gothic', sans-serif;
+  --body: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(46, 125, 240, 0.12), transparent 60%),
+    #0d0e20;
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+.lb-root * {
+  box-sizing: border-box;
+}
+.lb-root button {
+  font-family: inherit;
+}
+/* ふりがな（ルビ）：小学5年生向け。漢字の上に小さく読みを出す。 */
+.lb-root ruby {
+  ruby-position: over;
+}
+.lb-root rt {
+  font-size: 0.52em;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--dim);
+  user-select: none;
+}
+
+/* ---- full-screen page / header ---- */
+.lb-app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.lb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px clamp(16px, 4vw, 48px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.2);
+  flex: none;
+}
+.lb-main {
+  flex: 1;
+  overflow: auto;
+  padding: clamp(14px, 3vh, 32px) clamp(16px, 4vw, 48px);
+}
+.lb-deckbuild,
+.lb-arena {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.lb-title {
+  font-family: var(--disp);
+  font-size: 22px;
+  font-weight: 700;
+}
+.lb-close {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.lb-close:hover {
+  color: var(--ink);
+  border-color: var(--you);
+}
+.lb-lead {
+  color: var(--dim);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.lb-lead b {
+  color: var(--ink);
+}
+
+/* ---- sprite stages (React chrome) ---- */
+.lb-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 54px;
+}
+.lb-stage.sm {
+  width: 62px;
+  height: 54px;
+}
+.lb-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+/* ---- deck builder ---- */
+.lb-roster {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 7px;
+}
+.lb-pick {
+  appearance: none;
+  cursor: pointer;
+  border: 1.5px solid var(--line);
+  background: var(--panel2);
+  border-radius: 12px;
+  padding: 7px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.lb-pick:hover {
+  transform: translateY(-2px);
+  border-color: var(--you);
+}
+.lb-pick.on {
+  border-color: var(--you);
+  background: color-mix(in srgb, var(--you) 22%, var(--panel2));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--you) 45%, transparent);
+}
+.lb-pk-name {
+  font-family: var(--disp);
+  font-size: 11px;
+  line-height: 1.1;
+  text-align: center;
+}
+.lb-pk-stat {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--dim);
+}
+.lb-pk-ability {
+  font-family: var(--disp);
+  font-size: 9px;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1.1;
+}
+/* レジェンド枠（1デッキ1体まで） */
+.lb-pick.legend {
+  border-color: #c9a13a;
+  background: linear-gradient(180deg, color-mix(in srgb, #c9a13a 16%, var(--panel2)), var(--panel2));
+}
+.lb-pick.legend.on {
+  box-shadow: 0 0 0 2px #e6c760;
+}
+.lb-pick.legend .lb-pk-ability {
+  color: #ffdf7e;
+}
+.lb-tray {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  background: var(--panel2);
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.lb-tray b {
+  font-family: var(--disp);
+  font-size: 13px;
+  color: var(--you);
+}
+.lb-slots {
+  display: flex;
+  gap: 6px;
+}
+.lb-slot {
+  width: 48px;
+  height: 48px;
+  border-radius: 11px;
+  border: 1.5px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: 20px;
+}
+.lb-slot .lb-stage {
+  width: 42px;
+  height: 42px;
+}
+.lb-hint {
+  font-family: var(--disp);
+  font-size: 12px;
+  color: var(--dim);
+}
+.lb-start {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--disp);
+  font-weight: 700;
+  color: #fff;
+  background: var(--win);
+  border-radius: 999px;
+  padding: 9px 20px;
+  font-size: 14px;
+  margin-left: auto;
+}
+.lb-start:disabled {
+  background: var(--line);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+
+/* ---- arena ---- */
+.lb-arena {
+  position: relative;
+}
+.lb-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px 2px 10px;
+  font-family: var(--disp);
+  font-size: 12.5px;
+}
+.lb-basebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 130px;
+}
+.lb-lbl {
+  white-space: nowrap;
+}
+.lb-bar {
+  display: block;
+  flex: 1;
+  height: 12px;
+  min-width: 60px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.lb-bar i {
+  display: block;
+  height: 100%;
+  transition: width 0.15s;
+}
+.lb-bar.you i {
+  background: var(--you);
+}
+.lb-bar.cpu i {
+  background: var(--cpu);
+}
+.lb-bar.energy i {
+  background: linear-gradient(90deg, #f5c451, #e0930a);
+}
+.lb-stat {
+  font-family: var(--disp);
+  font-size: 14px;
+  color: var(--dim);
+}
+.lb-stat b {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0 2px;
+}
+.lb-score {
+  font-family: var(--disp);
+  font-size: 14px;
+  color: var(--dim);
+  margin-left: auto;
+}
+.lb-score b {
+  font-family: var(--mono);
+  color: var(--gold);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-left: 3px;
+}
+
+.lb-lane {
+  position: relative;
+  height: clamp(230px, 44vh, 440px);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(255, 255, 255, 0.03) 38px 40px),
+    linear-gradient(180deg, #23264a, #1a1d3a);
+}
+/* 城の代わりのベースキャラ（自陣＝ヒーロー / 敵陣＝ドラゴン）。到達＝決着。 */
+.lb-base {
+  position: absolute;
+  bottom: 4px;
+  width: clamp(64px, 9vw, 96px);
+  height: clamp(80px, 13vh, 120px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1;
+}
+.lb-base img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.55));
+}
+.lb-base.you {
+  left: 4px;
+  background: radial-gradient(60% 55% at 50% 80%, color-mix(in srgb, var(--you) 30%, transparent), transparent 70%);
+}
+.lb-base.cpu {
+  right: 4px;
+  background: radial-gradient(60% 55% at 50% 80%, color-mix(in srgb, var(--cpu) 30%, transparent), transparent 70%);
+}
+.lb-base.you img {
+  transform: scaleX(-1);
+}
+.lb-base .lb-ghp {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  width: 84%;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 2;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.lb-base .lb-ghp i {
+  display: block;
+  height: 100%;
+  transition: width 0.15s;
+}
+.lb-base .lb-ghp.you i {
+  background: linear-gradient(90deg, #7cc0ff, var(--you));
+}
+.lb-base .lb-ghp.cpu i {
+  background: linear-gradient(90deg, #ff9a86, var(--cpu));
+}
+
+/* ユニット（エンジン生成 DOM） */
+.lb-root .unit {
+  position: absolute;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 2;
+  will-change: left;
+}
+.lb-root .unit .stage {
+  position: relative;
+  width: 58px;
+  height: 68px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.lb-root .unit .stage img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+.lb-root .unit .aura {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 0;
+  opacity: 0.9;
+  filter: blur(1px);
+}
+.lb-root .unit.you .aura {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--you) 88%, transparent), transparent);
+}
+.lb-root .unit.cpu .aura {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--cpu) 88%, transparent), transparent);
+}
+.lb-root .unit.you .stage img {
+  transform: scaleX(-1);
+}
+.lb-root .unit .hpbar {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.lb-root .unit .hpbar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #7ce49b;
+}
+.lb-root .unit.cpu .hpbar i {
+  background: #ffb4a6;
+}
+/* 見分けモード切替 */
+.lb-root .lb-lane[data-diff='face'] .unit .aura {
+  display: none;
+}
+.lb-root .lb-lane[data-diff='color'] .unit.you .stage img {
+  transform: none;
+}
+
+/* 攻撃エフェクト */
+.lb-root .shot {
+  position: absolute;
+  bottom: 30px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  transition: left 0.16s linear;
+  pointer-events: none;
+}
+.lb-root .shot.you {
+  background: radial-gradient(closest-side, #bfe0ff, var(--you));
+  box-shadow: 0 0 6px var(--you);
+}
+.lb-root .shot.cpu {
+  background: radial-gradient(closest-side, #ffd0c6, var(--cpu));
+  box-shadow: 0 0 6px var(--cpu);
+}
+.lb-root .ring {
+  position: absolute;
+  bottom: 5px;
+  border-radius: 50%;
+  z-index: 3;
+  transform: translate(-50%, 0) scale(0.35);
+  opacity: 0.85;
+  pointer-events: none;
+  transition: transform 0.3s ease-out, opacity 0.32s ease-out;
+  border: 2px solid;
+}
+.lb-root .ring.you {
+  border-color: var(--you);
+  background: color-mix(in srgb, var(--you) 22%, transparent);
+}
+.lb-root .ring.cpu {
+  border-color: var(--cpu);
+  background: color-mix(in srgb, var(--cpu) 22%, transparent);
+}
+.lb-root .ring.bomb {
+  border-width: 3px;
+}
+
+/* ---- deploy / hand ---- */
+.lb-deploy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 2px 6px;
+}
+.lb-energy {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--disp);
+  font-size: 12px;
+  flex: 1;
+  min-width: 150px;
+}
+.lb-energynum {
+  color: var(--dim);
+  white-space: nowrap;
+}
+.lb-hand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lb-hand {
+  display: flex;
+  gap: 8px;
+}
+.lb-hcard {
+  appearance: none;
+  cursor: pointer;
+  border: 1.5px solid var(--you);
+  background: var(--panel);
+  border-radius: 13px;
+  padding: 8px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: inherit;
+  min-width: 82px;
+  transition: transform 0.08s;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--you) 45%, transparent);
+}
+.lb-hcard:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.lb-hcard:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+.lb-hcard .lb-stage {
+  width: 56px;
+  height: 46px;
+}
+.lb-nm {
+  font-family: var(--disp);
+  font-size: 11px;
+  line-height: 1;
+}
+.lb-c {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--gold);
+  font-weight: 700;
+}
+.lb-nextcard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 11px;
+  font-family: var(--disp);
+  border-left: 1px dashed var(--line);
+  padding-left: 10px;
+}
+.lb-nextcard .lb-stage {
+  width: 30px;
+  height: 26px;
+  opacity: 0.85;
+}
+
+.lb-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+.lb-mini {
+  color: var(--dim);
+  font-size: 11.5px;
+}
+.lb-seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lb-seg button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--disp);
+  font-size: 11.5px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.lb-seg button.on {
+  background: var(--you);
+  color: #fff;
+}
+
+/* ---- result ---- */
+.lb-result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 9, 24, 0.55);
+  z-index: 10;
+  border-radius: 12px;
+}
+.lb-result-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 26px;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.lb-verdict {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 30px;
+}
+.lb-verdict.win {
+  color: var(--win);
+}
+.lb-verdict.lose {
+  color: var(--cpu);
+}
+.lb-result-score {
+  font-family: var(--disp);
+  font-size: 16px;
+  margin-top: 6px;
+}
+.lb-result-score b {
+  font-family: var(--mono);
+  color: var(--gold);
+  font-size: 22px;
+}
+.lb-result-sub {
+  color: var(--dim);
+  font-size: 12px;
+  margin-left: 6px;
+}
+.lb-result-best {
+  font-family: var(--disp);
+  font-size: 13px;
+  color: var(--dim);
+  margin-top: 6px;
+}
+.lb-result-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.lb-btn {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: var(--disp);
+  font-size: 13px;
+}
+.lb-btn.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #211500;
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .lb-roster {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "_comment": "character-example.md（ユーザーのキャラ設定）に基づく暫定値。cost はエネルギー直値（costToEnergy=1）。ability 効果パラメータ：range=攻撃間合い / splash=着弾点まわりの範囲 / pierce=一直線上の敵全員に当たる / deathbomb=死亡時の範囲爆弾 / healOnAttack=攻撃時に味方全体を回復する量 / slowOnAttack={ms,mul}=攻撃時に敵全体を減速 / deathShield={ms,mul}=死亡時に味方の被ダメを一定時間 mul 倍 / atkIntervalMs=攻撃間隔の個別上書き / legend=1デッキ1体まで。バランスは未調整。",
+  "roster": [
+    "slime", "wolf", "knight", "cactus", "starfish", "shark",
+    "crab", "lizard", "cobra", "squid", "scorpion", "golem",
+    "phoenix", "lagiacrus", "goldenbird", "dragon"
+  ],
+  "overrides": [
+    { "id": "slime", "cost": 10, "hp": 10, "atk": 3,
+      "ability": "とても かるい", "desc": "手札回しに便利な最軽量。" },
+
+    { "id": "wolf", "cost": 22, "hp": 18, "atk": 10, "spd": 84,
+      "ability": "すばやくて つよい", "desc": "足が速く一撃が重い軽量アタッカー。紙耐久。" },
+
+    { "id": "knight", "cost": 30, "hp": 45, "atk": 8,
+      "ability": "バランスがた", "desc": "軽い壁になりつつ一定の攻撃力を持つ。" },
+
+    { "id": "cactus", "cost": 25, "hp": 25, "atk": 6, "deathbomb": 66,
+      "ability": "たおれると ばくはつ", "desc": "やられると爆発し、まわりの敵を巻き込む。" },
+
+    { "id": "starfish", "cost": 12, "hp": 12, "atk": 3,
+      "ability": "かるい", "desc": "スライムに近い軽量ユニット。" },
+
+    { "id": "shark", "cost": 55, "hp": 30, "atk": 45,
+      "ability": "こうげきが すごく つよい", "desc": "中量級の超強力アタッカー。硬くない敵はほぼ一撃。" },
+
+    { "id": "crab", "cost": 22, "hp": 70, "atk": 3,
+      "ability": "やすい かべ", "desc": "低コストで超耐久。攻撃力は低い。" },
+
+    { "id": "lizard", "cost": 38, "hp": 25, "atk": 9, "range": 175, "pierce": true,
+      "ability": "つらぬく・とおくから", "desc": "一直線上のすべての敵に弱ダメージ。" },
+
+    { "id": "cobra", "cost": 35, "hp": 30, "atk": 14, "range": 165, "splash": 46,
+      "ability": "とおくから・まわりも", "desc": "離れて撃ち、着弾点のまわりにダメージ。" },
+
+    { "id": "squid", "cost": 40, "hp": 35, "atk": 16, "range": 140, "splash": 74,
+      "ability": "とおくの はんいこうげき", "desc": "射程は短めだが奥まで広い範囲攻撃。" },
+
+    { "id": "scorpion", "cost": 50, "hp": 40, "atk": 6, "deathShield": { "ms": 6000, "mul": 0.5 },
+      "ability": "たおれると みかたを まもる", "desc": "やられると一定時間、味方の被ダメージを半減する。" },
+
+    { "id": "golem", "cost": 55, "hp": 300, "atk": 0, "spd": 20,
+      "ability": "こうげきしない かたい かべ", "desc": "攻撃しないが極めて硬い。前線を支える壁。" },
+
+    { "id": "phoenix", "cost": 70, "hp": 80, "atk": 6, "range": 145,
+      "healOnAttack": 8, "atkIntervalMs": 1500, "legend": true,
+      "ability": "【でんせつ】みかたを かいふく", "desc": "中距離で攻撃しつつ、味方全体を回復する。" },
+
+    { "id": "lagiacrus", "cost": 75, "hp": 90, "atk": 30, "range": 62, "splash": 70,
+      "atkIntervalMs": 1400, "legend": true,
+      "ability": "【でんせつ】はんい こうげき", "desc": "近距離で、中範囲に強攻撃。" },
+
+    { "id": "goldenbird", "cost": 70, "hp": 80, "atk": 8, "range": 145,
+      "slowOnAttack": { "ms": 2500, "mul": 0.5 }, "atkIntervalMs": 1400, "legend": true,
+      "ability": "【でんせつ】てきを おそく", "desc": "中距離で攻撃しつつ、敵全体を減速させる。" },
+
+    { "id": "dragon", "cost": 85, "hp": 100, "atk": 90, "range": 62, "splash": 55,
+      "atkIntervalMs": 2200, "legend": true,
+      "ability": "【でんせつ】つよい はんい", "desc": "攻撃間隔は長いが、範囲に超強力ダメージ。" }
+  ]
+}
