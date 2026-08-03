@@ -94,20 +94,6 @@ function MapPaths({ mapDef }) {
           className={styles.path}
         />
       ))}
-      {/* DEBUG: waypoints を可視化（座標調整用、確定後は削除）*/}
-      <g className={styles.waypointsDebug}>
-        {mapDef.edges.flatMap((edge) =>
-          (edge.waypoints ?? []).map((wp, idx) => (
-            <circle
-              key={`${edge.id}-wp-${idx}`}
-              cx={wp.x}
-              cy={wp.y}
-              r="8"
-              className={styles.waypoint}
-            />
-          )),
-        )}
-      </g>
     </g>
   );
 }
