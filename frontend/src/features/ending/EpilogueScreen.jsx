@@ -168,7 +168,13 @@ function EpilogueScreen({ onFinish }) {
       {isContinueStep ? (
         <p className={styles.toBeContinued}>つづく…</p>
       ) : (
-        <div key={index} className={styles.dialogue}>
+        /*
+         * `key` を付けずセリフ間で再マウントしない。ビットと名前は出しっ
+         * ぱなしのまま、本文だけがタイプライターで入れ替わる（切り替えの
+         * たびにビットが消えて出直すのを防ぐ。フェードインは初回マウントの
+         * 一度だけ）。
+         */
+        <div className={styles.dialogue}>
           <img
             className={styles.robo}
             src="/sprites/robo/robo.png"

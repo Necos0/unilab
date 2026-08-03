@@ -67,13 +67,15 @@
   color: transparent;
 }
 
-/* 次回作を匂わせる締めの「つづく…」。 */
+/*
+ * 次回作を匂わせる締めの「つづく…」。じわっと現すのではなく、切り替わった
+ * 瞬間にドンと出す（フェードなどのアニメーションは付けない）。
+ */
 .toBeContinued {
   margin: 0;
   color: #f5f0e0;
   font-size: clamp(1.4rem, 4vw, 2.4rem);
   letter-spacing: 0.3em;
-  animation: epilogueFadeIn 1.6s ease both;
 }
 
 /* 画面下の「つぎへ」案内。ゆっくり点滅する。 */
