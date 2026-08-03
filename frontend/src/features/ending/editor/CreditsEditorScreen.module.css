@@ -291,6 +291,72 @@
   filter: brightness(1.25);
 }
 
+/* 「JSON を読みこむ」ダイアログ。画面全体を暗くして中央に出す。 */
+.importOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 30;
+}
+
+.importDialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(90vw, 640px);
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 2px solid #f0c040;
+  background: #15151d;
+}
+
+.importTitle {
+  margin: 0;
+  color: #f0c040;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+}
+
+.importDescription {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+/* JSON 貼り付け欄。コードなので等幅にする。 */
+.importTextarea {
+  height: 200px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 2px solid #33333d;
+  background: #1d1d26;
+  color: #f5f0e0;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.importError {
+  margin: 0;
+  color: #ff8a7a;
+  font-size: 0.8rem;
+}
+
+.importButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ファイル選択の実体は隠し、ラベルをボタンとして見せる。 */
+.importFileInput {
+  display: none;
+}
+
 /* 行の削除。取り返しがつきにくい操作なので赤系で分ける。 */
 .deleteButton {
   padding: 6px 10px;

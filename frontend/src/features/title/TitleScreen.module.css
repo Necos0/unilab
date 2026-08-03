@@ -77,6 +77,32 @@
   filter: brightness(0.92);
 }
 
+/*
+ * エンディング再プレイボタン。ラスボスクリア済みのときだけ出る 2 番手の
+ * 導線なので、スタートより控えめな金枠・ダーク地にする（パルスなし）。
+ */
+.endingButton {
+  padding: 0.5rem 1.6rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.8rem, 2vw, 1.15rem);
+  letter-spacing: 0.1em;
+  color: #f0c040;
+  background: rgba(20, 16, 12, 0.82);
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.endingButton:hover {
+  filter: brightness(1.2);
+}
+
+.endingButton:active {
+  filter: brightness(0.9);
+}
+
 @keyframes titlePulse {
   0%,
   100% {

@@ -188,6 +188,7 @@ unilab/
         │   ├── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
         │   ├── ending_slides.json ← エンディング紙芝居のスライド定義(4-4 のラスボス撃破後に再生、形式は story_slides.json と同じ)
         │   ├── ending_credits.json ← エンディングロールの行(横位置 x 付き)とコイン配置。プレースホルダ({playerName} 等)で動的値を差し込む。配置エディタ(wqedit)で編集
+        │   ├── ending_epilogue.json ← エンディングロール後のエピローグ会話(ビットが次回作を匂わせるセリフ、ふりがな付き)
         │   ├── story_slides.json ← オープニング紙芝居のスライド定義(画像パスとふりがな付き文章)
         │   └── stagesLoader.js   ← stages.json の短縮形式を完全形式に展開するローダー
         ├── stores/               ← グローバル状態管理(zustand)
@@ -303,6 +304,8 @@ unilab/
             │   ├── CreditsScreen.jsx      ← エンディングロール画面(rAF ループでスクロール・重力・着地・コイン取得・落下/スキップ処理)
             │   ├── CreditsScreen.module.css
             │   ├── buildCreditLines.js    ← 行 JSON のプレースホルダを進捗の値で置換する(純関数)
+            │   ├── EpilogueScreen.jsx     ← ロール後のエピローグ会話(ビットのセリフ→「つづく…」→タイトルへ)
+            │   ├── EpilogueScreen.module.css
             │   └── editor/       ← エンディング配置エディタ(開発用ツール、隠しコマンド wqedit で開閉)
             │       ├── CreditsEditorScreen.jsx     ← 行の横位置ドラッグ・テキスト/種類編集・行とコインの追加/削除・テストプレイ・JSON 書き出し
             │       └── CreditsEditorScreen.module.css
@@ -315,15 +318,6 @@ unilab/
             │   ├── CutsceneFlowEntryButton.jsx        ← マップ右下「カットシーン一覧」起動ボタン
             │   ├── CutsceneFlowEntryButton.module.css
             │   └── buildCutsceneFlow.js       ← cutscenes/stages を突き合わせフロー構造を組む(純関数)
-            ├── plaza/            ← あそびのひろば(ミニゲームのハブ画面)
-            │   ├── PlazaScreen.jsx        ← ひろば画面ルート(ミニゲーム選択とゲーム画面の切替)
-            │   ├── PlazaScreen.module.css
-            │   └── cardmatch/    ← ミニゲーム「カードあわせ」(神経衰弱)
-            │       ├── CardMatchScreen.jsx     ← ゲーム画面ルート(盤面状態・ペア判定・クリア表示)
-            │       ├── CardMatchScreen.module.css
-            │       ├── MatchCard.jsx           ← めくれるカード 1 枚(表裏の 3D 回転)
-            │       ├── MatchCard.module.css
-            │       └── shuffleArray.js         ← 配列をランダムに並べ替える(純関数)
             └── map/              ← フィールドマップ画面
                 ├── MapScreen.jsx          ← マップ画面ルート(SVG 全体を組み立てる)
                 ├── MapScreen.module.css
@@ -348,8 +342,6 @@ unilab/
                 ├── MapSwitchTransition.module.css
                 ├── BattleDemoButton.jsx           ← デバッグ用:戦闘デモへ飛ぶドロップダウン
                 ├── BattleDemoButton.module.css
-                ├── PlazaEntryButton.jsx           ← テスト用:あそびのひろばへ飛ぶボタン
-                ├── PlazaEntryButton.module.css
                 ├── CoordinateGrid.jsx             ← デバッグ用:座標調整の格子オーバーレイ
                 ├── CoordinateGrid.module.css
                 ├── PlayerSprite.jsx       ← プレイヤースプライト＋移動アニメーション

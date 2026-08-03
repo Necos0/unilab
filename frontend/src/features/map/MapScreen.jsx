@@ -5,7 +5,6 @@ import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import MapOverlay from './MapOverlay';
-import PlazaEntryButton from './PlazaEntryButton';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
 import MapTravelButton from './MapTravelButton';
@@ -57,13 +56,11 @@ const OVERWORLD_MAP_ID = 'map_0';
  *     props (object): React プロパティ。
  *         onStartBattle (function): ランドマーク詳細パネルの「たたかう」
  *             ボタン押下時に `stageId` を渡して呼ぶ関数。
- *         onOpenPlaza (function): 右下の「あそびのひろば」ボタン（テスト用）
- *             押下時に呼ぶ関数（引数なし）。App 側でひろば画面へ切り替える。
  *
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onOpenPlaza }) {
+function MapScreen({ onStartBattle }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -278,20 +275,16 @@ function MapScreen({ onStartBattle, onOpenPlaza }) {
           {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
-        {!isEditing && (
-          <>
-            {currentMapId !== OVERWORLD_MAP_ID &&
-              unlockedWorlds.length > 0 &&
-              pendingWorldUnlock === null && (
-                <MapTravelButton
-                  onClick={() => travelToMap(OVERWORLD_MAP_ID)}
-                  isDebut={isTravelButtonDebut}
-                  onDebutEnd={handleTravelButtonDebutEnd}
-                />
-              )}
-            <PlazaEntryButton onClick={onOpenPlaza} />
-          </>
-        )}
+        {!isEditing &&
+          currentMapId !== OVERWORLD_MAP_ID &&
+          unlockedWorlds.length > 0 &&
+          pendingWorldUnlock === null && (
+            <MapTravelButton
+              onClick={() => travelToMap(OVERWORLD_MAP_ID)}
+              isDebut={isTravelButtonDebut}
+              onDebutEnd={handleTravelButtonDebutEnd}
+            />
+          )}
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
       </div>
       {pendingMapId !== null && (

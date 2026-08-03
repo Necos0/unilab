@@ -142,9 +142,9 @@ function renderLineText(text) {
  *
  * Args:
  *     props (object): React プロパティ。
- *         onExitToTitle (function): リザルトの「タイトルへ」で呼ぶ（引数なし）。
- *             エンディングの締めなので、マップへ戻る道は作らずタイトルだけに
- *             している。
+ *         onFinish (function): リザルトの「つぎへ すすむ」で呼ぶ（引数なし）。
+ *             親（`App`）がエピローグ会話（`EpilogueScreen`、次回作の予告）へ
+ *             進める。マップへ戻る道は作らない。
  *         testLines (Array, optional): テストプレイ用の行データ（プレース
  *             ホルダ未置換のまま渡してよい）。省略時は `ending_credits.json`。
  *         testCoins (Array, optional): テストプレイ用のコイン配置。
@@ -155,7 +155,7 @@ function renderLineText(text) {
  *     JSX.Element: エンディングロール画面全体の要素。
  */
 function CreditsScreen({
-  onExitToTitle,
+  onFinish,
   testLines = null,
   testCoins = null,
   onExitTest = null,
@@ -701,9 +701,9 @@ function CreditsScreen({
                   <button
                     type="button"
                     className={styles.resultButton}
-                    onClick={onExitToTitle}
+                    onClick={onFinish}
                   >
-                    タイトルへ
+                    つぎへ すすむ ▶
                   </button>
                 )}
               </div>

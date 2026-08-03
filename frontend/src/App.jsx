@@ -7,8 +7,8 @@ import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import MapReturnTransition from './features/battle/MapReturnTransition.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
-import PlazaScreen from './features/plaza/PlazaScreen.jsx';
 import CreditsScreen from './features/ending/CreditsScreen.jsx';
+import EpilogueScreen from './features/ending/EpilogueScreen.jsx';
 import CreditsEditorScreen from './features/ending/editor/CreditsEditorScreen.jsx';
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
@@ -29,7 +29,7 @@ const ENDING_STAGE_ID = '4-4';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'cutsceneflow' | 'plaza' | 'ending' | 'credits' | 'creditseditor'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'cutsceneflow' | 'ending' | 'credits' | 'epilogue' | 'creditseditor'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
  * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居はカットシーンと
@@ -70,8 +70,7 @@ const ENDING_STAGE_ID = '4-4';
  * どちらの経路も即座に画面を切り替えるのではなく、`MapReturnTransition` の
  * 黒フェード（暗転 → 画面切替 → 明転）を挟んで自然に戻す。実際の退出処理
  * （クリア記録・`setScreen`）は `returnToMapActionRef` に退避しておき、
- * 暗転完了時の `handleReturnMidpoint` が実行する。ひろばからの
- * `handleExitToMap` は従来どおり即時切替。
+ * 暗転完了時の `handleReturnMidpoint` が実行する。
  *
  * 将来「ステージ選択画面」「タイトル画面」「戦闘終了→マップ復帰」など
  * 本格的な画面遷移ロジックを追加する際は、ここの `useState` を Zustand
@@ -114,6 +113,14 @@ function App() {
    * 丸めて退避する。
    */
   const prevScreenRef = useRef('map');
+  /*
+   * ラスボス（4-4）をクリア済みか。エンディングを一度迎えたプレイヤーの
+   * 目印で、タイトル画面の「エンディングゲームで あそぶ」ボタンの表示
+   * 条件に使う（フラグを二重管理せず `clearedStageIds` から導出する）。
+   */
+  const isEndingUnlocked = useProgressStore((s) =>
+    s.clearedStageIds.includes(ENDING_STAGE_ID),
+  );
   const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
   const wasUnlockAnimatingRef = useRef(false);
   useEffect(() => {
@@ -178,10 +185,11 @@ function App() {
    *               開閉する。開く直前の画面を `prevScreenRef` に退避し、
    *               画面内の「戻る」で復帰する。
    *   - wqend   : エンディング紙芝居（`screen === 'ending'`）をその場で再生
-   *               する。4-4 を倒さずに最後の演出を確認する用途。進捗・クリア
-   *               記録には一切触れない。紙芝居を見終えるとエンディングロール
-   *               （`CreditsScreen`）へ続き、リザルトからタイトルかマップへ
-   *               戻る。
+   *               する。4-4 を倒さずに最後の演出を確認する用途。あわせて
+   *               進捗を「4-4 クリア済み」まで一括設定し（`wqgo4-4` ＋
+   *               4-4 クリアに相当）、エンディング後の世界を本番と同じに
+   *               そろえる。紙芝居を見終えるとエンディングロール
+   *               （`CreditsScreen`）へ続き、リザルトからタイトルへ戻る。
    *   - wqgo<ステージID> : 例 `wqgo2-3`（ハイフン省略の `wqgo23` も可）。
    *               そのステージに「到達した」状態まで進捗を一括設定する
    *               （旧・到達ステージ選択ドロップダウンの置き換え）。
@@ -218,7 +226,18 @@ function App() {
     });
   }, []);
 
+  /*
+   * `wqend` はエンディングの演出確認だけでなく、進捗も「4-4 をクリアした」
+   * 状態まで一括で進める。エンディングは本来ラスボス撃破後にしか出ない
+   * 画面なので、見た後の世界（タイトルの「エンディングゲームで あそぶ」
+   * ボタンの表示や、マップへ戻ったときの解放状況）も本番と同じにそろえる
+   * ため。カットシーンの視聴履歴も同様に既読へ倒す。
+   */
   const handleDebugEnding = useCallback(() => {
+    const progress = useProgressStore.getState();
+    progress.setProgressUpToStage(ENDING_STAGE_ID);
+    progress.markStageCleared(ENDING_STAGE_ID);
+    useCutsceneStore.getState().markSeenBeforeStage(ENDING_STAGE_ID);
     setScreen('ending');
   }, []);
 
@@ -273,10 +292,6 @@ function App() {
 
   const handleTransitionEnd = useCallback(() => {
     setPendingStageId(null);
-  }, []);
-
-  const handleExitToMap = useCallback(() => {
-    setScreen('map');
   }, []);
 
   /*
@@ -373,13 +388,26 @@ function App() {
     setScreen('credits');
   }, []);
 
-  /* エンディングロールのリザルトパネル「タイトルへ」。 */
-  const handleCreditsExitToTitle = useCallback(() => {
+  /*
+   * エンディングロールのリザルトパネル「つぎへ すすむ」。ビットが次回作を
+   * 匂わせるエピローグ会話（`EpilogueScreen`）へ進める。
+   */
+  const handleCreditsFinish = useCallback(() => {
+    setScreen('epilogue');
+  }, []);
+
+  /* エピローグの「つづく…」を見終えたらタイトルへ戻る。 */
+  const handleEpilogueFinish = useCallback(() => {
     setScreen('title');
   }, []);
 
-  const handleOpenPlaza = useCallback(() => {
-    setScreen('plaza');
+  /*
+   * タイトル画面の「エンディングゲームで あそぶ」。ラスボスクリア済みの
+   * プレイヤー向けの再プレイ導線で、紙芝居は挟まずエンディングロール
+   * （コイン集め）へ直行する。
+   */
+  const handlePlayEndingGame = useCallback(() => {
+    setScreen('credits');
   }, []);
 
   const handleExitCutsceneFlow = useCallback(() => {
@@ -431,7 +459,13 @@ function App() {
 
   let currentScreen;
   if (screen === 'title') {
-    currentScreen = <TitleScreen onStart={handleStartGame} />;
+    currentScreen = (
+      <TitleScreen
+        onStart={handleStartGame}
+        onPlayEnding={handlePlayEndingGame}
+        canPlayEnding={isEndingUnlocked}
+      />
+    );
   } else if (screen === 'story') {
     currentScreen = <StoryScreen key={storyRunId} onFinish={handleStoryFinish} />;
   } else if (screen === 'battle') {
@@ -444,24 +478,19 @@ function App() {
     );
   } else if (screen === 'cutsceneflow') {
     currentScreen = <CutsceneFlowScreen onExit={handleExitCutsceneFlow} />;
-  } else if (screen === 'plaza') {
-    currentScreen = <PlazaScreen onExitToMap={handleExitToMap} />;
   } else if (screen === 'ending') {
     currentScreen = (
       <StoryScreen slides={ENDING_SLIDES} onFinish={handleEndingFinish} />
     );
   } else if (screen === 'credits') {
-    currentScreen = (
-      <CreditsScreen onExitToTitle={handleCreditsExitToTitle} />
-    );
+    currentScreen = <CreditsScreen onFinish={handleCreditsFinish} />;
+  } else if (screen === 'epilogue') {
+    currentScreen = <EpilogueScreen onFinish={handleEpilogueFinish} />;
   } else if (screen === 'creditseditor') {
     currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;
   } else {
     currentScreen = (
-      <MapScreen
-        onStartBattle={handleStartBattle}
-        onOpenPlaza={handleOpenPlaza}
-      />
+      <MapScreen onStartBattle={handleStartBattle} />
     );
   }
 

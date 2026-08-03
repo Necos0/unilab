@@ -18,14 +18,22 @@ const TITLE_IMAGE_SRC = '/title.png';
  * 渡したもの）を縦に並べる。レターボックスの黒帯ではなく実際の絵の中央に
  * 重なるよう、`.controls` を `.canvas` 基準の絶対配置で中央に置く。
  *
+ * ラスボス（4-4）をクリア済みのプレイヤーには、スタートの下に
+ * 「エンディングゲームで あそぶ」ボタンを出し、エンディングロール
+ * （クレジットの上を歩くコイン集め）だけをいつでも遊び直せるようにする。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         onStart (function): スタートボタン押下時に呼ぶ関数（引数なし）。
+ *         onPlayEnding (function): 「エンディングゲームで あそぶ」押下時に
+ *             呼ぶ関数（引数なし）。エンディングロールへ直行する。
+ *         canPlayEnding (boolean): エンディング再プレイボタンを出すか
+ *             （ラスボスをクリア済みか）。
  *
  * Returns:
  *     JSX.Element: タイトル画面全体を表す `<section>` 要素。
  */
-function TitleScreen({ onStart }) {
+function TitleScreen({ onStart, onPlayEnding, canPlayEnding = false }) {
   return (
     <section className={styles.root}>
       <div className={styles.canvas}>
@@ -42,6 +50,15 @@ function TitleScreen({ onStart }) {
           >
             スタート
           </button>
+          {canPlayEnding && (
+            <button
+              type="button"
+              className={styles.endingButton}
+              onClick={onPlayEnding}
+            >
+              エンディングゲームで あそぶ
+            </button>
+          )}
           <FullscreenToggleButton className={styles.fullscreenButton} />
         </div>
       </div>
