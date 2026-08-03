@@ -104,8 +104,8 @@ const useProgressStore = create(
    * カットシーンの `seenIds` と同様の視聴履歴で、`App` が紙芝居の完了時
    * （`handleStoryFinish`）に呼ぶ。以降タイトル画面で「スタート」を押しても
    * 紙芝居はスキップされ、マップへ直行する。localStorage に永続化される
-   * ため、リロード後も再表示されない（R キーの全リセット＝`resetProgress`
-   * で初期化され、再び最初から見られる）。
+   * ため、リロード後も再表示されない（隠しコマンド `wqreset` の全リセット＝
+   * `resetProgress` で初期化され、再び最初から見られる）。
    */
   markOpeningStorySeen: () => set({ hasSeenOpeningStory: true }),
 

@@ -168,7 +168,7 @@ unilab/
     │   │       ├── shark/        ← idle / dead
     │   │       ├── squid/        ← idle / dead
     │   │       └── goldenbird/   ← idle / dead
-    │   └── story/                ← オープニング紙芝居の画像(story_NN.png、StoryScreen が参照)
+    │   └── story/                ← 紙芝居の画像(オープニング story_NN.png・エンディング ending_NN.png、StoryScreen が参照)
     └── src/
         ├── main.jsx              ← エントリポイント
         ├── App.jsx
@@ -186,6 +186,8 @@ unilab/
         │   ├── maps.json         ← マップ定義(背景画像・ランドマーク座標・道のエッジ)
         │   ├── player.json       ← プレイヤーのステータス(maxHp 等、将来 attack/defense を追加)
         │   ├── stages.json       ← ステージ定義(敵・使用可能カード・フローチャート形状)
+        │   ├── ending_slides.json ← エンディング紙芝居のスライド定義(4-4 のラスボス撃破後に再生、形式は story_slides.json と同じ)
+        │   ├── ending_credits.json ← エンディングロールの行(横位置 x 付き)とコイン配置。プレースホルダ({playerName} 等)で動的値を差し込む。配置エディタ(wqedit)で編集
         │   ├── story_slides.json ← オープニング紙芝居のスライド定義(画像パスとふりがな付き文章)
         │   └── stagesLoader.js   ← stages.json の短縮形式を完全形式に展開するローダー
         ├── stores/               ← グローバル状態管理(zustand)
@@ -292,11 +294,18 @@ unilab/
             │   ├── NameEntryPanel.jsx      ← ひらがな表でプレイヤー名を入力するパネル(オープニング用)
             │   ├── NameEntryPanel.module.css
             │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)
-            ├── story/            ← オープニング紙芝居(スタート直後に再生、データは data/story_slides.json)
-            │   ├── StoryScreen.jsx        ← 紙芝居画面(フェードイン・3秒ロック・クリック/キー送り)
+            ├── story/            ← 紙芝居(オープニングはスタート直後、エンディングは 4-4 クリア後に再生)
+            │   ├── StoryScreen.jsx        ← 紙芝居画面(フェードイン・3秒ロック・クリック/キー送り、slides プロップでオープニング/エンディング共用)
             │   ├── StoryScreen.module.css
             │   ├── WakeUpOverlay.jsx      ← 紙芝居後の目覚め演出(2秒暗転→まばたきしながら平原が現れる)
             │   └── WakeUpOverlay.module.css
+            ├── ending/           ← エンディングロール(クレジットの上を歩いてコインを集める足場ゲーム、紙芝居の後に再生)
+            │   ├── CreditsScreen.jsx      ← エンディングロール画面(rAF ループでスクロール・重力・着地・コイン取得・落下/スキップ処理)
+            │   ├── CreditsScreen.module.css
+            │   ├── buildCreditLines.js    ← 行 JSON のプレースホルダを進捗の値で置換する(純関数)
+            │   └── editor/       ← エンディング配置エディタ(開発用ツール、隠しコマンド wqedit で開閉)
+            │       ├── CreditsEditorScreen.jsx     ← 行の横位置ドラッグ・テキスト/種類編集・行とコインの追加/削除・テストプレイ・JSON 書き出し
+            │       └── CreditsEditorScreen.module.css
             ├── title/            ← タイトル画面
             │   ├── TitleScreen.jsx        ← スタートボタン付きの起動時タイトル画面
             │   └── TitleScreen.module.css

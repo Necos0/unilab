@@ -1,0 +1,308 @@
+/*
+ * エンディングロール画面（クレジットの上を歩く足場ゲーム付き）。
+ * コードエディタ風のダーク背景に、HTML 風のクレジット行を絶対配置で並べ、
+ * `.world` 全体を JS（rAF ループ）の translateY で上へ流す。行の色は
+ * 種類＝足場の固さと対応させる：タグ行（金・かたい）、日本語行（白・
+ * ふつう）、コメント行（グレー・乗れない）。
+ */
+.root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  background: #0b0b10;
+  overflow: hidden;
+  user-select: none;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+}
+
+/* クレジット行と主人公・ロボを載せる「世界」。JS が translateY で動かす。 */
+.world {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+/* 行の共通スタイル。位置（top / left）は JSX 側でインライン指定する。 */
+.tagLine,
+.textLine,
+.commentLine {
+  position: absolute;
+  white-space: nowrap;
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+}
+
+/* タグ行。金色＝かたい足場。 */
+.tagLine {
+  color: #f0c040;
+}
+
+/* 日本語の中身の行。白＝ふつうの足場。 */
+.textLine {
+  color: #f5f0e0;
+}
+
+/* コメント行。グレー＝乗れない（すり抜け）。 */
+.commentLine {
+  color: #6a6a78;
+}
+
+.textLine rt {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+/* キャスト紹介の行の上にちょこんと立たせるスプライト。 */
+.castSprite {
+  position: absolute;
+  left: 8px;
+  bottom: calc(100% - 14px);
+  height: 52px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* 操作する主人公。位置は JS が translate で毎フレーム更新する。 */
+.player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 48px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 浮遊追従するフロチャロボ。ふわふわの上下も JS 側で付ける。 */
+.robo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 40px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  opacity: 0.95;
+  z-index: 2;
+}
+
+/*
+ * コイン。コード風の「{}」を金色の丸に入れたデザイン。位置は JSX の
+ * インライン style（world 座標）で決まり、`left`/`top` が中心に来るよう
+ * transform でずらす。くるくる回って目を引く。
+ */
+.coin {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe08a, #f0c040 60%, #b8860b);
+  border: 2px solid #8a6510;
+  color: #6b4e08;
+  font-size: 14px;
+  font-weight: bold;
+  animation: coinSpin 1.6s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 取得済みコイン。ポンと弾けて消える。 */
+.coinTaken {
+  animation: coinPop 0.35s ease-out forwards;
+}
+
+/* 左上の成績表示。 */
+.hud {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  color: #f5f0e0;
+  font-size: clamp(0.8rem, 1.6vw, 1rem);
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  z-index: 5;
+}
+
+/* 導入中に出す操作説明。 */
+.introHint {
+  position: absolute;
+  left: 50%;
+  bottom: 12dvh;
+  transform: translateX(-50%);
+  color: #f0c040;
+  font-size: clamp(0.95rem, 2vw, 1.25rem);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  animation: creditsBlink 1.4s ease-in-out infinite;
+  z-index: 5;
+}
+
+/* 落下後（見るだけモード）の案内。 */
+.fallenHint {
+  position: absolute;
+  left: 50%;
+  bottom: 6dvh;
+  transform: translateX(-50%);
+  color: #f5f0e0;
+  font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: creditsFadeIn 0.6s ease both;
+  z-index: 5;
+}
+
+/* テストプレイ中の右上「← エディタへ」即時退出ボタン。 */
+.testExitButton {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #f0c040;
+  background: rgba(29, 29, 38, 0.85);
+  color: #f0c040;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  z-index: 20;
+}
+
+.testExitButton:hover {
+  filter: brightness(1.25);
+}
+
+/* 右下のスキップ案内。 */
+.skipHint {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  color: #6a6a78;
+  font-size: clamp(0.7rem, 1.4vw, 0.9rem);
+  letter-spacing: 0.08em;
+  z-index: 5;
+}
+
+/* ロール終了後の全画面オーバーレイ。 */
+.finishOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4dvh;
+  background: rgba(11, 11, 16, 0.85);
+  animation: creditsFadeIn 1s ease both;
+  z-index: 10;
+}
+
+.thankYou {
+  margin: 0;
+  color: #f0c040;
+  font-family: 'Press Start 2P', 'DotGothic16', monospace;
+  font-size: clamp(1.1rem, 3.4vw, 2rem);
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+
+/* 成績と退出ボタンのパネル。 */
+.resultPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4dvh;
+  animation: creditsFadeIn 0.6s ease both;
+}
+
+.resultRate {
+  margin: 0;
+  color: #f5f0e0;
+  font-size: clamp(1rem, 2.4vw, 1.4rem);
+  letter-spacing: 0.08em;
+}
+
+.resultMessage {
+  margin: 0 0 1dvh;
+  color: #f5f0e0;
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+}
+
+.resultButtons {
+  display: flex;
+  gap: 16px;
+}
+
+.resultButton {
+  padding: 10px 22px;
+  border: 3px solid #f0c040;
+  border-radius: 10px;
+  background: linear-gradient(#c0392b, #962d22);
+  color: #fff;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.resultButton:hover {
+  filter: brightness(1.15);
+}
+
+@keyframes creditsFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* HUD 内のコインアイコンと区切り。 */
+.hudCoinIcon {
+  color: #f0c040;
+  font-weight: bold;
+}
+
+.hudDivider {
+  opacity: 0.5;
+}
+
+@keyframes creditsBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* コインの回転（横につぶれて戻る疑似 3D）。 */
+@keyframes coinSpin {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scaleX(0.25);
+  }
+}
+
+/* コイン取得の弾け。拡大しながらフェードアウトして消える。 */
+@keyframes coinPop {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.9);
+    opacity: 0;
+  }
+}

@@ -63,11 +63,11 @@ const BACKDROP_FADE_MS = 700;
  *
  * 再生中は「クリック／タップ」と「Enter」だけを受け付け、それ以外の操作を
  * 禁止する。全面レイヤーが下の画面のポインタ操作を物理的にブロックし、加えて
- * window の keydown を capture フェーズで監視して Enter 以外のキー（T/Space
- * などのショートカット）を `stopImmediatePropagation` で遮断する。ブラウザ標準の
- * 修飾キー操作（Ctrl/Cmd/Alt 併用、リロード等）は妨げない。例外として R
- * （開発用の全リセット）だけは App のハンドラへ素通しし、会話の途中でも
- * 初めからやり直せるようにする。さらに `cutsceneStore.isInputLocked` が
+ * window の keydown を capture フェーズで監視して Enter 以外のキーを
+ * `stopImmediatePropagation` で遮断する。ブラウザ標準の修飾キー操作
+ * （Ctrl/Cmd/Alt 併用、リロード等）は妨げない。開発用の隠しコマンド
+ * （App の `useDebugCommands`）は遮断より先に打鍵を観測するため、会話の
+ * 途中でも `wqreset` 等で初めからやり直せる。さらに `cutsceneStore.isInputLocked` が
  * 立っている間（目覚め演出 `WakeUpOverlay` の再生中）は、クリック／Enter の
  * 早送り・送りをすべて無視する（キーの遮断自体は続け、演出が終わって
  * ロックが解けてから通常どおり飛ばせるようになる）。選択肢ウィンドウと
@@ -333,9 +333,11 @@ function RoboBubble({ variant = 'map' }) {
   /*
    * 会話中（`activeId` 非 null）はキー入力を Enter のみに制限する。
    * capture フェーズで window の keydown を捕まえ、Enter は送り扱い、それ
-   * 以外のキーは `stopImmediatePropagation` で他リスナー（App の R/T、
-   * MapScreen の Space など）に届く前に遮断する。修飾キー併用のブラウザ
-   * 標準ショートカット（リロード等）は素通しする。
+   * 以外のキーは `stopImmediatePropagation` で他リスナーに届く前に遮断する。
+   * 修飾キー併用のブラウザ標準ショートカット（リロード等）は素通しする。
+   * 開発用の隠しコマンド（App の `useDebugCommands`）は同じ window の
+   * capture により先に登録されているため、遮断していても打鍵は観測され、
+   * 会話の途中でも `wqreset` 等が効く。
    */
   useEffect(() => {
     if (!activeId || (!isBubbleStep && !isChoiceOnlyStep) || isWaitStep) {
@@ -356,13 +358,6 @@ function RoboBubble({ variant = 'map' }) {
           target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA')
       ) {
-        return;
-      }
-      /*
-       * R（開発用の全リセット）は遮断せず App のハンドラへ通す。会話の
-       * 途中でも初めからやり直せるようにする。
-       */
-      if (event.code === 'KeyR') {
         return;
       }
       if (event.key === 'Enter') {

@@ -36,11 +36,13 @@ const REVEAL_INTERVAL_MS = 90;
 const REVEAL_DELAY_MS = 600;
 
 /**
- * ゲーム冒頭のオープニング紙芝居画面。
+ * 紙芝居画面（オープニング・エンディング共用）。
  *
- * タイトル画面の「スタート」ボタン押下後に表示する。背景は黒一色で、画面
- * 上部に絵、下部に文章を置いたスライド（`data/story_slides.json`）を 1 枚
- * ずつ流す。
+ * 既定ではタイトル画面の「スタート」ボタン押下後にオープニング紙芝居
+ * （`data/story_slides.json`）として表示する。`slides` プロップに別の
+ * スライド配列を渡すと、同じ演出のままエンディング紙芝居
+ * （`data/ending_slides.json`、4-4 のラスボス撃破後）などにも使い回せる。
+ * 背景は黒一色で、画面上部に絵、下部に文章を置いたスライドを 1 枚ずつ流す。
  * スライドが切り替わるたびに絵は透明からゆっくりフェードインし、文章は
  * 絵より少し遅れて（`REVEAL_DELAY_MS`）読み上げ（タイプライター）
  * アニメーションで 1 トークンずつゆっくり流す（`REVEAL_INTERVAL_MS` 間隔）。
@@ -51,7 +53,7 @@ const REVEAL_DELAY_MS = 600;
  * あるが、現在は開発中の暫定として `IS_LOCK_DISABLED` で無効化している
  * （無効中も早送り→送りの二段階は生きている）。
  * 最後のスライドを送ると全体を黒へフェードアウトし、
- * `onFinish` を呼んで親（`App`）がマップ画面へ遷移する。
+ * `onFinish` を呼んで親（`App`）が次の画面へ遷移する。
  *
  * 表示中は window の keydown を capture フェーズで横取りし、App の開発用
  * ショートカット（R/T/C）が誤発火しないようにする（どのキーも「送り」として
@@ -64,11 +66,13 @@ const REVEAL_DELAY_MS = 600;
  * Args:
  *     props (object): React プロパティ。
  *         onFinish (function): 紙芝居を最後まで見終えたときに呼ぶ関数（引数なし）。
+ *         slides (Array, optional): 表示するスライド配列（`{ image, text }` の
+ *             リスト）。省略時はオープニング用の `STORY_SLIDES` を使う。
  *
  * Returns:
  *     JSX.Element: 紙芝居画面全体を表す `<section>` 要素。
  */
-function StoryScreen({ onFinish }) {
+function StoryScreen({ onFinish, slides = STORY_SLIDES }) {
   const [index, setIndex] = useState(0);
   const [canAdvance, setCanAdvance] = useState(IS_LOCK_DISABLED);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -89,7 +93,7 @@ function StoryScreen({ onFinish }) {
     setVisibleCount(0);
   }
 
-  const slide = STORY_SLIDES[index];
+  const slide = slides[index];
   const tokens = useMemo(() => tokenizeFurigana(slide.text), [slide.text]);
   /* 読み上げが末尾まで終わったか。「つぎへ」案内はこの後にだけ出す。 */
   const isRevealed = visibleCount >= tokens.length;
@@ -102,11 +106,11 @@ function StoryScreen({ onFinish }) {
 
   /* 全スライドの画像を最初にまとめて先読みし、切り替え時のちらつきを防ぐ。 */
   useEffect(() => {
-    STORY_SLIDES.forEach(({ image }) => {
+    slides.forEach(({ image }) => {
       const img = new Image();
       img.src = image;
     });
-  }, []);
+  }, [slides]);
 
   /* スライドごとに `LOCK_MS` 経過してから送り操作を解禁する（ロック無効時は
    * 最初から解禁済みなのでタイマー不要）。 */
@@ -170,12 +174,12 @@ function StoryScreen({ onFinish }) {
       setVisibleCount(tokens.length);
       return;
     }
-    if (index < STORY_SLIDES.length - 1) {
+    if (index < slides.length - 1) {
       setIndex(index + 1);
     } else {
       setIsLeaving(true);
     }
-  }, [canAdvance, isLeaving, visibleCount, tokens.length, index]);
+  }, [canAdvance, isLeaving, visibleCount, tokens.length, index, slides.length]);
 
   /*
    * 紙芝居中はどのキーも「送り」として扱う。capture フェーズで横取りして

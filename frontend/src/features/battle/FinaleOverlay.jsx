@@ -7,16 +7,15 @@ import styles from './FinaleOverlay.module.css';
  * （`battleStore.isSecondPhase`）のとき、親（`BattleScreen`）が通常の
  * `VictoryClearOverlay` の代わりにマウントする。画面全体が白い光で
  * ゆっくり満たされ、白くなり切った後に「つづく」テキストと
- * 「マップへ戻る」ボタンがフェードインする。
+ * 「つぎへ」ボタンがフェードインする。
  *
- * TODO(最終ストーリー): ここが最後のストーリー（エンディング紙芝居等）への
- * 差し込み口。ストーリーが決まったら、「マップへ戻る」ボタンの代わりに
- * `onExitToMap` をエンディング画面への遷移ハンドラへ差し替える
- * （`App.jsx` 側で `onClearedExitToMap` の遷移先を変えるだけでよい）。
+ * ボタンを押すと `onExitToMap` → `App.handleClearedExitToMap` と伝わり、
+ * ラスボス（4-4）ではクリア記録のあとマップではなくエンディング紙芝居
+ * （`App.jsx` の `screen === 'ending'`）へ遷移する。
  *
  * Args:
  *     props (object): React プロパティ。
- *         onExitToMap (function): 「マップへ戻る」クリック時に呼び出す
+ *         onExitToMap (function): 「つぎへ」クリック時に呼び出す
  *             ハンドラ。引数なし。`BattleScreen.handleClearedExitToMap`
  *             経由でクリア記録＋画面遷移が行われる。
  *
@@ -29,7 +28,7 @@ function FinaleOverlay({ onExitToMap }) {
       <div className={styles.content}>
         <p className={styles.finaleText}>つづく</p>
         <button type="button" className={styles.button} onClick={onExitToMap}>
-          ← マップへ戻る
+          つぎへ ▶
         </button>
       </div>
     </div>

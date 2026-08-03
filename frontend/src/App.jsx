@@ -6,45 +6,47 @@ import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import MapReturnTransition from './features/battle/MapReturnTransition.jsx';
-import SpriteSheetEditor from './editer/SpriteSheetEditor.jsx';
-import CharacterGallery from './editer/CharacterGallery.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
 import PlazaScreen from './features/plaza/PlazaScreen.jsx';
+import CreditsScreen from './features/ending/CreditsScreen.jsx';
+import CreditsEditorScreen from './features/ending/editor/CreditsEditorScreen.jsx';
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
 import useMapStore from './stores/mapStore.js';
 import usePlayerStore from './stores/playerStore.js';
 import stagesData from './data/stagesLoader.js';
 import mapsData from './data/maps.json';
+import useDebugCommands from './hooks/useDebugCommands.js';
 import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
+import ENDING_SLIDES from './data/ending_slides.json';
+
+/*
+ * このステージをクリア（勝利演出経由で退出）したら、マップではなく
+ * エンディング紙芝居（`screen === 'ending'`）へ遷移する。ラスボスの 4-4。
+ */
+const ENDING_STAGE_ID = '4-4';
 
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'editor' | 'gallery' | 'cutsceneflow' | 'plaza'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'cutsceneflow' | 'plaza' | 'ending' | 'credits' | 'creditseditor'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
  * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居はカットシーンと
  * 同様に視聴履歴を持ち（`progressStore.hasSeenOpeningStory`、localStorage
  * 永続）、視聴済みなら紙芝居・目覚め演出を飛ばしてマップへ直行する
- * （R キーの全リセットで履歴も消え、再び最初から見られる）。紙芝居を最後まで見終える
+ * （隠しコマンド `wqreset` の全リセットで履歴も消え、再び最初から見られる）。紙芝居を最後まで見終える
  * （`handleStoryFinish`）と、ステージ1の入り口にあたるマップ画面
  * （`MapScreen`＝`map_1`）へ遷移する。このときマップの上に「目覚め」演出
  * （`WakeUpOverlay`）を重ね、2 秒の暗転ののち、気絶から目を覚ますように
  * ゆっくりと平原を現す（完了で `handleWakeUpEnd` がオーバーレイを外す）。
  * 併せて目覚めの会話カットシーン（`opening-wake`）を発火し、フロチャロボ
  * との初対面 → 名前入力 → ステージ1への誘導ガイドへと続ける。
- * マップ画面では、ランドマーク詳細パネルの「たたかう」ボタン、
- * またはマップ右上のデバッグ用「バトルデモ」ボタンが押されると、対応する
- * `stageId` を保持しつつ戦闘画面（`BattleScreen`）に遷移する。テスト用途
- * のため、戦闘画面右上の「マップへ戻る」ボタンで戦闘進行や勝敗に関係なく
- * 即座にマップ画面へ戻れる（戦闘ステートはマウント解除でリセットされる）。
- * また、マップ画面右下の「スプライトシートエディタ」ボタン（`onOpenEditor`）
- * を押すと開発用のスプライトシート分割エディタ（`SpriteSheetEditor`）へ
- * 切り替わり、エディタの「マップへ戻る」（`handleExitToMap`）でマップへ戻る。
- * 同じくマップ右下のエディタボタン上に並ぶ「キャラクター一覧」ボタン
- * （`onOpenGallery`）からは、全キャラクターの idle を閲覧する `CharacterGallery`
- * へ切り替わり、こちらも「マップへ戻る」でマップへ戻る。
+ * マップ画面では、ランドマーク詳細パネルの「たたかう」ボタンが押されると、
+ * 対応する `stageId` を保持しつつ戦闘画面（`BattleScreen`）に遷移する。
+ * テスト用途のため、戦闘画面右上の「マップへ戻る」ボタンで戦闘進行や勝敗に
+ * 関係なく即座にマップ画面へ戻れる（戦闘ステートはマウント解除でリセット
+ * される）。
  *
  * マップ → 戦闘の遷移は `BattleTransition` の黒フェードオーバーレイを挟み、
  * フェードイン中にバトル画面で使う画像（敵スプライト・カード・フローチャート
@@ -60,12 +62,16 @@ import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
  *     `progressStore.markStageCleared(stageId)` でクリア記録を更新してから
  *     マップ画面へ遷移する（要件 3-1）。`markStageCleared` 内で次ステージの
  *     解放判定と `pendingUnlockStageId` のセットも行われ、`MapScreen` の
- *     マウント時 useEffect が拾って解放アニメを起動する。
+ *     マウント時 useEffect が拾って解放アニメを起動する。ラスボス
+ *     （`ENDING_STAGE_ID` = 4-4）のクリア時だけは、マップではなく
+ *     エンディング紙芝居（`screen === 'ending'`、`StoryScreen` に
+ *     `data/ending_slides.json` を渡して再生）へ遷移し、見終えたら
+ *     `handleEndingFinish` でマップへ戻る。
  * どちらの経路も即座に画面を切り替えるのではなく、`MapReturnTransition` の
  * 黒フェード（暗転 → 画面切替 → 明転）を挟んで自然に戻す。実際の退出処理
  * （クリア記録・`setScreen`）は `returnToMapActionRef` に退避しておき、
- * 暗転完了時の `handleReturnMidpoint` が実行する。エディタ・ギャラリー・
- * 広場からの `handleExitToMap`（開発用途）は従来どおり即時切替。
+ * 暗転完了時の `handleReturnMidpoint` が実行する。ひろばからの
+ * `handleExitToMap` は従来どおり即時切替。
  *
  * 将来「ステージ選択画面」「タイトル画面」「戦闘終了→マップ復帰」など
  * 本格的な画面遷移ロジックを追加する際は、ここの `useState` を Zustand
@@ -89,8 +95,8 @@ function App() {
   /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
   const [isWakingUp, setIsWakingUp] = useState(false);
   /*
-   * 紙芝居（`StoryScreen`）の再マウント用キー。R キーの全リセットで増やし、
-   * すでに紙芝居表示中に R を押した場合でも 1 枚目から確実にやり直す。
+   * 紙芝居（`StoryScreen`）の再マウント用キー。隠しコマンド `wqreset` の
+   * 全リセットで増やし、すでに紙芝居表示中でも 1 枚目から確実にやり直す。
    */
   const [storyRunId, setStoryRunId] = useState(0);
 
@@ -102,9 +108,10 @@ function App() {
    */
   const pendingExitStageIdRef = useRef(null);
   /*
-   * 開発用カットシーン・フロー画面（`C` キー）を開く直前の画面を控えておき、
-   * 「戻る」で元の画面へ復帰できるようにする。バトル中に開いた場合は戻ると
-   * バトルが再マウントされてトリガーが再発火するため、`map` に丸めて退避する。
+   * 開発用カットシーン・フロー画面（隠しコマンド `wqflow`）を開く直前の画面を
+   * 控えておき、「戻る」で元の画面へ復帰できるようにする。バトル中に開いた
+   * 場合は戻るとバトルが再マウントされてトリガーが再発火するため、`map` に
+   * 丸めて退避する。
    */
   const prevScreenRef = useRef('map');
   const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
@@ -154,69 +161,103 @@ function App() {
   }, [pendingWorldUnlock]);
 
   /*
-   * 開発用ショートカット。マップ・バトルどちらの画面でも効くようグローバルに
-   * 登録する。input/textarea へのフォーカス中と修飾キー同時押しは無視する
-   * （`UnlockSelectButton` の Space キーと同じガード方針）。
-   *   - R : ゲームの状態をすべて初期化して、オープニング紙芝居（`StoryScreen`）
-   *         まで巻き戻す。対象はガイドの表示履歴（`seenIds`）と再生中の
-   *         カットシーン・ステージの開放状況（`progressStore`）・マップの
-   *         現在位置（`mapStore`）・プレイヤー名（`playerStore`）。紙芝居 →
-   *         目覚め → ロボとの会話（名前入力）→ チュートリアルの流れを完全な
-   *         初期状態から通しで見直せる。ロボの会話中・紙芝居表示中でも効く
-   *         （`RoboBubble` / `StoryScreen` のキー遮断は R だけ素通しする）。
-   *   - T : タイトル画面（`TitleScreen`）へ戻る。
-   *   - C : カットシーン・フロー画面（`CutsceneFlowScreen`、開発用）を開閉する。
-   *         開く直前の画面を `prevScreenRef` に退避し、画面内の「戻る」で復帰する。
-   *   （どこまで解放するかを選ぶ Space は `UnlockSelectButton`（MapScreen）が扱う。）
+   * 開発用の隠しコマンド（`useDebugCommands`）。以前の R / T / C / Space の
+   * 単キーショートカットは、プレイヤーが偶然押して発動する事故があり得たため、
+   * `wq` で始まる文字列をタイプしたときだけ効くコマンドに置き換えた。
+   * どの画面でも効き、会話中・紙芝居中でも打てる（capture フェーズで
+   * 遮断より先に観測するため）。
+   *   - wqreset : ゲームの状態をすべて初期化して、オープニング紙芝居
+   *               （`StoryScreen`）まで巻き戻す。対象はガイドの表示履歴
+   *               （`seenIds`）と再生中のカットシーン・ステージの開放状況
+   *               （`progressStore`）・マップの現在位置（`mapStore`）・
+   *               プレイヤー名（`playerStore`）。紙芝居 → 目覚め → ロボとの
+   *               会話（名前入力）→ チュートリアルの流れを完全な初期状態から
+   *               通しで見直せる。
+   *   - wqtitle : タイトル画面（`TitleScreen`）へ戻る。
+   *   - wqflow  : カットシーン・フロー画面（`CutsceneFlowScreen`、開発用）を
+   *               開閉する。開く直前の画面を `prevScreenRef` に退避し、
+   *               画面内の「戻る」で復帰する。
+   *   - wqend   : エンディング紙芝居（`screen === 'ending'`）をその場で再生
+   *               する。4-4 を倒さずに最後の演出を確認する用途。進捗・クリア
+   *               記録には一切触れない。紙芝居を見終えるとエンディングロール
+   *               （`CreditsScreen`）へ続き、リザルトからタイトルかマップへ
+   *               戻る。
+   *   - wqgo<ステージID> : 例 `wqgo2-3`（ハイフン省略の `wqgo23` も可）。
+   *               そのステージに「到達した」状態まで進捗を一括設定する
+   *               （旧・到達ステージ選択ドロップダウンの置き換え）。
+   *   - wqedit  : エンディング配置エディタ（`CreditsEditorScreen`、開発用）を
+   *               開閉する。行の横位置とコインの配置を GUI で編集し、JSON を
+   *               書き出して `data/ending_credits.json` を置き換える。
    */
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.code !== 'KeyR' && event.code !== 'KeyT' && event.code !== 'KeyC') {
-        return;
-      }
-      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
-        return;
-      }
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA')
-      ) {
-        return;
-      }
-      event.preventDefault();
-      if (event.code === 'KeyT') {
-        setScreen('title');
-        return;
-      }
-      if (event.code === 'KeyC') {
-        setScreen((prev) => {
-          if (prev === 'cutsceneflow') {
-            return prevScreenRef.current;
-          }
-          prevScreenRef.current = prev === 'battle' ? 'map' : prev;
-          return 'cutsceneflow';
-        });
-        return;
-      }
-      useCutsceneStore.getState().resetSeen();
-      useProgressStore.getState().resetProgress();
-      useMapStore.getState().reset();
-      usePlayerStore.getState().resetName();
-      /*
-       * 巻き戻し後はオープニング紙芝居から通しでやり直す。目覚め演出の
-       * 途中だった場合に備えてオーバーレイのフラグも下ろし、紙芝居表示中
-       * だった場合に備えて `storyRunId` で `StoryScreen` を再マウントする。
-       */
-      setIsWakingUp(false);
-      setStoryRunId((runId) => runId + 1);
-      setScreen('story');
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+  const handleDebugReset = useCallback(() => {
+    useCutsceneStore.getState().resetSeen();
+    useProgressStore.getState().resetProgress();
+    useMapStore.getState().reset();
+    usePlayerStore.getState().resetName();
+    /*
+     * 巻き戻し後はオープニング紙芝居から通しでやり直す。目覚め演出の
+     * 途中だった場合に備えてオーバーレイのフラグも下ろし、紙芝居表示中
+     * だった場合に備えて `storyRunId` で `StoryScreen` を再マウントする。
+     */
+    setIsWakingUp(false);
+    setStoryRunId((runId) => runId + 1);
+    setScreen('story');
   }, []);
+
+  const handleDebugTitle = useCallback(() => {
+    setScreen('title');
+  }, []);
+
+  const handleDebugCutsceneFlow = useCallback(() => {
+    setScreen((prev) => {
+      if (prev === 'cutsceneflow') {
+        return prevScreenRef.current;
+      }
+      prevScreenRef.current = prev === 'battle' ? 'map' : prev;
+      return 'cutsceneflow';
+    });
+  }, []);
+
+  const handleDebugEnding = useCallback(() => {
+    setScreen('ending');
+  }, []);
+
+  /*
+   * エンディング配置エディタの開閉トグル。`wqflow` と同じ方針で、開く直前の
+   * 画面を `prevScreenRef` に退避し、「もどる」やコマンド再入力で復帰する
+   * （バトル中に開いた場合は再マウント事故を避けて `map` に丸める）。
+   */
+  const handleDebugCreditsEditor = useCallback(() => {
+    setScreen((prev) => {
+      if (prev === 'creditseditor') {
+        return prevScreenRef.current;
+      }
+      prevScreenRef.current = prev === 'battle' ? 'map' : prev;
+      return 'creditseditor';
+    });
+  }, []);
+
+  const handleExitCreditsEditor = useCallback(() => {
+    setScreen(prevScreenRef.current);
+  }, []);
+
+  const handleDebugUnlock = useCallback((unlockStageId) => {
+    /* 実在しないステージ ID（例: wqgo9-9）は何もしない。 */
+    if (!stagesData.stages[unlockStageId]) {
+      return;
+    }
+    useProgressStore.getState().setProgressUpToStage(unlockStageId);
+    useCutsceneStore.getState().markSeenBeforeStage(unlockStageId);
+  }, []);
+
+  useDebugCommands({
+    onReset: handleDebugReset,
+    onTitle: handleDebugTitle,
+    onCutsceneFlow: handleDebugCutsceneFlow,
+    onEnding: handleDebugEnding,
+    onCreditsEditor: handleDebugCreditsEditor,
+    onUnlock: handleDebugUnlock,
+  });
 
   const handleStartBattle = (id) => {
     if (pendingStageId !== null) {
@@ -320,17 +361,20 @@ function App() {
     useCutsceneStore.getState().setInputLocked(false);
   }, []);
 
-  const handleOpenEditor = useCallback(() => {
-    setScreen('editor');
+  /*
+   * エンディング紙芝居を見終えたら、続けてエンディングロール
+   * （`CreditsScreen`、クレジットの上を歩く足場ゲーム付き）へ進む。
+   * `StoryScreen` 自身が黒へフェードアウトしてから `onFinish` を呼ぶので、
+   * 追加の遷移演出は挟まない。マップやタイトルへはロールのリザルト
+   * パネル（`handleCreditsExitToTitle` / `handleExitToMap`）から戻る。
+   */
+  const handleEndingFinish = useCallback(() => {
+    setScreen('credits');
   }, []);
 
-  const handleOpenGallery = useCallback(() => {
-    setScreen('gallery');
-  }, []);
-
-  const handleOpenCutsceneFlow = useCallback(() => {
-    prevScreenRef.current = 'map';
-    setScreen('cutsceneflow');
+  /* エンディングロールのリザルトパネル「タイトルへ」。 */
+  const handleCreditsExitToTitle = useCallback(() => {
+    setScreen('title');
   }, []);
 
   const handleOpenPlaza = useCallback(() => {
@@ -351,6 +395,16 @@ function App() {
      */
     returnToMapActionRef.current = () => {
       useProgressStore.getState().markStageCleared(clearedStageId);
+      /*
+       * ラスボス（4-4）クリア時はマップへ戻らず、暗転したままエンディング
+       * 紙芝居へ遷移する。4-4 には次ステージの解放・`exitStage` カット
+       * シーンが無いため、以降の演出分岐は通らなくてよい。マップへは
+       * 紙芝居を見終えた `handleEndingFinish` で戻る。
+       */
+      if (clearedStageId === ENDING_STAGE_ID) {
+        setScreen('ending');
+        return;
+      }
       const progress = useProgressStore.getState();
       /*
        * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
@@ -389,22 +443,26 @@ function App() {
     );
   } else if (screen === 'cutsceneflow') {
     currentScreen = <CutsceneFlowScreen onExit={handleExitCutsceneFlow} />;
-  } else if (screen === 'editor') {
-    currentScreen = <SpriteSheetEditor onExit={handleExitToMap} />;
-  } else if (screen === 'gallery') {
-    currentScreen = <CharacterGallery onExit={handleExitToMap} />;
   } else if (screen === 'plaza') {
     currentScreen = <PlazaScreen onExitToMap={handleExitToMap} />;
+  } else if (screen === 'ending') {
+    currentScreen = (
+      <StoryScreen slides={ENDING_SLIDES} onFinish={handleEndingFinish} />
+    );
+  } else if (screen === 'credits') {
+    currentScreen = (
+      <CreditsScreen
+        onExitToTitle={handleCreditsExitToTitle}
+        onExitToMap={handleExitToMap}
+      />
+    );
+  } else if (screen === 'creditseditor') {
+    currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;
   } else {
     currentScreen = (
       <MapScreen
         onStartBattle={handleStartBattle}
-        onStartBattleDemo={handleStartBattle}
-        onOpenEditor={handleOpenEditor}
-        onOpenGallery={handleOpenGallery}
-        onOpenCutsceneFlow={handleOpenCutsceneFlow}
         onOpenPlaza={handleOpenPlaza}
-        demoStageIds={stagesData.demoStageIds}
       />
     );
   }

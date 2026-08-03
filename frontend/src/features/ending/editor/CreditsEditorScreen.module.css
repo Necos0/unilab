@@ -1,0 +1,308 @@
+/*
+ * エンディング配置エディタ（開発用ツール）。上部に固定ツールバー、
+ * その下にクレジット全体を広げたスクロールキャンバスを置く。行の色分けは
+ * ゲーム本編（CreditsScreen）と同じ意味（金=かたい足場 / 白=ふつう /
+ * グレー=乗れない）に合わせ、編集中も見た目から足場の性質が分かるようにする。
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  background: #0b0b10;
+  color: #f5f0e0;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  user-select: none;
+}
+
+/* 上部の固定ツールバー。 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #15151d;
+  border-bottom: 2px solid #33333d;
+}
+
+.title {
+  color: #f0c040;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+.modeGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.modeButton,
+.modeActive {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #33333d;
+  background: #1d1d26;
+  color: #f5f0e0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.modeActive {
+  border-color: #f0c040;
+  background: #3a3220;
+  color: #f0c040;
+}
+
+.hint {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.actionButton,
+.exitButton {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #f0c040;
+  background: #1d1d26;
+  color: #f0c040;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.exitButton {
+  border-color: #33333d;
+  color: #f5f0e0;
+}
+
+.actionButton:hover,
+.exitButton:hover,
+.modeButton:hover {
+  filter: brightness(1.25);
+}
+
+/* 保存手順のメモ。 */
+.note {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  background: #101018;
+}
+
+.note code {
+  color: #f0c040;
+}
+
+/* クレジット全体を見渡すスクロール領域。 */
+.canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/*
+ * 編集対象の「世界」。高さは行数から JSX 側で計算する。96px ごとの
+ * 薄い横線で行のグリッドを可視化する（ゲームの LINE_STEP_PX と同じ）。
+ */
+.world {
+  position: relative;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(240, 192, 64, 0.07) 0,
+    rgba(240, 192, 64, 0.07) 1px,
+    transparent 1px,
+    transparent 96px
+  );
+}
+
+/* 行の共通スタイル。ゲーム本編と同じ文字サイズ感にそろえる。 */
+.tagLine,
+.textLine,
+.commentLine {
+  position: absolute;
+  white-space: nowrap;
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+  cursor: grab;
+}
+
+.tagLine:active,
+.textLine:active,
+.commentLine:active {
+  cursor: grabbing;
+}
+
+.tagLine {
+  color: #f0c040;
+}
+
+.textLine {
+  color: #f5f0e0;
+}
+
+.commentLine {
+  color: #6a6a78;
+}
+
+/*
+ * 空行のプレースホルダ。クリックで選択でき、編集パネルから種類を変えて
+ * 文字のある行にできる。
+ */
+.blankLine {
+  position: absolute;
+  left: 8px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: #33333d;
+  cursor: pointer;
+}
+
+/* 選択中の行。編集パネルの対象であることを枠で示す。 */
+.selected {
+  outline: 2px dashed #f0c040;
+  outline-offset: 4px;
+}
+
+/* キャスト行の上に立つスプライト（見た目確認用）。 */
+.castSprite {
+  position: absolute;
+  left: 8px;
+  bottom: calc(100% - 14px);
+  height: 52px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* コイン。ゲーム本編と同じ見た目で、ドラッグ・ダブルクリック削除ができる。 */
+.coin {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe08a, #f0c040 60%, #b8860b);
+  border: 2px solid #8a6510;
+  color: #6b4e08;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: grab;
+  z-index: 2;
+}
+
+.coin:active {
+  cursor: grabbing;
+}
+
+/* けすモード中のコイン。消せる対象であることを赤枠で示す。 */
+.coinErasable {
+  border-color: #c0392b;
+  cursor: pointer;
+}
+
+.coinErasable:hover {
+  filter: brightness(1.3);
+}
+
+/* テストプレイ起動ボタン。モード群の隣に置く目立つアクション。 */
+.testButton {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #4caf50;
+  background: #1d2a1e;
+  color: #7fdc84;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.testButton:hover {
+  filter: brightness(1.25);
+}
+
+/* 下部の行編集パネル。選択中の行のテキスト・種類・追加/削除をまとめる。 */
+.editPanel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #15151d;
+  border-top: 2px solid #f0c040;
+}
+
+.editLabel {
+  color: #f0c040;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.kindSelect {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 2px solid #33333d;
+  background: #1d1d26;
+  color: #f5f0e0;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+/* テキスト入力。プレースホルダ({playerName} 等)は生のまま編集する。 */
+.textInput {
+  flex: 1 1 260px;
+  min-width: 200px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid #33333d;
+  background: #1d1d26;
+  color: #f5f0e0;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.textInput:disabled {
+  opacity: 0.5;
+}
+
+.panelButton {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid #33333d;
+  background: #1d1d26;
+  color: #f5f0e0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.panelButton:hover {
+  filter: brightness(1.25);
+}
+
+/* 行の削除。取り返しがつきにくい操作なので赤系で分ける。 */
+.deleteButton {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid #c0392b;
+  background: #2a1715;
+  color: #ff8a7a;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  filter: brightness(1.25);
+}

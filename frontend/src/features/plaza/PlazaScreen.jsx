@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import styles from './PlazaScreen.module.css';
 import CardMatchScreen from './cardmatch/CardMatchScreen';
+import CoordinateHuntScreen from './coordinatehunt/CoordinateHuntScreen';
 
 /*
  * ひろばのロボ（ビット）のアイコン画像。RoboBubble と同じアセットを使う。
@@ -19,8 +20,9 @@ const ROBO_ICON_SRC = '/sprites/robo/robo.png';
  * （ミニゲームが増えても App 側の画面管理が太らないようにする）。
  *   - `view === 'hub'`      : ミニゲームの選択カードを並べたハブ
  *   - `view === 'cardmatch'`: カードあわせ（`CardMatchScreen`）
+ *   - `view === 'coordinatehunt'`: ざひょうたからさがし（`CoordinateHuntScreen`）
  *
- * ハブには遊べるミニゲーム（カードあわせ）と、今後の追加をほのめかす
+ * ハブには遊べるミニゲームと、今後の追加をほのめかす
  * 「じゅんびちゅう」の空き枠を並べる。ゲーム内テキストは低学年でも
  * 読めるよう、すべてひらがな・カタカナで書く（漢字を使わないことで
  * ふりがな規則を満たす）。
@@ -38,6 +40,10 @@ function PlazaScreen({ onExitToMap }) {
 
   if (view === 'cardmatch') {
     return <CardMatchScreen onExit={() => setView('hub')} />;
+  }
+
+  if (view === 'coordinatehunt') {
+    return <CoordinateHuntScreen onExit={() => setView('hub')} />;
   }
 
   return (
@@ -65,6 +71,19 @@ function PlazaScreen({ onExitToMap }) {
             type="button"
             className={styles.playButton}
             onClick={() => setView('cardmatch')}
+          >
+            あそぶ
+          </button>
+        </div>
+        <div className={styles.gameCard}>
+          <p className={styles.gameName}>ざひょうたからさがし</p>
+          <p className={styles.gameDescription}>
+            (よこ, たて) の マスに かくれた たからを さがせ!
+          </p>
+          <button
+            type="button"
+            className={styles.playButton}
+            onClick={() => setView('coordinatehunt')}
           >
             あそぶ
           </button>

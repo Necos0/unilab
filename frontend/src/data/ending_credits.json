@@ -1,0 +1,432 @@
+{
+  "lines": [
+    {
+      "kind": "tag",
+      "x": 48,
+      "text": "<!DOCTYPE unilab>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 48,
+      "text": "<html>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 80,
+      "text": "<head>"
+    },
+    {
+      "kind": "tag",
+      "x": 112,
+      "text": "<title>ユニラボ</title>"
+    },
+    {
+      "kind": "tag",
+      "x": 80,
+      "text": "</head>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 80,
+      "text": "<body>"
+    },
+    {
+      "kind": "comment",
+      "x": 112,
+      "text": "<!-- グレーの 行《ぎょう》には のれないよ! -->"
+    },
+    {
+      "kind": "tag",
+      "x": 112,
+      "text": "<credits>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "<section class=\"ならったこと\">"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "フローチャート …… カードを じゅんばんに ながす"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "条件《じょうけん》マス (if) …… はい / いいえ で みちが わかれる"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "カウントマス (for) …… おなじ ところを くりかえす"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "倍率《ばいりつ》マス …… カードの 効果《こうか》が 倍《ばい》になる"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "種類指定《しゅるいしてい》マス …… きまった カードだけ はいる"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "パワーアップマス …… とおるたびに つよくなる"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "</section>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "<section class=\"キャスト\">"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "ゆうしゃ 役《やく》 …… {playerName}",
+      "sprite": "/sprites/hero/idle/hero_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "フロチャロボ 役《やく》 …… フロチャロボ",
+      "sprite": "/sprites/robo/robo.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "スライム 役《やく》 …… スライム",
+      "sprite": "/sprites/enemies/slime/idle/slime_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "ウルフ 役《やく》 …… ウルフ",
+      "sprite": "/sprites/enemies/wolf/idle/wolf_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "ナイト 役《やく》 …… ナイト",
+      "sprite": "/sprites/enemies/knight/idle/knight_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "ゴーレム 役《やく》 …… ゴーレム",
+      "sprite": "/sprites/enemies/golem/idle/golem_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "サボテン 役《やく》 …… サボテン",
+      "sprite": "/sprites/enemies/cactus/idle/cactus_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "サソリ 役《やく》 …… サソリ",
+      "sprite": "/sprites/enemies/scorpion/idle/scorpion_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "コブラ 役《やく》 …… コブラ",
+      "sprite": "/sprites/enemies/cobra/idle/cobra_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "ヒトデ 役《やく》 …… ヒトデ",
+      "sprite": "/sprites/enemies/starfish/idle/starfish_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "イカ 役《やく》 …… イカ",
+      "sprite": "/sprites/enemies/squid/idle/squid_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "サメ 役《やく》 …… サメ",
+      "sprite": "/sprites/enemies/shark/idle/shark_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "青龍《セイリュウ》 役《やく》 …… 青龍《セイリュウ》",
+      "sprite": "/sprites/enemies/lagiacrus/idle/lagiacrus_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "カニ 役《やく》 …… カニ",
+      "sprite": "/sprites/enemies/crab/idle/crab_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "トカゲ 役《やく》 …… トカゲ",
+      "sprite": "/sprites/enemies/lizard/idle/lizard_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "フェニックス 役《やく》 …… フェニックス",
+      "sprite": "/sprites/enemies/phoenix/idle/phoenix_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 368,
+      "text": "ドラゴン 役《やく》 …… ドラゴン",
+      "sprite": "/sprites/enemies/dragon/idle/dragon_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "しんのドラゴン 役《やく》 …… しんのドラゴン",
+      "sprite": "/sprites/enemies/dragon_final/idle/dragon_final_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "ゴールデンバード 役《やく》 …… ゴールデンバード",
+      "sprite": "/sprites/enemies/goldenbird/idle/goldenbird_idle_00.png"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "</section>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "<section class=\"きみの ぼうけんの きろく\">"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "クリアした ステージ …… {clearedCount} / {stageTotal}"
+    },
+    {
+      "kind": "text",
+      "x": 272,
+      "text": "であった カード …… {cardCount} しゅるい"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "さいごの ボス …… ドラゴン"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "</section>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "<section class=\"つかった どうぐ\">"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "JavaScript …… プログラムの ことば"
+    },
+    {
+      "kind": "text",
+      "x": 304,
+      "text": "React …… がめんを つくる どうぐ"
+    },
+    {
+      "kind": "text",
+      "x": 176,
+      "text": "Vite …… アプリを うごかす どうぐ"
+    },
+    {
+      "kind": "text",
+      "x": 304,
+      "text": "Zustand …… データを おぼえておく どうぐ"
+    },
+    {
+      "kind": "comment",
+      "x": 176,
+      "text": "<!-- この ゲームも プログラミングで できているよ -->"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 144,
+      "text": "</section>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 112,
+      "text": "</credits>"
+    },
+    {
+      "kind": "tag",
+      "x": 80,
+      "text": "</body>"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "comment",
+      "x": 80,
+      "text": "<!-- あそんでくれて ありがとう! -->"
+    },
+    {
+      "kind": "blank"
+    },
+    {
+      "kind": "tag",
+      "x": 48,
+      "text": "</html>"
+    }
+  ],
+  "coins": [
+    {
+      "x": 200,
+      "y": 248
+    },
+    {
+      "x": 420,
+      "y": 536
+    },
+    {
+      "x": 640,
+      "y": 824
+    },
+    {
+      "x": 200,
+      "y": 1112
+    },
+    {
+      "x": 420,
+      "y": 1400
+    },
+    {
+      "x": 640,
+      "y": 1688
+    },
+    {
+      "x": 200,
+      "y": 1976
+    },
+    {
+      "x": 420,
+      "y": 2264
+    },
+    {
+      "x": 640,
+      "y": 2552
+    },
+    {
+      "x": 200,
+      "y": 2840
+    },
+    {
+      "x": 420,
+      "y": 3128
+    },
+    {
+      "x": 640,
+      "y": 3416
+    },
+    {
+      "x": 200,
+      "y": 3704
+    },
+    {
+      "x": 420,
+      "y": 3992
+    },
+    {
+      "x": 640,
+      "y": 4280
+    },
+    {
+      "x": 200,
+      "y": 4568
+    },
+    {
+      "x": 420,
+      "y": 4856
+    },
+    {
+      "x": 640,
+      "y": 5144
+    },
+    {
+      "x": 200,
+      "y": 5432
+    },
+    {
+      "x": 420,
+      "y": 5720
+    },
+    {
+      "x": 640,
+      "y": 6008
+    },
+    {
+      "x": 200,
+      "y": 6296
+    }
+  ]
+}

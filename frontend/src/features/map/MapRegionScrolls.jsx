@@ -29,8 +29,8 @@ const SCROLL_SCALE = 1.5;
  * 参照する。ワールド `1` は常に解放、それ以外は初期状態でロックされ、
  * 未解放の領域は `buildRegionPolygons` が返す曲線パス（`region.path`）で
  * 灰色に塗りつぶし、巻物にも南京錠オーバーレイ（`LandmarkScroll` の
- * `isLocked`）を重ねてクリックを抑止する。開発用の「到達ステージ選択」
- * （`UnlockSelectButton`、Space キーで開く）で先のワールドを選ぶと、そこまでの
+ * `isLocked`）を重ねてクリックを抑止する。開発用の到達レベル設定コマンド
+ * （`wqgo〜`、`useDebugCommands`）で先のワールドまで進めると、そこまでの
  * 領域が解放され、灰色塗りが消えて巻物がクリックできるようになる。
  *
  * ワールド解放シネマ（`WorldUnlockCutscene`）の再生中は、解放対象ワールド

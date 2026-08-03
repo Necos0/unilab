@@ -5,12 +5,9 @@ import MapPaths from './MapPaths';
 import Landmark from './Landmark';
 import PlayerSprite from './PlayerSprite';
 import MapOverlay from './MapOverlay';
-import BattleDemoButton from './BattleDemoButton';
-import UnlockSelectButton from './UnlockSelectButton';
 import PlazaEntryButton from './PlazaEntryButton';
 // DEBUG: 座標調整時に有効化する。再開時は下のコメントアウトと合わせて戻す。
 // import CoordinateGrid from './CoordinateGrid';
-import FullscreenToggleButton from './FullscreenToggleButton';
 import MapTravelButton from './MapTravelButton';
 import MapRegionScrolls from './MapRegionScrolls';
 import MapSwitchTransition from './MapSwitchTransition';
@@ -18,10 +15,6 @@ import WorldUnlockCutscene from './WorldUnlockCutscene';
 import MapEditorLayer from './MapEditorLayer';
 import MapRegionEditorLayer from './MapRegionEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
-import MapEditorToggleButton from './MapEditorToggleButton';
-import EditorEntryButton from '../../editer/EditorEntryButton';
-import GalleryEntryButton from '../../editer/GalleryEntryButton';
-import CutsceneFlowEntryButton from '../cutsceneflow/CutsceneFlowEntryButton';
 import RoboBubble from '../cutscene/RoboBubble';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
@@ -64,26 +57,13 @@ const OVERWORLD_MAP_ID = 'map_0';
  *     props (object): React プロパティ。
  *         onStartBattle (function): ランドマーク詳細パネルの「たたかう」
  *             ボタン押下時に `stageId` を渡して呼ぶ関数。
- *         onStartBattleDemo (function): デバッグ用「バトルデモ」ドロップダウン
- *             で選択されたステージ ID を渡して呼ぶ関数（`onStartBattle` と
- *             同じシグネチャ）。`BattleDemoButton` の `onSelectStage` props
- *             として転送される。
- *         onOpenEditor (function): 右下の「スプライトシートエディタ」ボタン
- *             押下時に呼ぶ関数（引数なし）。App 側でエディタ画面へ切り替える。
- *         onOpenGallery (function): 右下の「キャラクター一覧」ボタン押下時に
- *             呼ぶ関数（引数なし）。App 側でキャラクター一覧画面へ切り替える。
- *         onOpenCutsceneFlow (function): 右下の「カットシーン一覧」ボタン押下時に
- *             呼ぶ関数（引数なし）。App 側でカットシーン・フロー画面へ切り替える。
  *         onOpenPlaza (function): 右下の「あそびのひろば」ボタン（テスト用）
  *             押下時に呼ぶ関数（引数なし）。App 側でひろば画面へ切り替える。
- *         demoStageIds (Array<string>): バトルデモドロップダウンに並べる
- *             ステージ ID 配列。`stagesLoader.js` 経由で `stages.json` の
- *             `demoStageIds` から流れてくる。
  *
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGallery, onOpenCutsceneFlow, onOpenPlaza, demoStageIds }) {
+function MapScreen({ onStartBattle, onOpenPlaza }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -166,13 +146,6 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
       startUnlockAnimation();
     }
   }, []);
-
-  /*
-   * テスト用ショートカット：Space キーは「到達ステージ選択」ドロップダウン
-   * （`UnlockSelectButton`）の開閉を担う。どこまでステージ・カットシーンを
-   * 解放するかを選べる。R キー（全リセット）と対になる「ここまで進める」キー。
-   * 開閉とキーハンドリングは `UnlockSelectButton` 内に閉じている。
-   */
 
   /*
    * ランドマーク到着時に自動ガイド（`arriveLandmark`）を発火する。移動完了
@@ -305,14 +278,8 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
           {/* DEBUG: 座標調整用の格子オーバーレイ。必要なときに有効化する。*/}
           {/* <CoordinateGrid viewBox={viewBox} /> */}
         </svg>
-        <FullscreenToggleButton />
         {!isEditing && (
           <>
-            <BattleDemoButton
-              demoStageIds={demoStageIds}
-              onSelectStage={onStartBattleDemo}
-            />
-            <UnlockSelectButton />
             {currentMapId !== OVERWORLD_MAP_ID &&
               unlockedWorlds.length > 0 &&
               pendingWorldUnlock === null && (
@@ -323,12 +290,8 @@ function MapScreen({ onStartBattle, onStartBattleDemo, onOpenEditor, onOpenGalle
                 />
               )}
             <PlazaEntryButton onClick={onOpenPlaza} />
-            <CutsceneFlowEntryButton onClick={onOpenCutsceneFlow} />
-            <GalleryEntryButton onClick={onOpenGallery} />
-            <EditorEntryButton onClick={onOpenEditor} />
           </>
         )}
-        <MapEditorToggleButton mapId={currentMapId} mapDef={mapDef} />
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
       </div>
       {pendingMapId !== null && (
