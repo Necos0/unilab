@@ -35,22 +35,6 @@ const REVEAL_INTERVAL_MS = 90;
  */
 const REVEAL_DELAY_MS = 600;
 
-/*
- * 紙芝居中に流す BGM。public 配下を絶対パスで参照する（他アセットと同様）。
- */
-const BGM_SRC = '/audio/paper_snow_memory.mp3';
-
-/*
- * BGM の基本音量（0〜1）。物語の読み聞かせの背景なので控えめにする。
- */
-const BGM_VOLUME = 0.6;
-
-/*
- * 暗転時の BGM フェードアウトで音量を更新する間隔（ms）。`FADE_OUT_MS` の
- * 間にこの刻みで音量を 0 へ絞っていく。
- */
-const BGM_FADE_TICK_MS = 50;
-
 /**
  * ゲーム冒頭のオープニング紙芝居画面。
  *
@@ -68,11 +52,6 @@ const BGM_FADE_TICK_MS = 50;
  * （無効中も早送り→送りの二段階は生きている）。
  * 最後のスライドを送ると全体を黒へフェードアウトし、
  * `onFinish` を呼んで親（`App`）がマップ画面へ遷移する。
- *
- * 表示中は BGM（`BGM_SRC`）をループ再生する。タイトル画面のクリックを
- * 経て表示されるため通常は自動再生できるが、ブロックされた場合は無音の
- * まま進行する。最後の暗転（フェードアウト）が始まると、画面の暗転と
- * 同じ `FADE_OUT_MS` をかけて音量を 0 へ徐々に絞り、アンマウントで止める。
  *
  * 表示中は window の keydown を capture フェーズで横取りし、App の開発用
  * ショートカット（R/T/C）が誤発火しないようにする（どのキーも「送り」として
@@ -120,51 +99,6 @@ function StoryScreen({ onFinish }) {
    * 止めるため ref に持つ。
    */
   const revealTimersRef = useRef({ delayId: null, intervalId: null });
-
-  /* BGM の Audio 要素。フェードアウトと停止のために ref に持つ。 */
-  const audioRef = useRef(null);
-
-  /*
-   * BGM の再生。マウント時にループ再生を始め、アンマウント時に止める。
-   * 自動再生がブロックされた場合（通常はタイトル画面のクリック経由なので
-   * 起きない）は無音のまま紙芝居を進める。
-   */
-  useEffect(() => {
-    const audio = new Audio(BGM_SRC);
-    audio.loop = true;
-    audio.volume = BGM_VOLUME;
-    audioRef.current = audio;
-    audio.play().catch(() => {});
-    return () => {
-      audio.pause();
-      audioRef.current = null;
-    };
-  }, []);
-
-  /*
-   * 暗転（`isLeaving`）が始まったら、画面のフェードアウトと同じ
-   * `FADE_OUT_MS` をかけて BGM の音量を 0 へ徐々に絞る。絞り切る前に
-   * アンマウントされても、上の effect のクリーンアップが再生ごと止める。
-   */
-  useEffect(() => {
-    if (!isLeaving) {
-      return undefined;
-    }
-    const audio = audioRef.current;
-    if (!audio) {
-      return undefined;
-    }
-    const startVolume = audio.volume;
-    const startedAt = performance.now();
-    const timerId = setInterval(() => {
-      const ratio = Math.min((performance.now() - startedAt) / FADE_OUT_MS, 1);
-      audio.volume = startVolume * (1 - ratio);
-      if (ratio >= 1) {
-        clearInterval(timerId);
-      }
-    }, BGM_FADE_TICK_MS);
-    return () => clearInterval(timerId);
-  }, [isLeaving]);
 
   /* 全スライドの画像を最初にまとめて先読みし、切り替え時のちらつきを防ぐ。 */
   useEffect(() => {
@@ -245,19 +179,16 @@ function StoryScreen({ onFinish }) {
 
   /*
    * 紙芝居中はどのキーも「送り」として扱う。capture フェーズで横取りして
-   * App の R/T/C ショートカット等に届く前に遮断する（`RoboBubble` と同じ
-   * 方針）。修飾キー併用のブラウザ標準操作（リロード等）は妨げない。
+   * 他リスナーに届く前に遮断する（`RoboBubble` と同じ方針）。修飾キー併用の
+   * ブラウザ標準操作（リロード等）は妨げない。開発用の隠しコマンド（App の
+   * `useDebugCommands`）は同じ window の capture により先に登録されている
+   * ため、遮断していても打鍵は観測され、紙芝居の途中でも `wqreset` で
+   * 1 枚目からやり直せる（タイプ中はスライドも送られるが、リセットで
+   * 巻き戻るため実害はない）。
    */
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey || event.metaKey || event.altKey) {
-        return;
-      }
-      /*
-       * R（開発用の全リセット）は遮断せず App のハンドラへ通す。紙芝居の
-       * 途中でも 1 枚目からやり直せるようにする（送りには使わない）。
-       */
-      if (event.code === 'KeyR') {
         return;
       }
       event.preventDefault();
