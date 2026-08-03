@@ -6,8 +6,8 @@ import styles from './FinaleOverlay.module.css';
  * `battleStore.victoryPhase === 'cleared'` かつ第二形態
  * （`battleStore.isSecondPhase`）のとき、親（`BattleScreen`）が通常の
  * `VictoryClearOverlay` の代わりにマウントする。画面全体が白い光で
- * ゆっくり満たされ、白くなり切った後に「つづく」テキストと
- * 「つぎへ」ボタンがフェードインする。
+ * ゆっくり満たされ、白くなり切った後に「つぎへ」ボタンが
+ * フェードインする。
  *
  * ボタンを押すと `onExitToMap` → `App.handleClearedExitToMap` と伝わり、
  * ラスボス（4-4）ではクリア記録のあとマップではなくエンディング紙芝居
@@ -26,7 +26,6 @@ function FinaleOverlay({ onExitToMap }) {
   return (
     <div className={styles.overlay}>
       <div className={styles.content}>
-        <p className={styles.finaleText}>つづく</p>
         <button type="button" className={styles.button} onClick={onExitToMap}>
           つぎへ ▶
         </button>
