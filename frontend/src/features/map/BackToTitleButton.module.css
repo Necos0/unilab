@@ -1,24 +1,25 @@
 /* マップ画面の左上にオーバーレイ表示する「タイトルに もどる」ボタン。
-   タイトル画面の `.endingButton` と同じダーク地＋金枠の意匠で、マップの
-   主要導線より控えめに見せる。z-index は右上のマップ移動ボタン
+   薄いダーク背景＋細い半透明枠の控えめな意匠で、マップの主要導線の
+   邪魔をしないようにしつつ視認はできるようにする。ホバー時のみ
+   はっきり見せる。z-index は右上のマップ移動ボタン
    （`MapTravelButton` の 10）と同じ層に置く。 */
 .button {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
   z-index: 10;
-  padding: 0.45rem 1.1rem;
+  padding: 0.35rem 0.8rem;
   font-family: 'DotGothic16', system-ui, sans-serif;
-  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-size: clamp(0.65rem, 1.3vw, 0.85rem);
   letter-spacing: 0.1em;
-  color: #f0c040;
-  background: rgba(20, 16, 12, 0.82);
-  border: 2px solid #f0c040;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(20, 16, 12, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   cursor: pointer;
   animation: backToTitleFadeIn 0.6s ease-out both;
-  transition: filter 0.15s;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
 }
 
 @keyframes backToTitleFadeIn {
@@ -31,9 +32,12 @@
 }
 
 .button:hover {
-  filter: brightness(1.2);
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(20, 16, 12, 0.7);
+  border-color: rgba(255, 255, 255, 0.55);
 }
 
 .button:active {
-  filter: brightness(0.9);
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(20, 16, 12, 0.55);
 }

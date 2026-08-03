@@ -9,11 +9,11 @@ import styles from './BackToTitleButton.module.css';
  * `progressStore.lastPosition` として常時保存されているため、タイトルへ
  * 戻ってもスタートで同じ場所から再開でき、進行が失われる心配はない。
  *
- * 意匠はタイトル画面の「エンディングゲームで あそぶ」ボタン
- * （`TitleScreen` の `.endingButton`）と揃えたダーク地＋金枠の控えめな
- * テキストボタン。マップの主要導線（ランドマーク・右上のマップ移動）より
- * 目立たないよう小ぶりにする。配置は CSS の `position: absolute` で
- * SVG マップ上に重ねる（右上の `MapTravelButton` と対になる左上）。
+ * 意匠は薄いダーク背景＋細い半透明枠の控えめなテキストボタンで、
+ * マップの主要導線（ランドマーク・右上のマップ移動）の邪魔をしない
+ * よう存在感を抑える。ホバー時のみ通常の濃さに浮き上がる。配置は
+ * CSS の `position: absolute` で SVG マップ上に重ねる（右上の
+ * `MapTravelButton` と対になる左上）。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -31,7 +31,7 @@ function BackToTitleButton({ onClick }) {
       aria-label="タイトルに もどる"
       title="タイトルに もどる"
     >
-      ◀ タイトル
+      タイトルに もどる
     </button>
   );
 }
