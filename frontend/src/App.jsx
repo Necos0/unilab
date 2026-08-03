@@ -365,8 +365,9 @@ function App() {
    * エンディング紙芝居を見終えたら、続けてエンディングロール
    * （`CreditsScreen`、クレジットの上を歩く足場ゲーム付き）へ進む。
    * `StoryScreen` 自身が黒へフェードアウトしてから `onFinish` を呼ぶので、
-   * 追加の遷移演出は挟まない。マップやタイトルへはロールのリザルト
-   * パネル（`handleCreditsExitToTitle` / `handleExitToMap`）から戻る。
+   * 追加の遷移演出は挟まない。ロールのリザルトパネルからはタイトルへだけ
+   * 戻れる（`handleCreditsExitToTitle`。エンディングの締めなのでマップへの
+   * 直接の道は作らない）。
    */
   const handleEndingFinish = useCallback(() => {
     setScreen('credits');
@@ -451,10 +452,7 @@ function App() {
     );
   } else if (screen === 'credits') {
     currentScreen = (
-      <CreditsScreen
-        onExitToTitle={handleCreditsExitToTitle}
-        onExitToMap={handleExitToMap}
-      />
+      <CreditsScreen onExitToTitle={handleCreditsExitToTitle} />
     );
   } else if (screen === 'creditseditor') {
     currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;

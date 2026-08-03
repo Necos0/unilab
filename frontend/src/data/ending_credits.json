@@ -166,6 +166,12 @@
     {
       "kind": "text",
       "x": 272,
+      "text": "ゴールデンバード 役《やく》 …… ゴールデンバード",
+      "sprite": "/sprites/enemies/goldenbird/idle/goldenbird_idle_00.png"
+    },
+    {
+      "kind": "text",
+      "x": 272,
       "text": "ヒトデ 役《やく》 …… ヒトデ",
       "sprite": "/sprites/enemies/starfish/idle/starfish_idle_00.png"
     },
@@ -216,12 +222,6 @@
       "x": 176,
       "text": "しんのドラゴン 役《やく》 …… しんのドラゴン",
       "sprite": "/sprites/enemies/dragon_final/idle/dragon_final_idle_00.png"
-    },
-    {
-      "kind": "text",
-      "x": 272,
-      "text": "ゴールデンバード 役《やく》 …… ゴールデンバード",
-      "sprite": "/sprites/enemies/goldenbird/idle/goldenbird_idle_00.png"
     },
     {
       "kind": "blank"

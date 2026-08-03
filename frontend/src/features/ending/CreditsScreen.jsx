@@ -124,8 +124,9 @@ function renderLineText(text) {
  *
  * 画面の下へ落ちても負けにはならず「見るだけモード」へ切り替わり、
  * クレジットは通常のエンディングロールとして最後まで流れる。成績は
- * コイン数と「のれてた わりあい」（ロール中に足場へ乗れていた時間の
- * 割合）で表示する。Esc 長押しでいつでもスキップできる。
+ * コイン数と「のれてた わりあい」（ロール全体の時間のうち足場へ乗れて
+ * いた時間の割合。0% から積み上がる加点方式）で表示する。Esc 長押しで
+ * いつでもスキップできる。
  *
  * 実装メモ：スクロール・重力・当たり判定は `requestAnimationFrame` の
  * 1 ループで回し、毎フレームの位置更新は React の再レンダーではなく
@@ -142,7 +143,8 @@ function renderLineText(text) {
  * Args:
  *     props (object): React プロパティ。
  *         onExitToTitle (function): リザルトの「タイトルへ」で呼ぶ（引数なし）。
- *         onExitToMap (function): リザルトの「マップへ もどる」で呼ぶ（引数なし）。
+ *             エンディングの締めなので、マップへ戻る道は作らずタイトルだけに
+ *             している。
  *         testLines (Array, optional): テストプレイ用の行データ（プレース
  *             ホルダ未置換のまま渡してよい）。省略時は `ending_credits.json`。
  *         testCoins (Array, optional): テストプレイ用のコイン配置。
@@ -154,7 +156,6 @@ function renderLineText(text) {
  */
 function CreditsScreen({
   onExitToTitle,
-  onExitToMap,
   testLines = null,
   testCoins = null,
   onExitTest = null,
@@ -164,7 +165,7 @@ function CreditsScreen({
   const [phase, setPhase] = useState('intro');
   const [isFallen, setIsFallen] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [finalRate, setFinalRate] = useState(100);
+  const [finalRate, setFinalRate] = useState(0);
   const [finalCoins, setFinalCoins] = useState(0);
 
   const rootRef = useRef(null);
@@ -173,6 +174,8 @@ function CreditsScreen({
   const roboRef = useRef(null);
   const hudRateRef = useRef(null);
   const hudCoinsRef = useRef(null);
+  /* Esc 長押しの進捗を示す円メーター。塗りはループ内で conic-gradient 更新。 */
+  const skipMeterRef = useRef(null);
   const lineElsRef = useRef([]);
   const coinElsRef = useRef([]);
   /* 乗れる行の矩形リスト。マウント直後に実測して埋める。 */
@@ -256,6 +259,16 @@ function CreditsScreen({
       top: 0,
       width: 200,
     };
+    /*
+     * ロール全体の再生時間（ms）。スクロールの開始位置から終了位置までを
+     * 速度で割って出す。「のれてた わりあい」の分母で、乗れている時間が
+     * 積み上がるほど 0% から 100% へ増えていく。
+     */
+    const lastLineY = (lines.length - 1) * LINE_STEP_PX;
+    const totalPlayMs =
+      ((lastLineY - viewportH() * 0.45 + viewportH() * 0.62) /
+        SCROLL_SPEED_PX_S) *
+      1000;
     const game = {
       phase: 'intro',
       scrollY: -viewportH() * 0.62,
@@ -270,10 +283,9 @@ function CreditsScreen({
       keys: { left: false, right: false },
       escDownAtMs: null,
       elapsedMs: 0,
-      playMs: 0,
       survivedMs: 0,
       isFallen: false,
-      lastRatePct: 100,
+      lastRatePct: 0,
       animMs: 0,
       lastFrameSrc: '',
       coinTaken: coins.map(() => false),
@@ -338,7 +350,24 @@ function CreditsScreen({
       lastTimeMs = nowMs;
       game.elapsedMs += dt * 1000;
 
-      /* Esc 長押しスキップ。 */
+      /*
+       * Esc 長押しスキップ。押している間は円メーターを時計回りに満たし、
+       * 一周（SKIP_HOLD_MS）でロールを終了する。離すとメーターは消える。
+       */
+      if (skipMeterRef.current) {
+        if (game.escDownAtMs !== null) {
+          const progress = Math.min(
+            1,
+            (nowMs - game.escDownAtMs) / SKIP_HOLD_MS,
+          );
+          skipMeterRef.current.style.opacity = '1';
+          skipMeterRef.current.style.background = `conic-gradient(#f0c040 ${
+            progress * 360
+          }deg, rgba(245, 240, 224, 0.18) 0deg)`;
+        } else {
+          skipMeterRef.current.style.opacity = '0';
+        }
+      }
       if (game.escDownAtMs !== null && nowMs - game.escDownAtMs >= SKIP_HOLD_MS) {
         finishRoll();
         return;
@@ -351,7 +380,6 @@ function CreditsScreen({
       }
       if (game.phase === 'playing') {
         game.scrollY += SCROLL_SPEED_PX_S * dt;
-        game.playMs += dt * 1000;
       }
 
       const player = game.player;
@@ -444,13 +472,15 @@ function CreditsScreen({
         }
       }
 
-      /* のれてた わりあい（%）。落ちたあとは値が凍結される。 */
-      if (game.playMs > 0) {
-        game.lastRatePct = Math.min(
-          100,
-          Math.round((game.survivedMs / game.playMs) * 100),
-        );
-      }
+      /*
+       * のれてた わりあい（%）。ロール全体の時間を分母に、乗れている時間の
+       * ぶんだけ 0% から増えていく（減点方式にしない）。落ちたあとは値が
+       * 凍結される。
+       */
+      game.lastRatePct = Math.min(
+        100,
+        Math.round((game.survivedMs / totalPlayMs) * 100),
+      );
       if (hudRateRef.current) {
         hudRateRef.current.textContent = `${game.lastRatePct}%`;
       }
@@ -614,7 +644,7 @@ function CreditsScreen({
         <span className={styles.hudCoinIcon}>{'{}'}</span> コイン{' '}
         <span ref={hudCoinsRef}>0 / {coins.length}</span>
         <span className={styles.hudDivider}> / </span>
-        のれてた わりあい <span ref={hudRateRef}>100%</span>
+        のれてた わりあい <span ref={hudRateRef}>0%</span>
       </div>
 
       {phase === 'intro' && (
@@ -630,7 +660,10 @@ function CreditsScreen({
       )}
 
       {phase !== 'finished' && (
-        <div className={styles.skipHint}>Esc ながおしで とばす</div>
+        <>
+          <div className={styles.skipMeter} ref={skipMeterRef} aria-hidden="true" />
+          <div className={styles.skipHint}>Esc ながおしで とばす</div>
+        </>
       )}
 
       {isTestMode && (
@@ -665,22 +698,13 @@ function CreditsScreen({
                     エディタへ もどる
                   </button>
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      className={styles.resultButton}
-                      onClick={onExitToTitle}
-                    >
-                      タイトルへ
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.resultButton}
-                      onClick={onExitToMap}
-                    >
-                      マップへ もどる
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    className={styles.resultButton}
+                    onClick={onExitToTitle}
+                  >
+                    タイトルへ
+                  </button>
                 )}
               </div>
             </div>

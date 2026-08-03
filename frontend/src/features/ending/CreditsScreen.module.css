@@ -187,6 +187,32 @@
   z-index: 5;
 }
 
+/*
+ * Esc 長押しの進捗を示す円メーター。案内文の上に置き、押している間だけ
+ * JS（rAF ループ）が opacity と conic-gradient の塗りを更新して、
+ * 時計回りに満ちていく。中心をくり抜いてドーナツ型に見せる。
+ */
+.skipMeter {
+  position: absolute;
+  right: 16px;
+  bottom: 42px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: conic-gradient(#f0c040 0deg, rgba(245, 240, 224, 0.18) 0deg);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+
+.skipMeter::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #0b0b10;
+}
+
 /* ロール終了後の全画面オーバーレイ。 */
 .finishOverlay {
   position: absolute;
