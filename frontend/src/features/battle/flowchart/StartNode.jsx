@@ -1,6 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
 import styles from './StartNode.module.css';
-import useBattleStore, { selectAllSlotsFilled } from '../../../stores/battleStore';
+import useBattleStore from '../../../stores/battleStore';
+import useCutsceneStore from '../../../stores/cutsceneStore';
 
 /**                                                                           
  * フローチャートの起点を示すスタートマーカー兼「実行」ボタン（▶）。
@@ -20,11 +21,16 @@ import useBattleStore, { selectAllSlotsFilled } from '../../../stores/battleStor
  * から渡される。`<button>` ネイティブの `disabled` 属性により、Enter /
  * Space キー経由の発火も含めて無効化される（アクセシビリティ二重防御）。
  *
- * `disabled` 判定は旧 PlayButton から踏襲した 5 条件の OR：
+ * `disabled` 判定は以下 5 条件の OR
+ * （スロットが空でも実行できる — 空スロットは効果なしで素通りする
+ * `empty-run` 対応により、旧「全スロット未埋まり」条件は撤廃）：
  *   - 実行中（`isExecuting`）：連打防止
  *   - 拡大／縮小切替アニメーション中（`isTransitioning`）：状態の二重遷移を回避
- *   - 全スロットが埋まっていない（`selectAllSlotsFilled` が false）：
- *     部分配置での実行を許可しない
+ *   - チュートリアルの「カードを置こう」待ち（`waitForCardInSlot` step）中：
+ *     素通しレイヤー越しに実行ボタンが押せてしまうと、ロボの案内（カードを
+ *     置く→実行しよう）を飛ばして空実行→失敗できてしまうため、この step の
+ *     間だけは実行を封じる（`empty-run` 対応で従来の「未埋まりなら disabled」
+ *     ガードが無くなった代わりの限定ガード）
  *   - 勝利演出中（`victoryPhase !== null`）：CLEAR! 後の再実行を抑止し、
  *     プレイヤーをマップへ戻る動線へ誘導する（victory-clear 要件 6-2）
  *   - 失敗演出中（`failPhase !== null`）：Fail オーバーレイ表示中の再実行を
@@ -66,16 +72,23 @@ import useBattleStore, { selectAllSlotsFilled } from '../../../stores/battleStor
 function StartNode({ data }){
   const isExecuting = useBattleStore((s) => s.isExecuting);
   const isTransitioning = useBattleStore((s) => s.isTransitioning);
-  const allFilled = useBattleStore(selectAllSlotsFilled);
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const failPhase = useBattleStore((s) => s.failPhase);
+  const isWaitingForCardInSlot = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.waitForCardInSlot === true,
+  );
   const startExecution = useBattleStore((s) => s.startExecution);
   const isActive = useBattleStore(
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === 'start',
   );
   const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes('start'));
 
-  const isDisabled = isExecuting || isTransitioning || !allFilled || victoryPhase !== null || failPhase !== null;
+  const isDisabled =
+    isExecuting ||
+    isTransitioning ||
+    isWaitingForCardInSlot ||
+    victoryPhase !== null ||
+    failPhase !== null;
 
   const handleClick = () => {
     startExecution(data.stage);

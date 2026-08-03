@@ -101,8 +101,11 @@ import { simulateBattle } from '../engine/simulateBattle';
  *                                 （`BattleScreen` unmount）時に呼び、拡大状態が
  *                                 次バトルへ持ち越されるのを防ぐ
  *   - 'startExecution(stage)'   : 実行（ビジュアル進行のみ）を開始する。拡大中は
- *                                 自動縮小→実行の順。'isExecuting'中・全スロット
- *                                 未埋まりは no-op。実行開始時に敵／プレイヤー HP を
+ *                                 自動縮小→実行の順。'isExecuting' 中は no-op。
+ *                                 空スロットがあっても実行でき、空スロットは効果
+ *                                 なしで素通りする（デバッグ的な「とりあえず動かして
+ *                                 みる」体験を許可する `empty-run` 対応）。
+ *                                 実行開始時に敵／プレイヤー HP を
  *                                 各 `maxHp` に戻し、`guardShield` / `reflectActive` /
  *                                 `enemyReflectEvents` もクリアする。各カードのフェーズで
  *                                 種別ごとに `applyEnemyDamage` / `consumeShieldOnDamage`
@@ -402,24 +405,6 @@ function buildSlotMetadataFromStage(stage) {
     }
   }
   return metadata;
-}
-
- /**                                                         
- * 全スロットがカードで埋まっているかを返すセレクタ関数。                     
- *                                     
- * `Object.values(slotAssignments).every(...)` を呼ぶだけだが、複数の         
- * コンポーネントが同じ判定を行うため共通関数として export する。スロット
- * が 1 つも無いステージでは `every` の規約上 `true` が返るが、その場合は     
- * 「埋まっていると見なす」で問題ない（実行しても 0 ステップで終わる）。
- *                                                          
- * Args:                                                    
- *     state (object): `battleStore` の状態。               
- *                                                                            
- * Returns:                                                 
- *     boolean: 全スロットが埋まっているなら `true`。                         
- */
-function selectAllSlotsFilled(state) {
-  return Object.values(state.slotAssignments).every((card) => card !== null);
 }
 
 /**
@@ -782,7 +767,10 @@ const useBattleStore = create((set, get) => ({
    * 以下のいずれかのときは no-op として早期リターン：
    *   - 既に実行中（`isExecuting`）
    *   - 拡大／縮小切替アニメーション中（`isTransitioning`）
-   *   - 全スロットが埋まっていない（`selectAllSlotsFilled` が false）
+   *
+   * 空スロットがあっても実行は許可する（`empty-run` 対応）。効果適用は
+   * すべて `card && card.id === 'xxx'` でガードされているため、空スロットの
+   * ノードフェーズでは何も起きず、実行の軌跡（発光）だけが素通りで進む。
    *
    * 拡大状態のときは、`isExpanded` を false にしてレイアウトを縮小しながら
    * `setTimeout(TRANSITION_DURATION_MS)` 後に実行シーケンスを開始する。
@@ -924,9 +912,6 @@ const useBattleStore = create((set, get) => ({
    startExecution: (stage) => {
     const state = get();
     if (state.isExecuting || state.isTransitioning) {
-      return;
-    }
-    if (!selectAllSlotsFilled(state)){
       return;
     }
 
@@ -1860,4 +1845,4 @@ const useBattleStore = create((set, get) => ({
 }));
 
 export default useBattleStore;
-export { HAND, selectAllSlotsFilled };
+export { HAND };
