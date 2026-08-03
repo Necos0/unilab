@@ -1,14 +1,14 @@
 import styles from './FinaleOverlay.module.css';
 
 /**
- * 最終ボス（第二形態）撃破後の「画面が暗くなり THE END が浮かぶ」
+ * 最終ボス（第二形態）撃破後の「画面が白く光り THE END が浮かぶ」
  * フィナーレ用オーバーレイ。
  *
  * `battleStore.victoryPhase === 'cleared'` かつ第二形態
  * （`battleStore.isSecondPhase`）のとき、親（`BattleScreen`）が通常の
- * `VictoryClearOverlay` の代わりにマウントする。画面全体が黒く
- * フェードし、白文字で「THE END」が浮かび上がる。表示から 2 秒ほど
- * 経つと「つぎへ」ボタンがフェードインする。
+ * `VictoryClearOverlay` の代わりにマウントする。画面全体が白い光で
+ * ゆっくり満たされ、白くなり切った後に「THE END」が浮かび上がる。
+ * 表示から 2 秒ほど経つと「つぎへ」ボタンがフェードインする。
  *
  * ボタンを押すと `onExitToMap` → `App.handleClearedExitToMap` と伝わり、
  * ラスボス（4-4）ではクリア記録のあとマップではなくエンディング紙芝居
