@@ -36,6 +36,59 @@ const SAMPLE_REPLACEMENTS = {
 };
 
 /**
+ * JSON 文字列を解析・検証して、エディタが扱える行とコインのデータにする。
+ *
+ * 「JSON を読みこむ」（保存しておいた JSON からの編集リスタート）で使う。
+ * `ending_credits.json` と同じ `{lines, coins}` 形式を期待し、壊れた
+ * データでエディタやゲームが落ちないよう、最低限の形を検証しつつ
+ * 必要なフィールドだけを拾って正規化する。
+ *
+ * Args:
+ *     text (string): 読み込む JSON 文字列。
+ *
+ * Returns:
+ *     object: `{lines: Array, coins: Array}` の正規化済みデータ。
+ *
+ * Raises:
+ *     Error: JSON として壊れている、または形式が違うとき（メッセージは
+ *         そのまま画面に表示する日本語）。
+ */
+function parseCreditsJson(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('JSON として読み取れませんでした（文法エラー）');
+  }
+  if (!data || !Array.isArray(data.lines) || !Array.isArray(data.coins)) {
+    throw new Error('lines と coins を持つ JSON ではありません');
+  }
+  const lines = data.lines.map((line, index) => {
+    if (!line || typeof line.kind !== 'string') {
+      throw new Error(`lines[${index}] に kind がありません`);
+    }
+    if (line.kind === 'blank') {
+      return { kind: 'blank' };
+    }
+    if (typeof line.text !== 'string' || typeof line.x !== 'number') {
+      throw new Error(`lines[${index}] に text / x がありません`);
+    }
+    const normalized = { kind: line.kind, x: line.x, text: line.text };
+    if (typeof line.sprite === 'string') {
+      normalized.sprite = line.sprite;
+    }
+    return normalized;
+  });
+  const coins = data.coins.map((coin, index) => {
+    if (!coin || typeof coin.x !== 'number' || typeof coin.y !== 'number') {
+      throw new Error(`coins[${index}] に x / y がありません`);
+    }
+    return { x: coin.x, y: coin.y };
+  });
+  return { lines, coins };
+}
+
+/**
  * プレースホルダを見本値に置き換えた表示用テキストを返す。
  *
  * Args:
@@ -75,6 +128,9 @@ function toSampleText(text) {
  * 編集結果はファイルへ直接保存できない（ブラウザのため）ので、
  * 「JSON をダウンロード」または「JSON をコピー」で書き出し、
  * `frontend/src/data/ending_credits.json` を丸ごと置き換えて反映する。
+ * 逆方向として「JSON を読みこむ」で保存しておいた JSON（貼り付け or
+ * ファイル選択）から編集をリスタートでき、「ファイルの状態に戻す」で
+ * 保存済みの `ending_credits.json` の内容へ丸ごと戻せる。
  *
  * プレースホルダ（`{playerName}` 等）はキャンバス上では見本値で表示するが、
  * 編集パネルの入力欄と書き出す JSON では元のまま保持する。
@@ -102,6 +158,10 @@ function CreditsEditorScreen({ onExit }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isTesting, setIsTesting] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState('');
+  /* 「JSON を読みこむ」パネルの表示と、貼り付け内容・エラーメッセージ。 */
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
 
   const worldRef = useRef(null);
   /*
@@ -148,6 +208,50 @@ function CreditsEditorScreen({ onExit }) {
     }
     setTimeout(() => setCopyFeedback(''), 1500);
   }, [buildJson]);
+
+  /**
+   * JSON 文字列から編集状態を丸ごと入れ替える（編集リスタート）。
+   * 成功したら読み込みパネルを閉じ、選択・下書きをリセットする。
+   */
+  const applyImportedJson = useCallback((text) => {
+    try {
+      const { lines: newLines, coins: newCoins } = parseCreditsJson(text);
+      setLines(newLines);
+      setCoins(newCoins);
+      setSelectedIndex(null);
+      setIsImportOpen(false);
+      setImportText('');
+      setImportError('');
+    } catch (error) {
+      setImportError(error.message);
+    }
+  }, []);
+
+  /** ファイル選択から JSON を読み込む。 */
+  const handleImportFile = useCallback(
+    (event) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => applyImportedJson(String(reader.result));
+      reader.readAsText(file);
+      /* 同じファイルをもう一度選び直せるように選択状態を消す。 */
+      event.target.value = '';
+    },
+    [applyImportedJson],
+  );
+
+  /** 編集内容を捨てて、保存済みの `ending_credits.json` の状態に戻す。 */
+  const handleResetToFile = useCallback(() => {
+    if (!window.confirm('編集中の内容を捨てて、保存済みのファイルの状態に戻しますか?')) {
+      return;
+    }
+    setLines(CREDITS_DATA.lines.map((line) => ({ ...line })));
+    setCoins(CREDITS_DATA.coins.map((coin) => ({ ...coin })));
+    setSelectedIndex(null);
+  }, []);
 
   /** 行・コインのドラッグを開始する（うごかすモードのみ）。行は選択も兼ねる。 */
   const startDrag = useCallback(
@@ -383,6 +487,23 @@ function CreditsEditorScreen({ onExit }) {
           <button type="button" className={styles.actionButton} onClick={handleCopy}>
             {copyFeedback || 'JSON をコピー'}
           </button>
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={() => {
+              setImportError('');
+              setIsImportOpen(true);
+            }}
+          >
+            JSON を読みこむ
+          </button>
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={handleResetToFile}
+          >
+            ファイルの状態に戻す
+          </button>
           <button type="button" className={styles.exitButton} onClick={onExit}>
             もどる
           </button>
@@ -466,6 +587,55 @@ function CreditsEditorScreen({ onExit }) {
           ))}
         </div>
       </div>
+
+      {isImportOpen && (
+        <div className={styles.importOverlay}>
+          <div className={styles.importDialog}>
+            <p className={styles.importTitle}>
+              JSON を読みこんで編集をリスタート
+            </p>
+            <p className={styles.importDescription}>
+              以前にダウンロード/コピーした ending_credits.json
+              の中身を貼り付けるか、ファイルを選ぶ（今の編集内容は置き換わる）
+            </p>
+            <textarea
+              className={styles.importTextarea}
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              placeholder='{"lines": [...], "coins": [...]}'
+            />
+            {importError && (
+              <p className={styles.importError}>{importError}</p>
+            )}
+            <div className={styles.importButtons}>
+              <label className={styles.panelButton}>
+                ファイルをえらぶ
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className={styles.importFileInput}
+                  onChange={handleImportFile}
+                />
+              </label>
+              <button
+                type="button"
+                className={styles.actionButton}
+                onClick={() => applyImportedJson(importText)}
+                disabled={importText.trim() === ''}
+              >
+                貼り付けた JSON を読みこむ
+              </button>
+              <button
+                type="button"
+                className={styles.panelButton}
+                onClick={() => setIsImportOpen(false)}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedLine && (
         <footer className={styles.editPanel}>
