@@ -377,20 +377,32 @@ function App() {
   }, []);
 
   /*
+   * エンディングロールをどの入口から開いたか。
+   *   - 'story'  : 本編の流れ（紙芝居のあと）。リザルトは「つぎへ すすむ」
+   *                1 つで、ビットのエピローグ会話へ続く
+   *   - 'replay' : タイトルの「エンディングゲームで あそぶ」からの再プレイ。
+   *                リザルトは「もういちど あそぶ」「タイトルに もどる」の
+   *                2 つで、エピローグは流さない（次回作予告は本編の締めで
+   *                一度見せれば十分なため）
+   */
+  const [creditsMode, setCreditsMode] = useState('story');
+  /* 再プレイ「もういちど あそぶ」用の再マウントキー。 */
+  const [creditsRunId, setCreditsRunId] = useState(0);
+
+  /*
    * エンディング紙芝居を見終えたら、続けてエンディングロール
    * （`CreditsScreen`、クレジットの上を歩く足場ゲーム付き）へ進む。
    * `StoryScreen` 自身が黒へフェードアウトしてから `onFinish` を呼ぶので、
-   * 追加の遷移演出は挟まない。ロールのリザルトパネルからはタイトルへだけ
-   * 戻れる（`handleCreditsExitToTitle`。エンディングの締めなのでマップへの
-   * 直接の道は作らない）。
+   * 追加の遷移演出は挟まない。
    */
   const handleEndingFinish = useCallback(() => {
+    setCreditsMode('story');
     setScreen('credits');
   }, []);
 
   /*
-   * エンディングロールのリザルトパネル「つぎへ すすむ」。ビットが次回作を
-   * 匂わせるエピローグ会話（`EpilogueScreen`）へ進める。
+   * エンディングロールのリザルトパネル「つぎへ すすむ」（本編モード）。
+   * ビットが次回作を匂わせるエピローグ会話（`EpilogueScreen`）へ進める。
    */
   const handleCreditsFinish = useCallback(() => {
     setScreen('epilogue');
@@ -407,7 +419,18 @@ function App() {
    * （コイン集め）へ直行する。
    */
   const handlePlayEndingGame = useCallback(() => {
+    setCreditsMode('replay');
     setScreen('credits');
+  }, []);
+
+  /* 再プレイのリザルト「もういちど あそぶ」。ロールを最初からやり直す。 */
+  const handleCreditsReplay = useCallback(() => {
+    setCreditsRunId((runId) => runId + 1);
+  }, []);
+
+  /* 再プレイのリザルト「タイトルに もどる」。エピローグは挟まない。 */
+  const handleCreditsBackToTitle = useCallback(() => {
+    setScreen('title');
   }, []);
 
   const handleExitCutsceneFlow = useCallback(() => {
@@ -483,7 +506,16 @@ function App() {
       <StoryScreen slides={ENDING_SLIDES} onFinish={handleEndingFinish} />
     );
   } else if (screen === 'credits') {
-    currentScreen = <CreditsScreen onFinish={handleCreditsFinish} />;
+    currentScreen =
+      creditsMode === 'replay' ? (
+        <CreditsScreen
+          key={creditsRunId}
+          onFinish={handleCreditsBackToTitle}
+          onReplay={handleCreditsReplay}
+        />
+      ) : (
+        <CreditsScreen onFinish={handleCreditsFinish} />
+      );
   } else if (screen === 'epilogue') {
     currentScreen = <EpilogueScreen onFinish={handleEpilogueFinish} />;
   } else if (screen === 'creditseditor') {

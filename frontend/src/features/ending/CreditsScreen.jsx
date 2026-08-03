@@ -217,9 +217,16 @@ function renderLineSegments(text) {
  *
  * Args:
  *     props (object): React プロパティ。
- *         onFinish (function): リザルトの「つぎへ すすむ」で呼ぶ（引数なし）。
+ *         onFinish (function): リザルトの決定ボタンで呼ぶ（引数なし）。
+ *             本編モード（`onReplay` なし）ではボタンは「つぎへ すすむ」で、
  *             親（`App`）がエピローグ会話（`EpilogueScreen`、次回作の予告）へ
- *             進める。マップへ戻る道は作らない。
+ *             進める。再プレイモードでは「タイトルに もどる」になる。
+ *             マップへ戻る道は作らない。
+ *         onReplay (function, optional): 渡すと再プレイモードになり、
+ *             リザルトが「もういちど あそぶ」（このハンドラ）と
+ *             「タイトルに もどる」（`onFinish`）の 2 ボタンに変わる。
+ *             タイトルの「エンディングゲームで あそぶ」から開いたときに
+ *             使い、エピローグ会話へは進まない。
  *         testLines (Array, optional): テストプレイ用の行データ（プレース
  *             ホルダ未置換のまま渡してよい）。省略時は `ending_credits.json`。
  *         testCoins (Array, optional): テストプレイ用のコイン配置。
@@ -235,6 +242,7 @@ function renderLineSegments(text) {
  */
 function CreditsScreen({
   onFinish,
+  onReplay = null,
   testLines = null,
   testCoins = null,
   testStartY = 0,
@@ -851,6 +859,23 @@ function CreditsScreen({
                   >
                     エディタへ もどる
                   </button>
+                ) : onReplay !== null ? (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.resultButton}
+                      onClick={onReplay}
+                    >
+                      もういちど あそぶ
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.resultButton}
+                      onClick={onFinish}
+                    >
+                      タイトルに もどる
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
