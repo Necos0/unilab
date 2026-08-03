@@ -48,6 +48,19 @@ const SKIP_HOLD_MS = 1000;
 /* 「Thank You」表示からリザルトパネルを出すまでの待ち時間（ms）。 */
 const RESULT_DELAY_MS = 1200;
 
+/* リザルトの数値が 0 から最終値までカウントアップする時間（ms）。 */
+const RESULT_COUNT_UP_MS = 1400;
+
+/*
+ * 達成度の色グラデーションの節目。0 = グレー → 0.5 = 白 → 1 = 金と、
+ * 集めた割合が高いほど華やかな色に近づく（RGB 線形補間）。
+ */
+const ACHIEVEMENT_COLOR_STOPS = [
+  [0, [138, 138, 149]],
+  [0.5, [245, 240, 224]],
+  [1, [240, 192, 64]],
+];
+
 /* 歩き・立ちアニメのコマ送り間隔（ms）。 */
 const WALK_FRAME_MS = 110;
 const IDLE_FRAME_MS = 240;
@@ -79,6 +92,34 @@ function heroFramePath(direction, frame) {
 }
 
 /**
+ * 達成度（0〜1）に応じた色を返す。
+ *
+ * リザルトのカウントアップ表示で使い、数値が増えるにつれて
+ * グレー → 白 → 金（`ACHIEVEMENT_COLOR_STOPS`）へなめらかに色が
+ * 変わっていく。範囲外の値は 0〜1 に丸める。
+ *
+ * Args:
+ *     fraction (number): 達成度。0（最低）〜 1（満点）。
+ *
+ * Returns:
+ *     string: CSS の `rgb(...)` 文字列。
+ */
+function colorForAchievement(fraction) {
+  const f = Math.max(0, Math.min(1, fraction));
+  for (let i = 1; i < ACHIEVEMENT_COLOR_STOPS.length; i += 1) {
+    const [prevPos, prevRgb] = ACHIEVEMENT_COLOR_STOPS[i - 1];
+    const [pos, rgb] = ACHIEVEMENT_COLOR_STOPS[i];
+    if (f <= pos) {
+      const t = (f - prevPos) / (pos - prevPos);
+      const mixed = prevRgb.map((c, ch) => Math.round(c + (rgb[ch] - c) * t));
+      return `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
+    }
+  }
+  const last = ACHIEVEMENT_COLOR_STOPS[ACHIEVEMENT_COLOR_STOPS.length - 1][1];
+  return `rgb(${last[0]}, ${last[1]}, ${last[2]})`;
+}
+
+/**
  * 行テキストを、ふりがな付きの React ノード列に変換する。
  *
  * `漢字《ふりがな》` 記法を含む行は `tokenizeFurigana` で `<ruby>` に
@@ -107,6 +148,37 @@ function renderLineText(text) {
 }
 
 /**
+ * 行テキストを、足場になる「文字のかたまり」ごとに分割して描画する。
+ *
+ * 空白（半角・全角）の連続を区切りとして、文字のかたまりを
+ * `data-platform-segment` 付きの `<span>` で包む。足場の当たり判定は
+ * この span 単位で実測するため、テキストに空白を入れるとそこが
+ * すり抜けられる隙間になる（空白そのものは足場にならない）。
+ *
+ * Args:
+ *     text (string): 行の表示テキスト。
+ *
+ * Returns:
+ *     Array<React.ReactNode>: 空白（生文字列）と足場 span が交互に
+ *         並んだ描画用ノード列。
+ */
+function renderLineSegments(text) {
+  return text.split(/([ \u3000]+)/).map((chunk, index) => {
+    if (chunk === '') {
+      return null;
+    }
+    if (/^[ \u3000]+$/.test(chunk)) {
+      return chunk;
+    }
+    return (
+      <span key={index} data-platform-segment="">
+        {renderLineText(chunk)}
+      </span>
+    );
+  });
+}
+
+/**
  * エンディングロール画面（クレジットの上を歩く足場ゲーム付き）。
  *
  * エンディング紙芝居のあとに表示する。HTML 風に組んだクレジットの行が
@@ -114,7 +186,10 @@ function renderLineText(text) {
  * 行はコードのインデント・空行・長さの違いがそのまま足場配置になっており、
  * 行の種類（`buildCreditLines` の `kind`）で乗れるかどうかが変わる：
  * タグ行（金色）と日本語行（白）は乗れる足場、コメント行（グレー）は
- * すり抜ける。相棒のフロチャロボは当たり判定なしで主人公に浮遊追従する。
+ * すり抜ける。乗れる行でも、テキスト中の空白（半角・全角）の部分は
+ * 足場が無く、空白を広く（プレイヤー幅の 30px より広く）あけると
+ * そこをすり抜けて下へ降りられる。相棒のフロチャロボは当たり判定なしで
+ * 主人公に浮遊追従する。
  *
  * 遊びの目的はコイン集め。行のあいだに配置されたコイン（`{}` 型）に
  * 触れると取得でき、HUD とリザルトパネルに「あつめた コイン n / 全数」が
@@ -181,6 +256,9 @@ function CreditsScreen({
   const hudCoinsRef = useRef(null);
   /* Esc 長押しの進捗を示す円メーター。塗りはループ内で conic-gradient 更新。 */
   const skipMeterRef = useRef(null);
+  /* リザルトのカウントアップ表示（数値と達成度の色を rAF で直接更新）。 */
+  const resultCoinsRef = useRef(null);
+  const resultRateRef = useRef(null);
   const lineElsRef = useRef([]);
   const coinElsRef = useRef([]);
   /* 乗れる行の矩形リスト。マウント直後に実測して埋める。 */
@@ -224,24 +302,29 @@ function CreditsScreen({
 
   /*
    * 乗れる行（タグ行・日本語行）の矩形を実測して足場リストを作る。
+   * 行まるごとではなく、空白で区切られた文字のかたまり
+   * （`data-platform-segment` の span）1 つが足場 1 枚。テキストに
+   * 空白を入れるとそこは足場が無くなり、すり抜けて降りられる。
    * 幅は文字数や font-size に依存するため、レイアウト確定後の
-   * `offsetWidth` で測る（キャストのスプライトは absolute 配置なので
-   * 幅に影響しない）。
+   * `offsetLeft` / `offsetWidth` で測る（キャストのスプライトは
+   * absolute 配置なので幅に影響しない）。
    */
   useLayoutEffect(() => {
-    platformsRef.current = lines
-      .map((line, index) => {
-        const el = lineElsRef.current[index];
-        if (!el || (line.kind !== 'tag' && line.kind !== 'text')) {
-          return null;
-        }
-        return {
-          x: el.offsetLeft,
+    const platforms = [];
+    lines.forEach((line, index) => {
+      const el = lineElsRef.current[index];
+      if (!el || (line.kind !== 'tag' && line.kind !== 'text')) {
+        return;
+      }
+      el.querySelectorAll('[data-platform-segment]').forEach((segment) => {
+        platforms.push({
+          x: el.offsetLeft + segment.offsetLeft,
           top: index * LINE_STEP_PX + PLATFORM_INSET_PX,
-          width: el.offsetWidth,
-        };
-      })
-      .filter(Boolean);
+          width: segment.offsetWidth,
+        });
+      });
+    });
+    platformsRef.current = platforms;
   }, [lines]);
 
   /*
@@ -604,13 +687,40 @@ function CreditsScreen({
     return () => clearTimeout(timerId);
   }, [phase]);
 
-  /** リザルトの成績に応じたひとことを返す。 */
-  const resultMessage =
-    finalRate >= 90
-      ? 'すごい! ほとんど のりこなした!'
-      : finalRate >= 50
-        ? 'いいかんじ! つぎは もっと のれるかも'
-        : 'おつかれさま! また あそんでね';
+  /*
+   * リザルトの数値演出。コイン数と「のれてた わりあい」を 0 から最終値まで
+   * イーズアウトでカウントアップし、その時点の達成度に応じて文字色を
+   * グレー → 白 → 金のグラデーションでなめらかに変えていく。
+   * 毎フレームの更新は ref の textContent / style 直接更新で行う。
+   */
+  useEffect(() => {
+    if (!showResult) {
+      return undefined;
+    }
+    const startMs = performance.now();
+    let rafId = null;
+    const tick = (nowMs) => {
+      const t = Math.min(1, (nowMs - startMs) / RESULT_COUNT_UP_MS);
+      const eased = 1 - (1 - t) ** 3;
+      const coinValue = Math.round(finalCoins * eased);
+      const rateValue = Math.round(finalRate * eased);
+      if (resultCoinsRef.current) {
+        resultCoinsRef.current.textContent = String(coinValue);
+        resultCoinsRef.current.style.color = colorForAchievement(
+          coins.length > 0 ? coinValue / coins.length : 0,
+        );
+      }
+      if (resultRateRef.current) {
+        resultRateRef.current.textContent = `${rateValue}%`;
+        resultRateRef.current.style.color = colorForAchievement(rateValue / 100);
+      }
+      if (t < 1) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [showResult, finalCoins, finalRate, coins.length]);
 
   const lineClassByKind = {
     tag: styles.tagLine,
@@ -642,7 +752,7 @@ function CreditsScreen({
                   draggable={false}
                 />
               )}
-              {renderLineText(line.text)}
+              {renderLineSegments(line.text)}
             </div>
           ),
         )}
@@ -720,12 +830,18 @@ function CreditsScreen({
           {showResult && (
             <div className={styles.resultPanel}>
               <p className={styles.resultRate}>
-                あつめた コイン {finalCoins} / {coins.length}
+                あつめた コイン{' '}
+                <span className={styles.resultValue} ref={resultCoinsRef}>
+                  0
+                </span>{' '}
+                / {coins.length}
               </p>
               <p className={styles.resultRate}>
-                のれてた わりあい {finalRate}%
+                のれてた わりあい{' '}
+                <span className={styles.resultValue} ref={resultRateRef}>
+                  0%
+                </span>
               </p>
-              <p className={styles.resultMessage}>{resultMessage}</p>
               <div className={styles.resultButtons}>
                 {isTestMode ? (
                   <button

@@ -22,12 +22,16 @@
   will-change: transform;
 }
 
-/* 行の共通スタイル。位置（top / left）は JSX 側でインライン指定する。 */
+/*
+ * 行の共通スタイル。位置（top / left）は JSX 側でインライン指定する。
+ * `pre` なのは、連続した半角スペースを潰さず「すり抜けられる隙間」の
+ * 幅としてそのまま表示するため。
+ */
 .tagLine,
 .textLine,
 .commentLine {
   position: absolute;
-  white-space: nowrap;
+  white-space: pre;
   font-size: clamp(1rem, 2.2vw, 1.4rem);
   line-height: 1.9;
   letter-spacing: 0.04em;
@@ -118,11 +122,12 @@
 /* 左上の成績表示。 */
 .hud {
   position: absolute;
-  top: 14px;
-  left: 16px;
+  right: 16px;
+  bottom: 12px;
   color: #f5f0e0;
   font-size: clamp(0.8rem, 1.6vw, 1rem);
   letter-spacing: 0.08em;
+  text-align: right;
   opacity: 0.85;
   z-index: 5;
 }
@@ -155,11 +160,14 @@
   z-index: 5;
 }
 
-/* テストプレイ中の右上「← エディタへ」即時退出ボタン。 */
+/*
+ * テストプレイ中の「← エディタへ」即時退出ボタン。右上はスキップ案内が
+ * 使うので左上に置く。
+ */
 .testExitButton {
   position: absolute;
   top: 12px;
-  right: 14px;
+  left: 14px;
   padding: 6px 12px;
   border-radius: 8px;
   border: 2px solid #f0c040;
@@ -176,11 +184,11 @@
   filter: brightness(1.25);
 }
 
-/* 右下のスキップ案内。 */
+/* 右上の一番上に置くスキップ案内（右下は HUD の成績表示が使う）。 */
 .skipHint {
   position: absolute;
   right: 16px;
-  bottom: 12px;
+  top: 12px;
   color: #6a6a78;
   font-size: clamp(0.7rem, 1.4vw, 0.9rem);
   letter-spacing: 0.08em;
@@ -188,14 +196,14 @@
 }
 
 /*
- * Esc 長押しの進捗を示す円メーター。案内文の上に置き、押している間だけ
- * JS（rAF ループ）が opacity と conic-gradient の塗りを更新して、
- * 時計回りに満ちていく。中心をくり抜いてドーナツ型に見せる。
+ * Esc 長押しの進捗を示す円メーター。右上の案内文のすぐ下に置き、押して
+ * いる間だけ JS（rAF ループ）が opacity と conic-gradient の塗りを更新
+ * して、時計回りに満ちていく。中心をくり抜いてドーナツ型に見せる。
  */
 .skipMeter {
   position: absolute;
   right: 16px;
-  bottom: 42px;
+  top: 38px;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -213,21 +221,26 @@
   background: #0b0b10;
 }
 
-/* ロール終了後の全画面オーバーレイ。 */
+/*
+ * ロール終了後の全画面オーバーレイ。中身は絶対配置で場所を固定し、
+ * あとから出てくるリザルトパネルによって「Thank You」が押し上げられて
+ * 動いてしまわないようにする。
+ */
 .finishOverlay {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4dvh;
   background: rgba(11, 11, 16, 0.85);
   animation: creditsFadeIn 1s ease both;
   z-index: 10;
 }
 
+/* 位置固定の「Thank You」。リザルトが出ても動かない。 */
 .thankYou {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  width: 100%;
   margin: 0;
   color: #f0c040;
   font-family: 'Press Start 2P', 'DotGothic16', monospace;
@@ -236,8 +249,12 @@
   letter-spacing: 0.06em;
 }
 
-/* 成績と退出ボタンのパネル。 */
+/* 成績と退出ボタンのパネル。「Thank You」の下の固定位置に出す。 */
 .resultPanel {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -252,12 +269,13 @@
   letter-spacing: 0.08em;
 }
 
-.resultMessage {
-  margin: 0 0 1dvh;
-  color: #f5f0e0;
-  font-size: clamp(0.9rem, 2vw, 1.15rem);
-  letter-spacing: 0.06em;
-  opacity: 0.9;
+/*
+ * カウントアップする数値部分。色は達成度に応じて JS（rAF）が
+ * グレー → 白 → 金のグラデーションで直接更新する。
+ */
+.resultValue {
+  font-size: 1.25em;
+  font-weight: 700;
 }
 
 .resultButtons {
@@ -265,6 +283,11 @@
   gap: 16px;
 }
 
+/*
+ * 「つぎへ すすむ」ボタン。タイトルのスタートボタンと同じ作法で、
+ * 微小な拡縮パルスで「押せる」ことを伝える（ホバーは filter で表現し、
+ * パルスの transform と競合させない）。
+ */
 .resultButton {
   padding: 10px 22px;
   border: 3px solid #f0c040;
@@ -275,10 +298,23 @@
   font-size: clamp(0.9rem, 2vw, 1.15rem);
   letter-spacing: 0.1em;
   cursor: pointer;
+  animation: creditsButtonPulse 1.6s ease-in-out infinite;
+  transition: filter 0.15s;
 }
 
 .resultButton:hover {
   filter: brightness(1.15);
+}
+
+/* リザルトボタンの微小パルス。 */
+@keyframes creditsButtonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
 }
 
 @keyframes creditsFadeIn {

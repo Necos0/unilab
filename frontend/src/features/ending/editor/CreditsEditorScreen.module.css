@@ -124,12 +124,16 @@
   );
 }
 
-/* 行の共通スタイル。ゲーム本編と同じ文字サイズ感にそろえる。 */
+/*
+ * 行の共通スタイル。ゲーム本編と同じ文字サイズ感にそろえる。
+ * `pre` も本編と同じで、連続した半角スペース（すり抜けられる隙間）を
+ * 潰さずに表示する。
+ */
 .tagLine,
 .textLine,
 .commentLine {
   position: absolute;
-  white-space: nowrap;
+  white-space: pre;
   font-size: clamp(1rem, 2.2vw, 1.4rem);
   line-height: 1.9;
   letter-spacing: 0.04em;
