@@ -129,6 +129,7 @@
  * `pre` も本編と同じで、連続した半角スペース（すり抜けられる隙間）を
  * 潰さずに表示する。
  */
+.titleLine,
 .tagLine,
 .textLine,
 .commentLine {
@@ -140,10 +141,21 @@
   cursor: grab;
 }
 
+.titleLine:active,
 .tagLine:active,
 .textLine:active,
 .commentLine:active {
   cursor: grabbing;
+}
+
+/*
+ * タイトル行。本番（`CreditsScreen`）では x を無視して画面中央寄せに
+ * なるが、エディタ上では選択・ドラッグしやすいよう x の位置に出す。
+ */
+.titleLine {
+  color: #f0c040;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  letter-spacing: 0.18em;
 }
 
 .tagLine {

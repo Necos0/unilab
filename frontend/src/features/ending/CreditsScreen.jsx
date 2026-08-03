@@ -181,12 +181,14 @@ function renderLineSegments(text) {
 /**
  * エンディングロール画面（クレジットの上を歩く足場ゲーム付き）。
  *
- * エンディング紙芝居のあとに表示する。HTML 風に組んだクレジットの行が
+ * エンディング紙芝居のあとに表示する。ロールは画面中央に大きく出た
+ * ゲームタイトル（`title` 行）から始まり、主人公はその上に立った状態で
+ * スタートする。HTML 風に組んだクレジットの行が
  * 下から上へゆっくり流れ、プレイヤーは主人公を操作して行の上に乗り続ける。
  * 行はコードのインデント・空行・長さの違いがそのまま足場配置になっており、
  * 行の種類（`buildCreditLines` の `kind`）で乗れるかどうかが変わる：
- * タグ行（金色）と日本語行（白）は乗れる足場、コメント行（グレー）は
- * すり抜ける。乗れる行でも、テキスト中の空白（半角・全角）の部分は
+ * タイトル行（金色・中央寄せの大文字）とタグ行（金色）と日本語行（白）は
+ * 乗れる足場、コメント行（グレー）はすり抜ける。乗れる行でも、テキスト中の空白（半角・全角）の部分は
  * 足場が無く、空白を広く（プレイヤー幅の 30px より広く）あけると
  * そこをすり抜けて下へ降りられる。相棒のフロチャロボは当たり判定なしで
  * 主人公に浮遊追従する。
@@ -309,7 +311,7 @@ function CreditsScreen({
   }, [lines]);
 
   /*
-   * 乗れる行（タグ行・日本語行）の矩形を実測して足場リストを作る。
+   * 乗れる行（タイトル行・タグ行・日本語行）の矩形を実測して足場リストを作る。
    * 行まるごとではなく、空白で区切られた文字のかたまり
    * （`data-platform-segment` の span）1 つが足場 1 枚。テキストに
    * 空白を入れるとそこは足場が無くなり、すり抜けて降りられる。
@@ -321,7 +323,10 @@ function CreditsScreen({
     const platforms = [];
     lines.forEach((line, index) => {
       const el = lineElsRef.current[index];
-      if (!el || (line.kind !== 'tag' && line.kind !== 'text')) {
+      if (
+        !el ||
+        (line.kind !== 'title' && line.kind !== 'tag' && line.kind !== 'text')
+      ) {
         return;
       }
       el.querySelectorAll('[data-platform-segment]').forEach((segment) => {
@@ -350,12 +355,14 @@ function CreditsScreen({
     const viewportH = () => root.clientHeight;
 
     /*
-     * スクロールの開始位置。通常は最初の行が画面下寄りに来る位置から。
+     * スクロールの開始位置。通常は先頭のタイトル行（ゲームタイトル）が
+     * 画面の縦中央あたりに来る位置から始め、「エンディングが始まった」
+     * 感じを出す（主人公もタイトルの上に立って出現する）。
      * エディタのテストプレイ（`testStartY` > 0）では、エディタで見えていた
      * 場所（キャンバスのスクロール位置＝画面上端のワールド座標）から始める。
      */
     let startScrollY =
-      isTestMode && testStartY > 0 ? testStartY : -viewportH() * 0.62;
+      isTestMode && testStartY > 0 ? testStartY : -viewportH() * 0.45;
 
     /*
      * 出現する足場。開始画面内（上端マージンより下〜画面の上から 3/4）に
@@ -731,6 +738,7 @@ function CreditsScreen({
   }, [showResult, finalCoins, finalRate, coins.length]);
 
   const lineClassByKind = {
+    title: styles.titleLine,
     tag: styles.tagLine,
     text: styles.textLine,
     comment: styles.commentLine,
@@ -749,7 +757,12 @@ function CreditsScreen({
               className={lineClassByKind[line.kind]}
               style={{
                 top: index * LINE_STEP_PX,
-                left: line.x ?? FALLBACK_LINE_X_PX,
+                /*
+                 * タイトル行は `x` を使わず、全幅ブロック＋中央寄せで
+                 * どの画面幅でも真ん中に出す（足場の実測は中の span の
+                 * `offsetLeft` で行うので当たり判定もズレない）。
+                 */
+                left: line.kind === 'title' ? 0 : (line.x ?? FALLBACK_LINE_X_PX),
               }}
             >
               {line.sprite && (
