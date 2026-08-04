@@ -527,12 +527,22 @@ function computeDropTransition(state, { instanceId, source, destination }) {
 
   const displaced = slotAssignments[destination];
   if (displaced) {
-    if (source === HAND) {
-      // 手札発の場合：既存カードは手札末尾に戻す（要件 3-1, 3-2）
+    /*
+     * ドラッグ元スロットの種別制限（acceptOnly）に、押し出されたカードが
+     * 合うかを確認する。合わない場合は元スロットへ押し込めない
+     * （例：防御専用マスの防御を、ノーマルマスの攻撃に重ねると、攻撃が
+     * 防御専用マスへ入り込む restricted-slot 違反になる）ため、手札へ戻す。
+     */
+    const sourceMeta = source !== HAND ? state.slotMetadata[source] : undefined;
+    const cannotSwapIntoSource =
+      !!sourceMeta?.acceptOnly && displaced.id !== sourceMeta.acceptOnly;
+    if (source === HAND || cannotSwapIntoSource) {
+      // 手札発、または元スロットの種別制限に合わない場合：手札末尾へ戻す
+      // （要件 3-1, 3-2、および restricted-slot 違反の回避）
       handCards = [...handCards, displaced];
     } else {
-      // スロット発の場合：2 枚を入れ替える。ドラッグ元スロットは直前に
-      // null にクリアしているので、そこへ既存カードを押し込む（要件 3-3）
+      // スロット発かつ元スロットに置ける場合：2 枚を入れ替える。ドラッグ元
+      // スロットは直前に null にクリアしているので、既存カードを押し込む（要件 3-3）
       slotAssignments = { ...slotAssignments, [source]: displaced };
     }
   }
@@ -558,6 +568,9 @@ const useBattleStore = create((set, get) => ({
   enemyDamageEvents: [],
   victoryPhase: null,
   failPhase: null,
+  // 負けた理由。`'runaway'` のときは「無限ループの事前ガードで止めた」ことを
+  // 示し、BattleScreen がロボ（ビット）の説明カットシーンを出し分ける。
+  failReason: null,
   revivePhase: null,
   isSecondPhase: false,
   overrideEnemyId: null,
@@ -670,6 +683,7 @@ const useBattleStore = create((set, get) => ({
       playerShakeEvents: [],
       victoryPhase: null,
       failPhase: null,
+      failReason: null,
       revivePhase: null,
       isSecondPhase: Boolean(stage.isSecondPhase),
       overrideEnemyId: null,
@@ -982,6 +996,7 @@ const useBattleStore = create((set, get) => ({
         traversedEdgeIds: [],
         traversedNodeIds: [],
         failPhase: null,
+        failReason: null,
         guardShield: 0,
         reflectActive: false,
         enemyReflectEvents: [],
@@ -1010,6 +1025,7 @@ const useBattleStore = create((set, get) => ({
           executionStep: null,
           currentPhaseMs: null,
           failPhase: 'shown',
+          failReason: 'runaway',
           speedMultiplier: 1,
         });
         return;
