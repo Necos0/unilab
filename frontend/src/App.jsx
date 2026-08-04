@@ -93,11 +93,6 @@ function App() {
   const returnToMapActionRef = useRef(null);
   /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
   const [isWakingUp, setIsWakingUp] = useState(false);
-  /*
-   * 紙芝居（`StoryScreen`）の再マウント用キー。隠しコマンド `wqreset` の
-   * 全リセットで増やし、すでに紙芝居表示中でも 1 枚目から確実にやり直す。
-   */
-  const [storyRunId, setStoryRunId] = useState(0);
 
   /*
    * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
@@ -173,11 +168,12 @@ function App() {
    * `wq` で始まる文字列をタイプしたときだけ効くコマンドに置き換えた。
    * どの画面でも効き、会話中・紙芝居中でも打てる（capture フェーズで
    * 遮断より先に観測するため）。
-   *   - wqreset : ゲームの状態をすべて初期化して、オープニング紙芝居
-   *               （`StoryScreen`）まで巻き戻す。対象はガイドの表示履歴
+   *   - wqreset : ゲームの状態をすべて初期化して、タイトル画面
+   *               （`TitleScreen`）へ戻る。対象はガイドの表示履歴
    *               （`seenIds`）と再生中のカットシーン・ステージの開放状況
    *               （`progressStore`）・マップの現在位置（`mapStore`）・
-   *               プレイヤー名（`playerStore`）。紙芝居 → 目覚め → ロボとの
+   *               プレイヤー名（`playerStore`）。紙芝居の視聴履歴も消える
+   *               ため、タイトルの「スタート」から紙芝居 → 目覚め → ロボとの
    *               会話（名前入力）→ チュートリアルの流れを完全な初期状態から
    *               通しで見直せる。
    *   - wqtitle : タイトル画面（`TitleScreen`）へ戻る。
@@ -206,13 +202,12 @@ function App() {
     useMapStore.getState().reset();
     usePlayerStore.getState().resetName();
     /*
-     * 巻き戻し後はオープニング紙芝居から通しでやり直す。目覚め演出の
-     * 途中だった場合に備えてオーバーレイのフラグも下ろし、紙芝居表示中
-     * だった場合に備えて `storyRunId` で `StoryScreen` を再マウントする。
+     * 巻き戻し後はタイトル画面へ戻る。視聴履歴も消えているので、タイトルの
+     * 「スタート」からオープニング紙芝居を通しでやり直せる。目覚め演出の
+     * 途中だった場合に備えてオーバーレイのフラグも下ろす。
      */
     setIsWakingUp(false);
-    setStoryRunId((runId) => runId + 1);
-    setScreen('story');
+    setScreen('title');
   }, []);
 
   const handleDebugTitle = useCallback(() => {
@@ -517,7 +512,7 @@ function App() {
       />
     );
   } else if (screen === 'story') {
-    currentScreen = <StoryScreen key={storyRunId} onFinish={handleStoryFinish} />;
+    currentScreen = <StoryScreen onFinish={handleStoryFinish} />;
   } else if (screen === 'battle') {
     currentScreen = (
       <BattleScreen
