@@ -42,7 +42,7 @@ const FALL_MARGIN_PX = 80;
 /* スクロールが始まるまでの導入時間（ms）。操作説明を読む猶予。 */
 const INTRO_MS = 2600;
 
-/* Esc 長押しでスキップが発動するまでの時間（ms）。 */
+/* Q 長押しでスキップが発動するまでの時間（ms）。 */
 const SKIP_HOLD_MS = 1000;
 
 /* 「Thank You」表示からリザルトパネルを出すまでの待ち時間（ms）。 */
@@ -200,7 +200,7 @@ function renderLineSegments(text) {
  * 画面の下へ落ちても負けにはならず「見るだけモード」へ切り替わり、
  * クレジットは通常のエンディングロールとして最後まで流れる。成績は
  * コイン数と「のれてた わりあい」（ロール全体の時間のうち足場へ乗れて
- * いた時間の割合。0% から積み上がる加点方式）で表示する。Esc 長押しで
+ * いた時間の割合。0% から積み上がる加点方式）で表示する。Q 長押しで
  * いつでもスキップできる。
  *
  * 実装メモ：スクロール・重力・当たり判定は `requestAnimationFrame` の
@@ -262,7 +262,7 @@ function CreditsScreen({
   const roboRef = useRef(null);
   const hudRateRef = useRef(null);
   const hudCoinsRef = useRef(null);
-  /* Esc 長押しの進捗を示す円メーター。塗りはループ内で conic-gradient 更新。 */
+  /* Q 長押しの進捗を示す円メーター。塗りはループ内で conic-gradient 更新。 */
   const skipMeterRef = useRef(null);
   /* リザルトのカウントアップ表示（数値と達成度の色を rAF で直接更新）。 */
   const resultCoinsRef = useRef(null);
@@ -410,7 +410,7 @@ function CreditsScreen({
       },
       robo: { x: 0, y: 0, initialized: false },
       keys: { left: false, right: false },
-      escDownAtMs: null,
+      skipDownAtMs: null,
       elapsedMs: 0,
       survivedMs: 0,
       isFallen: false,
@@ -448,8 +448,8 @@ function CreditsScreen({
           game.player.onGround = false;
         }
         event.preventDefault();
-      } else if (event.key === 'Escape' && !event.repeat) {
-        game.escDownAtMs = performance.now();
+      } else if ((event.key === 'q' || event.key === 'Q') && !event.repeat) {
+        game.skipDownAtMs = performance.now();
       }
     };
     const handleKeyUp = (event) => {
@@ -457,8 +457,8 @@ function CreditsScreen({
         game.keys.left = false;
       } else if (event.key === 'ArrowRight' || event.key === 'd') {
         game.keys.right = false;
-      } else if (event.key === 'Escape') {
-        game.escDownAtMs = null;
+      } else if (event.key === 'q' || event.key === 'Q') {
+        game.skipDownAtMs = null;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -480,14 +480,14 @@ function CreditsScreen({
       game.elapsedMs += dt * 1000;
 
       /*
-       * Esc 長押しスキップ。押している間は円メーターを時計回りに満たし、
+       * Q 長押しスキップ。押している間は円メーターを時計回りに満たし、
        * 一周（SKIP_HOLD_MS）でロールを終了する。離すとメーターは消える。
        */
       if (skipMeterRef.current) {
-        if (game.escDownAtMs !== null) {
+        if (game.skipDownAtMs !== null) {
           const progress = Math.min(
             1,
-            (nowMs - game.escDownAtMs) / SKIP_HOLD_MS,
+            (nowMs - game.skipDownAtMs) / SKIP_HOLD_MS,
           );
           skipMeterRef.current.style.opacity = '1';
           skipMeterRef.current.style.background = `conic-gradient(#f0c040 ${
@@ -497,7 +497,7 @@ function CreditsScreen({
           skipMeterRef.current.style.opacity = '0';
         }
       }
-      if (game.escDownAtMs !== null && nowMs - game.escDownAtMs >= SKIP_HOLD_MS) {
+      if (game.skipDownAtMs !== null && nowMs - game.skipDownAtMs >= SKIP_HOLD_MS) {
         finishRoll();
         return;
       }
@@ -818,7 +818,7 @@ function CreditsScreen({
       {phase !== 'finished' && (
         <>
           <div className={styles.skipMeter} ref={skipMeterRef} aria-hidden="true" />
-          <div className={styles.skipHint}>Esc ながおしで とばす</div>
+          <div className={styles.skipHint}>Q ながおしで とばす</div>
         </>
       )}
 
