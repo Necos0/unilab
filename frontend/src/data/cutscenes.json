@@ -310,5 +310,16 @@
       { "bubble": "この『ひっさつカード』を マスに はめてみて！", "point": "finisherCard", "waitForCardInSlot": true },
       { "bubble": "このフローチャートは 無限《むげん》ループ！倒《たお》すまで 攻撃《こうげき》し続《つづ》けるよ。じっこうだ、{playerName}！！", "point": "executeButton", "waitForExecute": true }
     ]
+  },
+  "runaway-blocked": {
+    "category": "help",
+    "once": false,
+    "trigger": { "type": "runawayBlocked" },
+    "steps": [
+      { "bubble": "あれれ？ この フローチャート、ずーっと おわらないよ！" },
+      { "bubble": "どこかで 「無限《むげん》ループ」 に なってるみたい。同《おな》じ ところを ぐるぐる 回《まわ》りつづけて、いつまでも とまらないんだ。" },
+      { "bubble": "だから、じっこうする 前《まえ》に ぼくが とめたよ。バグじゃ ないから 安心《あんしん》してね！" },
+      { "bubble": "ループの 中《なか》に「いつか とまる しくみ」（じょうけん や カウント）を 入《い》れて、もう一度《いちど》 ためしてみよう！" }
+    ]
   }
 }

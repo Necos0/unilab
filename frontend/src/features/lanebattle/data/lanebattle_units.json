@@ -9,7 +9,7 @@
     { "id": "slime", "cost": 10, "hp": 10, "atk": 3,
       "ability": "とても かるい", "desc": "手札回しに便利な最軽量。" },
 
-    { "id": "wolf", "cost": 22, "hp": 18, "atk": 10, "spd": 84,
+    { "id": "wolf", "cost": 22, "hp": 18, "atk": 10, "spd": 100,
       "ability": "すばやくて つよい", "desc": "足が速く一撃が重い軽量アタッカー。紙耐久。" },
 
     { "id": "knight", "cost": 30, "hp": 45, "atk": 8,
@@ -30,11 +30,11 @@
     { "id": "lizard", "cost": 38, "hp": 25, "atk": 9, "range": 175, "pierce": true,
       "atkIntervalMs": 800, "ability": "つらぬく・とおくから", "desc": "一直線上のすべての敵に弱ダメージ。" },
 
-    { "id": "cobra", "cost": 35, "hp": 30, "atk": 14, "range": 165, "splash": 46,
-      "atkIntervalMs": 850, "ability": "とおくから・まわりも", "desc": "離れて撃ち、着弾点のまわりにダメージ。" },
+    { "id": "cobra", "cost": 35, "hp": 30, "atk": 14, "range": 165,
+      "atkIntervalMs": 850, "ability": "とおくから", "desc": "離れて撃ち、目標1体にダメージ。" },
 
     { "id": "squid", "cost": 40, "hp": 35, "atk": 16, "range": 140, "splash": 74,
-      "atkIntervalMs": 900, "ability": "とおくの はんいこうげき", "desc": "射程は短めだが奥まで広い範囲攻撃。" },
+      "atkIntervalMs": 950, "ability": "とおくの はんいこうげき", "desc": "射程は短めだが奥まで広い範囲攻撃。" },
 
     { "id": "scorpion", "cost": 50, "hp": 40, "atk": 6, "deathShield": { "ms": 6000, "mul": 0.5 },
       "ability": "たおれると みかたを まもる", "desc": "やられると一定時間、味方の被ダメージを半減する。" },

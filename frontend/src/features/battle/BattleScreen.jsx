@@ -543,7 +543,17 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     const prev = prevFailPhaseRef.current;
     prevFailPhaseRef.current = failPhase;
     if (failPhase === 'shown' && prev !== 'shown') {
-      fireTrigger({ type: 'battleLost', stageId: resolvedStageId });
+      /*
+       * 無限ループの事前ガード（runaway）で止められた負けは、ふつうの負けと
+       * 区別して、ロボ（ビット）が「むげんループでとまったよ」と説明する
+       * カットシーン（`runawayBlocked`、毎回再生）を出す。プレイヤーが
+       * 「バグで false になった」と誤解しないようにするため。
+       */
+      const type =
+        useBattleStore.getState().failReason === 'runaway'
+          ? 'runawayBlocked'
+          : 'battleLost';
+      fireTrigger({ type, stageId: resolvedStageId });
     }
   }, [failPhase, fireTrigger, resolvedStageId]);
   /*

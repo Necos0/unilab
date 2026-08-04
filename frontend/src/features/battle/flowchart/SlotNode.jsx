@@ -135,7 +135,31 @@ import styles from './SlotNode.module.css';
  *     JSX.Element: スロットを表す div 要素。
  */
 function SlotNode({ id, data }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const acceptOnly = data?.acceptOnly;
+  /*
+   * いまドラッグ中のカードの種別 id（手札・スロットのどちらからでも解決）。
+   * 種別制限マス（acceptOnly）で「合わないカードが来ているか」を判定するために
+   * useDroppable より先に求める。
+   */
+  const activeCardId = useBattleStore((s) => {
+    const aid = s.activeInstanceId;
+    if (!aid) return null;
+    const fromHand = s.handCards.find((c) => c.instanceId === aid);
+    if (fromHand) return fromHand.id;
+    for (const card of Object.values(s.slotAssignments)) {
+      if (card && card.instanceId === aid) return card.id;
+    }
+    return null;
+  });
+  /*
+   * 種別が合わないときは、この制限マスを dnd-kit のドロップ対象から外す
+   * （`disabled`）。これによりマウスでもタッチ（Surface 等）でも、そもそも
+   * ドロップ先として認識されず、種別違いのカードを物理的に置けなくなる。
+   * データ層（`computeDropTransition`）のガードと二重防御。
+   */
+  const rejectMismatch =
+    !!acceptOnly && activeCardId !== null && activeCardId !== acceptOnly;
+  const { setNodeRef, isOver } = useDroppable({ id, disabled: rejectMismatch });
   const assignedCard = useBattleStore((s) => s.slotAssignments[id] ?? null);
   const activeInstanceId = useBattleStore((s) => s.activeInstanceId);
   const isExecuting = useBattleStore((s) => s.isExecuting);
@@ -151,23 +175,17 @@ function SlotNode({ id, data }) {
     isDragActive && assignedCard?.instanceId === activeInstanceId;
   const showAsFilled = !!assignedCard && !isDraggingThisCard;
 
-  const acceptOnly = data?.acceptOnly;
-  const acceptClass = 
+  const acceptClass =
     acceptOnly === 'attack' ? styles.acceptAttack :
     acceptOnly === 'guard' ? styles.acceptGuard :
     acceptOnly === 'heal' ? styles.acceptHeal :
     null;
-  const activeCardId = useBattleStore((s) => {
-    const aid = s.activeInstanceId;
-    if (!aid) return null;
-    const fromHand = s.handCards.find((c) => c.instanceId === aid);
-    if (fromHand) return fromHand.id;
-    for (const card of Object.values(s.slotAssignments)) {
-      if (card && card.instanceId === aid) return card.id;
-    }
-    return null;
-  });
-  const showReject = isOver && !!acceptOnly && activeCardId !== null && activeCardId !== acceptOnly;
+  /*
+   * 不一致カードのドラッグ中は、この制限マスを赤く示す。`disabled` により
+   * isOver は立たなくなるため、hover ではなく `rejectMismatch` で判定する
+   * （＝合わないカードを持っている間、置けないマスがひと目で分かる）。
+   */
+  const showReject = rejectMismatch;
 
   const isCounterSlot = assignedCard?.id === 'counter' && assignedCard?.locked;
   const isCounterLinkedMultiplier = 
