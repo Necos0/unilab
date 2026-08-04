@@ -46,7 +46,8 @@ export default function DeckBuilder({ onStart }) {
     <div className="lb-deckbuild">
       {legendWarn > 0 && (
         <div className="lb-toast" key={legendWarn}>
-          🤖 レジェンドは 1デッキに 1ぴき だけだよ！
+          <img className="lb-toast-face" src="/sprites/robo/robo.png" alt="ビット" />
+          <span className="lb-toast-msg">レジェンドは 1デッキに 1ぴき だけだよ！</span>
         </div>
       )}
       <p className="lb-lead">

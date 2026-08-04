@@ -22,6 +22,10 @@ const TITLE_IMAGE_SRC = '/title.png';
  * 「エンディングゲームで あそぶ」ボタンを出し、エンディングロール
  * （クレジットの上を歩くコイン集め）だけをいつでも遊び直せるようにする。
  *
+ * さらにラスボスクリアに加えてエンディングロールも遊び切ったプレイヤーには、
+ * その下に「じんとりがっせん で あそぶ」ボタンを出し、おまけミニゲーム
+ * （陣取り合戦）へ入れるようにする（本編＋エンディングのさらにおまけ）。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         onStart (function): スタートボタン押下時に呼ぶ関数（引数なし）。
@@ -29,11 +33,21 @@ const TITLE_IMAGE_SRC = '/title.png';
  *             呼ぶ関数（引数なし）。エンディングロールへ直行する。
  *         canPlayEnding (boolean): エンディング再プレイボタンを出すか
  *             （ラスボスをクリア済みか）。
+ *         onPlayLaneBattle (function): 「じんとりがっせん で あそぶ」押下時に
+ *             呼ぶ関数（引数なし）。おまけミニゲーム（陣取り合戦）を開く。
+ *         canPlayLaneBattle (boolean): 陣取り合戦ボタンを出すか（ラスボス
+ *             クリア済み かつ エンディングロールを遊び切ったか）。
  *
  * Returns:
  *     JSX.Element: タイトル画面全体を表す `<section>` 要素。
  */
-function TitleScreen({ onStart, onPlayEnding, canPlayEnding = false }) {
+function TitleScreen({
+  onStart,
+  onPlayEnding,
+  canPlayEnding = false,
+  onPlayLaneBattle,
+  canPlayLaneBattle = false,
+}) {
   return (
     <section className={styles.root}>
       <div className={styles.canvas}>
@@ -57,6 +71,15 @@ function TitleScreen({ onStart, onPlayEnding, canPlayEnding = false }) {
               onClick={onPlayEnding}
             >
               エンディングゲームで あそぶ
+            </button>
+          )}
+          {canPlayLaneBattle && (
+            <button
+              type="button"
+              className={styles.laneBattleButton}
+              onClick={onPlayLaneBattle}
+            >
+              ⚔️ じんとりがっせん で あそぶ
             </button>
           )}
           <FullscreenToggleButton className={styles.fullscreenButton} />

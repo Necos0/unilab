@@ -79,6 +79,7 @@ const useProgressStore = create(
   seenCardIds: [],
   seenSlotTypeIds: [],
   hasSeenOpeningStory: false,
+  hasFinishedEndingGame: false,
   lastPosition: null,
 
   /**
@@ -108,6 +109,24 @@ const useProgressStore = create(
    * `resetProgress` で初期化され、再び最初から見られる）。
    */
   markOpeningStorySeen: () => set({ hasSeenOpeningStory: true }),
+
+  /**
+   * エンディングロール（クレジットの上を歩くコイン集めゲーム）を最後まで
+   * 遊び切ったことを記録する。`App` がエンディングロール完了時
+   * （`handleCreditsFinish` / `handleCreditsBackToTitle`）に呼ぶ。
+   *
+   * ラスボス（4-4）クリア（`clearedStageIds` に `ENDING_STAGE_ID` を含む）と
+   * この記録の両方がそろったとき、タイトル画面に「じんとりがっせん で あそぶ」
+   * ボタンを出す（おまけミニゲーム＝陣取り合戦への入口）。localStorage に
+   * 永続化され、`wqreset`（`resetProgress`）で初期化される。既に記録済みなら
+   * 参照を変えず no-op。
+   */
+  markEndingGameFinished: () => {
+    if (get().hasFinishedEndingGame) {
+      return;
+    }
+    set({ hasFinishedEndingGame: true });
+  },
 
   /**
    * プレイヤーが戦闘で「初めて出てきた」カードを既出として記録する。
@@ -304,6 +323,8 @@ const useProgressStore = create(
       pendingWorldUnlock: null,
       unlockingWorld: null,
       hasSeenOpeningStory: false,
+      /* エンディングロール達成の目印も消し、タイトルの陣取り合戦ボタンを隠す */
+      hasFinishedEndingGame: false,
       /* 「続きから」の保存位置も消し、次回スタートは最初のマップの入口から */
       lastPosition: null,
     }),
@@ -439,6 +460,7 @@ const useProgressStore = create(
         seenCardIds: state.seenCardIds,
         seenSlotTypeIds: state.seenSlotTypeIds,
         hasSeenOpeningStory: state.hasSeenOpeningStory,
+        hasFinishedEndingGame: state.hasFinishedEndingGame,
         lastPosition: state.lastPosition,
       }),
     },

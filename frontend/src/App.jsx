@@ -116,6 +116,14 @@ function App() {
   const isEndingUnlocked = useProgressStore((s) =>
     s.clearedStageIds.includes(ENDING_STAGE_ID),
   );
+  /*
+   * おまけミニゲーム「陣取り合戦」の入口をタイトルに出すか。ラスボス（4-4）を
+   * クリアし、かつエンディングロール（コイン集め）も最後まで遊び切った
+   * プレイヤーにだけ、スタートの下に「じんとりがっせん で あそぶ」ボタンを
+   * 出す。両条件そろって初めて解放される、本編＋エンディングのさらにおまけ。
+   */
+  const hasFinishedEndingGame = useProgressStore((s) => s.hasFinishedEndingGame);
+  const canPlayLaneBattle = isEndingUnlocked && hasFinishedEndingGame;
   const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
   const wasUnlockAnimatingRef = useRef(false);
   useEffect(() => {
@@ -427,6 +435,8 @@ function App() {
    * ビットが次回作を匂わせるエピローグ会話（`EpilogueScreen`）へ進める。
    */
   const handleCreditsFinish = useCallback(() => {
+    /* エンディングロールを遊び切った目印（タイトルの陣取り合戦ボタン解放用）。 */
+    useProgressStore.getState().markEndingGameFinished();
     setScreen('epilogue');
   }, []);
 
@@ -452,7 +462,20 @@ function App() {
 
   /* 再プレイのリザルト「タイトルに もどる」。エピローグは挟まない。 */
   const handleCreditsBackToTitle = useCallback(() => {
+    /* 再プレイでも遊び切った目印を立てておく（初回を取りこぼさない保険）。 */
+    useProgressStore.getState().markEndingGameFinished();
     setScreen('title');
+  }, []);
+
+  /*
+   * タイトル画面の「じんとりがっせん で あそぶ」。おまけミニゲーム
+   * （陣取り合戦）を開く。feature 側（`LaneBattleGate`）が `lanebattle:open`
+   * を購読していて、受け取ると全画面オーバーレイでゲームを起動する。本編は
+   * この feature の中身を import せず DOM イベントを投げるだけなので、隔離を
+   * 保ったままタイトルから起動できる。閉じるとオーバーレイが外れてタイトルへ戻る。
+   */
+  const handlePlayLaneBattle = useCallback(() => {
+    window.dispatchEvent(new Event('lanebattle:open'));
   }, []);
 
   const handleExitCutsceneFlow = useCallback(() => {
@@ -509,6 +532,8 @@ function App() {
         onStart={handleStartGame}
         onPlayEnding={handlePlayEndingGame}
         canPlayEnding={isEndingUnlocked}
+        onPlayLaneBattle={handlePlayLaneBattle}
+        canPlayLaneBattle={canPlayLaneBattle}
       />
     );
   } else if (screen === 'story') {
