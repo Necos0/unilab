@@ -21,16 +21,18 @@ import useCutsceneStore from '../../../stores/cutsceneStore';
  * から渡される。`<button>` ネイティブの `disabled` 属性により、Enter /
  * Space キー経由の発火も含めて無効化される（アクセシビリティ二重防御）。
  *
- * `disabled` 判定は以下 5 条件の OR
- * （スロットが空でも実行できる — 空スロットは効果なしで素通りする
- * `empty-run` 対応により、旧「全スロット未埋まり」条件は撤廃）：
+ * `disabled` 判定は以下 6 条件の OR：
+ *   - プレイヤーが置けるスロット（ロックカード `locked: true` 以外）に
+ *     カードが 1 枚も入っていない：カード未配置での空実行を封じる。
+ *     ロックカード（ほぼ全ステージに `monster` として初期配置される）は
+ *     「入っている」判定から除外する。プレイヤーが置けるスロットが
+ *     1 つも無いステージ（現状は存在しない）では常に実行可とする
  *   - 実行中（`isExecuting`）：連打防止
  *   - 拡大／縮小切替アニメーション中（`isTransitioning`）：状態の二重遷移を回避
  *   - チュートリアルの「カードを置こう」待ち（`waitForCardInSlot` step）中：
  *     素通しレイヤー越しに実行ボタンが押せてしまうと、ロボの案内（カードを
  *     置く→実行しよう）を飛ばして空実行→失敗できてしまうため、この step の
- *     間だけは実行を封じる（`empty-run` 対応で従来の「未埋まりなら disabled」
- *     ガードが無くなった代わりの限定ガード）
+ *     間だけは実行を封じる
  *   - 勝利演出中（`victoryPhase !== null`）：CLEAR! 後の再実行を抑止し、
  *     プレイヤーをマップへ戻る動線へ誘導する（victory-clear 要件 6-2）
  *   - 失敗演出中（`failPhase !== null`）：Fail オーバーレイ表示中の再実行を
@@ -82,8 +84,15 @@ function StartNode({ data }){
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === 'start',
   );
   const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes('start'));
+  const hasPlayerCardInSlot = useBattleStore((s) => {
+    const playerSlots = Object.values(s.slotAssignments).filter(
+      (card) => card == null || !card.locked,
+    );
+    return playerSlots.length === 0 || playerSlots.some((card) => card != null);
+  });
 
   const isDisabled =
+    !hasPlayerCardInSlot ||
     isExecuting ||
     isTransitioning ||
     isWaitingForCardInSlot ||
