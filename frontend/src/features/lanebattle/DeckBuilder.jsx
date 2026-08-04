@@ -5,7 +5,6 @@ import { rosterDefs } from './engine/deriveUnitDef';
 
 const DECK_SIZE = 6;
 const MAX_LEGEND = 1;
-const DEFAULT_DECK = ['slime', 'wolf', 'cactus', 'golem', 'cobra', 'knight'];
 const ROSTER = rosterDefs();
 const DEF_BY_ID = Object.fromEntries(ROSTER.map((d) => [d.id, d]));
 
@@ -13,8 +12,8 @@ const DEF_BY_ID = Object.fromEntries(ROSTER.map((d) => [d.id, d]));
  * デッキ編成画面（要件3）。
  *
  * ロスター16体を一覧表示し、プレイヤーが6体ちょうどを選ぶと対戦を開始できる。
- * 初期状態ではおすすめデッキ（6体）を選択済みにしておく。7体目は受け付けず、
- * 選択済みキャラの再クリックで解除する。
+ * 初期状態は空（自分で6体を選ぶ）。7体目は受け付けず、選択済みキャラの
+ * 再クリックで解除する。レジェンドは1デッキ1体まで（2体目は目立つトースト警告）。
  *
  * Args:
  *     props (object):
@@ -24,21 +23,18 @@ const DEF_BY_ID = Object.fromEntries(ROSTER.map((d) => [d.id, d]));
  *     JSX.Element: 編成画面。
  */
 export default function DeckBuilder({ onStart }) {
-  const [deck, setDeck] = useState(() =>
-    DEFAULT_DECK.filter((id) => ROSTER.some((d) => d.id === id)),
-  );
-
-  const [notice, setNotice] = useState('');
+  const [deck, setDeck] = useState([]); // 初期デッキは空（自分で6ひき選ぶ）
+  /* 伝説2体目を選ぼうとしたときの目立つ警告トースト。key を進めるたびに再アニメする。 */
+  const [legendWarn, setLegendWarn] = useState(0);
 
   const toggle = (id) => {
     setDeck((cur) => {
       if (cur.includes(id)) return cur.filter((x) => x !== id);
       if (cur.length >= DECK_SIZE) return cur;
       if (DEF_BY_ID[id]?.legend && cur.filter((x) => DEF_BY_ID[x]?.legend).length >= MAX_LEGEND) {
-        setNotice('レジェンドは デッキに 1ぴき までだよ');
+        setLegendWarn((k) => k + 1);
         return cur;
       }
-      setNotice('');
       return [...cur, id];
     });
   };
@@ -48,6 +44,11 @@ export default function DeckBuilder({ onStart }) {
 
   return (
     <div className="lb-deckbuild">
+      {legendWarn > 0 && (
+        <div className="lb-toast" key={legendWarn}>
+          🤖 レジェンドは 1デッキに 1ぴき だけだよ！
+        </div>
+      )}
       <p className="lb-lead">
         <Furigana
           text={
@@ -99,7 +100,7 @@ export default function DeckBuilder({ onStart }) {
           ))}
         </div>
         <span className="lb-hint">
-          {notice || (ready ? '6/6 デッキ かんせい！' : `あと ${remain}ぴき えらんでね`)}
+          {ready ? '6/6 デッキ かんせい！' : `あと ${remain}ぴき えらんでね`}
         </span>
         <button
           type="button"

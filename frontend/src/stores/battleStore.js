@@ -1217,7 +1217,13 @@ const useBattleStore = create((set, get) => ({
               get().startVictorySequence(stage.enemyId);
             }
           } else {
-            set({ failPhase: 'shown', speedMultiplier: 1 });
+            /*
+             * ここに来る＝実行が最後まで進んだが「敵 HP=0 かつ 自 HP>0」に
+             * ならなかった負け。先頭の `failPhase !== null` ガードで自分が
+             * 倒れた負けは除外済みなので、実質「ゴールまで行けたのに敵を
+             * 倒し切れなかった」ケース。ビットが説明できるよう理由を残す。
+             */
+            set({ failPhase: 'shown', failReason: 'enemySurvived', speedMultiplier: 1 });
           }
         }, delay / get().speedMultiplier);
         executionTimers.push(tid);

@@ -9,9 +9,23 @@
   "attackIntervalMs": 260,
   "contactRangeDefault": 44,
   "moveSpeedScale": 0.7,
-  "guardian": { "hp": 220, "atk": 45, "range": 120, "intervalMs": 600 },
-  "escalation": { "stepMs": 15000, "maxMul": 4 },
-  "derive": { "costDiv": 14, "atkDiv": 5, "atkMin": 3, "spdBase": 38, "spdSizeMul": 46 },
+  "guardian": {
+    "hp": 220,
+    "atk": 45,
+    "range": 120,
+    "intervalMs": 600
+  },
+  "escalation": {
+    "stepMs": 15000,
+    "maxMul": 4
+  },
+  "derive": {
+    "costDiv": 14,
+    "atkDiv": 5,
+    "atkMin": 3,
+    "spdBase": 38,
+    "spdSizeMul": 46
+  },
   "score": {
     "winBase": 10000,
     "timePenaltyPerSec": 15,
@@ -19,10 +33,18 @@
     "min": 100
   },
   "cpu": {
-    "deck": ["wolf", "knight", "cobra", "cactus", "crab", "shark"],
+    "deck": [
+      "phoenix",
+      "crab",
+      "squid",
+      "wolf",
+      "slime",
+      "shark"
+    ],
     "energyStart": 20,
     "firstPlayMs": 900,
     "minGapMs": 700,
-    "randGapMs": 1100
+    "randGapMs": 1100,
+    "energyRegenMul": 1.2
   }
 }
