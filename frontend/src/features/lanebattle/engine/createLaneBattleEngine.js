@@ -453,7 +453,8 @@ export function createLaneBattleEngine({
       st.cpuGuardHp = config.guardian.hp;
       st.youGuardT = config.guardian.intervalMs;
       st.cpuGuardT = config.guardian.intervalMs;
-      st.playerDeck = createDeck(playerDeckIds);
+      // 手札の初期並びは毎戦シャッフル（編成の並び順で固定にしない）
+      st.playerDeck = createDeck(shuffle(playerDeckIds));
       st.cpuDeck = createDeck(shuffle(cpuDeckIds ?? config.cpu.deck));
       last = performance.now();
       st.running = true;
