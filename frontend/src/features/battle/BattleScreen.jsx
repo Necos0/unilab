@@ -544,15 +544,19 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
     prevFailPhaseRef.current = failPhase;
     if (failPhase === 'shown' && prev !== 'shown') {
       /*
-       * 無限ループの事前ガード（runaway）で止められた負けは、ふつうの負けと
-       * 区別して、ロボ（ビット）が「むげんループでとまったよ」と説明する
-       * カットシーン（`runawayBlocked`、毎回再生）を出す。プレイヤーが
-       * 「バグで false になった」と誤解しないようにするため。
+       * 負けの理由によってビットの説明カットシーンを出し分ける（いずれも毎回
+       * 再生）。プレイヤーが「なぜ負けたのか分からない」を防ぐため。
+       *   - runaway       : 無限ループの事前ガードで止まった
+       *   - enemySurvived : ゴールまで行けたが敵を倒し切れていない
+       *   - それ以外       : ふつうの負け（HP が 0 になった等）
        */
+      const reason = useBattleStore.getState().failReason;
       const type =
-        useBattleStore.getState().failReason === 'runaway'
+        reason === 'runaway'
           ? 'runawayBlocked'
-          : 'battleLost';
+          : reason === 'enemySurvived'
+            ? 'goalNotCleared'
+            : 'battleLost';
       fireTrigger({ type, stageId: resolvedStageId });
     }
   }, [failPhase, fireTrigger, resolvedStageId]);

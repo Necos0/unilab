@@ -229,9 +229,11 @@ export function createLaneBattleEngine({
   }
 
   function cpuAI(dt) {
+    // 敵（CPU）はエナジー回復に補正（config.cpu.energyRegenMul）をかけて強くする。
+    const cpuRegenMul = config.cpu.energyRegenMul ?? 1;
     st.cpuEnergy = Math.min(
       config.energyMax,
-      st.cpuEnergy + (dt / 1000) * config.energyRegenPerSec * st.regenMul,
+      st.cpuEnergy + (dt / 1000) * config.energyRegenPerSec * st.regenMul * cpuRegenMul,
     );
     st.cpuPlayT -= dt;
     if (st.cpuPlayT > 0) return;

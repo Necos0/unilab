@@ -28,13 +28,13 @@
       "ability": "やすい かべ", "desc": "低コストで超耐久。攻撃力は低い。" },
 
     { "id": "lizard", "cost": 38, "hp": 25, "atk": 9, "range": 175, "pierce": true,
-      "atkIntervalMs": 800, "ability": "つらぬく・とおくから", "desc": "一直線上のすべての敵に弱ダメージ。" },
+      "atkIntervalMs": 1000, "ability": "つらぬく・とおくから", "desc": "一直線上のすべての敵に弱ダメージ。" },
 
     { "id": "cobra", "cost": 35, "hp": 30, "atk": 14, "range": 165,
-      "atkIntervalMs": 850, "ability": "とおくから", "desc": "離れて撃ち、目標1体にダメージ。" },
+      "atkIntervalMs": 1050, "ability": "とおくから", "desc": "離れて撃ち、目標1体にダメージ。" },
 
     { "id": "squid", "cost": 40, "hp": 35, "atk": 16, "range": 140, "splash": 74,
-      "atkIntervalMs": 950, "ability": "とおくの はんいこうげき", "desc": "射程は短めだが奥まで広い範囲攻撃。" },
+      "atkIntervalMs": 1150, "ability": "とおくの はんいこうげき", "desc": "射程は短めだが奥まで広い範囲攻撃。" },
 
     { "id": "scorpion", "cost": 50, "hp": 40, "atk": 6, "deathShield": { "ms": 6000, "mul": 0.5 },
       "ability": "たおれると みかたを まもる", "desc": "やられると一定時間、味方の被ダメージを半減する。" },

@@ -281,6 +281,11 @@ function SlotNode({ id, data }) {
       />
       {acceptOnly && <RestrictedSlotIcon type={acceptOnly} />}
       {displayMultiplier !== undefined && <MultiplierIndicator value={displayMultiplier} />}
+      {isLockedCard && (
+        <div className={styles.chainFrame} aria-hidden="true">
+          <span className={styles.chainBadge}>🔒</span>
+        </div>
+      )}
     </div>
   );
 }
