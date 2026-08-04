@@ -196,6 +196,9 @@ function App() {
    *   - wqedit  : エンディング配置エディタ（`CreditsEditorScreen`、開発用）を
    *               開閉する。行の横位置とコインの配置を GUI で編集し、JSON を
    *               書き出して `data/ending_credits.json` を置き換える。
+   *   - wqfull  : ブラウザの全画面表示（Fullscreen API）を切り替える。展示や
+   *               プレイ時にアドレスバー等を隠して大画面で遊ぶための切替。
+   *               Esc（ブラウザ標準）でも解除できる。
    */
   const handleDebugReset = useCallback(() => {
     useCutsceneStore.getState().resetSeen();
@@ -269,6 +272,20 @@ function App() {
     setScreen(prevScreenRef.current);
   }, []);
 
+  /*
+   * 全画面表示のトグル。非全画面なら文書全体（`documentElement`）を
+   * 全画面化し、全画面中なら解除する。keydown はユーザー操作扱いなので
+   * Fullscreen API のジェスチャ要件を満たす。iOS Safari など未対応環境や
+   * ユーザー拒否では Promise が reject されるため、握りつぶして無視する。
+   */
+  const handleDebugFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }, []);
+
   const handleDebugUnlock = useCallback((unlockStageId) => {
     /* 実在しないステージ ID（例: wqgo9-9）は何もしない。 */
     if (!stagesData.stages[unlockStageId]) {
@@ -284,6 +301,7 @@ function App() {
     onCutsceneFlow: handleDebugCutsceneFlow,
     onEnding: handleDebugEnding,
     onCreditsEditor: handleDebugCreditsEditor,
+    onFullscreen: handleDebugFullscreen,
     onUnlock: handleDebugUnlock,
   });
 

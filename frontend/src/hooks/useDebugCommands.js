@@ -19,6 +19,7 @@ const SIMPLE_COMMANDS = [
   ['wqflow', 'onCutsceneFlow'],
   ['wqend', 'onEnding'],
   ['wqedit', 'onCreditsEditor'],
+  ['wqfull', 'onFullscreen'],
 ];
 
 /**
@@ -33,6 +34,7 @@ const SIMPLE_COMMANDS = [
  *   - `wqflow`           : `onCutsceneFlow`（カットシーン・フロー画面の開閉）
  *   - `wqend`            : `onEnding`（エンディング紙芝居の再生。演出確認用）
  *   - `wqedit`           : `onCreditsEditor`（エンディング配置エディタの開閉）
+ *   - `wqfull`           : `onFullscreen`（ブラウザ全画面表示の切り替え）
  *   - `wqgo<w>-<n>`      : `onUnlock('<w>-<n>')`（到達レベルの一括設定。
  *                          `wqgo2-3` のほかハイフン省略の `wqgo23` も可）
  *
@@ -55,6 +57,7 @@ const SIMPLE_COMMANDS = [
  *         onCutsceneFlow (function): `wqflow` 検出時に呼ぶ（引数なし）。
  *         onEnding (function): `wqend` 検出時に呼ぶ（引数なし）。
  *         onCreditsEditor (function): `wqedit` 検出時に呼ぶ（引数なし）。
+ *         onFullscreen (function): `wqfull` 検出時に呼ぶ（引数なし）。
  *         onUnlock (function): `wqgo〜` 検出時にステージ ID（例 `'2-3'`）を
  *             渡して呼ぶ。ID の実在チェックは呼び出し側で行う。
  *
