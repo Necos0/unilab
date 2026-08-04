@@ -36,8 +36,11 @@ const PLATFORM_INSET_PX = 12;
  */
 const TOP_MARGIN_PX = 56;
 
-/* 画面下端からこの距離（px）だけ落ちたら「見るだけモード」へ切り替える。 */
+/* 画面下端からこの距離（px）だけ落ちたら「おちた」扱いにする。 */
 const FALL_MARGIN_PX = 80;
+
+/* 落ちてから復活するまでの待ち時間（ms）。 */
+const RESPAWN_DELAY_MS = 3000;
 
 /* スクロールが始まるまでの導入時間（ms）。操作説明を読む猶予。 */
 const INTRO_MS = 2600;
@@ -197,11 +200,12 @@ function renderLineSegments(text) {
  * 持ち、配置エディタ（`CreditsEditorScreen`、隠しコマンド `wqedit`）で
  * ドラッグして調整する。
  *
- * 画面の下へ落ちても負けにはならず「見るだけモード」へ切り替わり、
- * クレジットは通常のエンディングロールとして最後まで流れる。成績は
- * コイン数と「のれてた わりあい」（ロール全体の時間のうち足場へ乗れて
- * いた時間の割合。0% から積み上がる加点方式）で表示する。Q 長押しで
- * いつでもスキップできる。
+ * 画面の下へ落ちても負けにはならず、数秒（`RESPAWN_DELAY_MS`）の待ち時間の
+ * あと、そのとき画面内に見えているいちばん上の足場へ復活する。落ちている
+ * あいだもクレジットは流れ続け、落ちた回数は成績として数える。成績は
+ * コイン数・「のれてた わりあい」（ロール全体の時間のうち足場へ乗れて
+ * いた時間の割合。0% から積み上がる加点方式）・「おちた かず」で表示する。
+ * Q 長押しでいつでもスキップできる。
  *
  * 実装メモ：スクロール・重力・当たり判定は `requestAnimationFrame` の
  * 1 ループで回し、毎フレームの位置更新は React の再レンダーではなく
@@ -255,6 +259,7 @@ function CreditsScreen({
   const [showResult, setShowResult] = useState(false);
   const [finalRate, setFinalRate] = useState(0);
   const [finalCoins, setFinalCoins] = useState(0);
+  const [finalDeaths, setFinalDeaths] = useState(0);
 
   const rootRef = useRef(null);
   const worldRef = useRef(null);
@@ -262,11 +267,15 @@ function CreditsScreen({
   const roboRef = useRef(null);
   const hudRateRef = useRef(null);
   const hudCoinsRef = useRef(null);
+  const hudDeathsRef = useRef(null);
+  /* 復活までの残り秒数の表示（落下中のヒント内。rAF で直接更新）。 */
+  const respawnCountRef = useRef(null);
   /* Q 長押しの進捗を示す円メーター。塗りはループ内で conic-gradient 更新。 */
   const skipMeterRef = useRef(null);
   /* リザルトのカウントアップ表示（数値と達成度の色を rAF で直接更新）。 */
   const resultCoinsRef = useRef(null);
   const resultRateRef = useRef(null);
+  const resultDeathsRef = useRef(null);
   const lineElsRef = useRef([]);
   const coinElsRef = useRef([]);
   /* 乗れる行の矩形リスト。マウント直後に実測して埋める。 */
@@ -414,6 +423,8 @@ function CreditsScreen({
       elapsedMs: 0,
       survivedMs: 0,
       isFallen: false,
+      fallenAtMs: null,
+      deathCount: 0,
       lastRatePct: 0,
       animMs: 0,
       lastFrameSrc: '',
@@ -429,6 +440,7 @@ function CreditsScreen({
       game.phase = 'finished';
       setFinalRate(game.lastRatePct);
       setFinalCoins(game.coinCount);
+      setFinalDeaths(game.deathCount);
       setPhase('finished');
     };
 
@@ -592,12 +604,55 @@ function CreditsScreen({
           }
         });
 
-        /* 画面下へ落ちたら「見るだけモード」へ。 */
+        /* 画面下へ落ちたら「おちた」扱いにして復活待ちへ。 */
         if (player.y - game.scrollY > viewportH() + FALL_MARGIN_PX) {
           game.isFallen = true;
+          game.fallenAtMs = nowMs;
+          game.deathCount += 1;
           setIsFallen(true);
         } else if (game.phase === 'playing') {
           game.survivedMs += dt * 1000;
+        }
+      } else {
+        /*
+         * 復活の処理。ヒントの残り秒数を更新しつつ、待ち時間が過ぎたら
+         * そのとき画面内に見えているいちばん上の乗れる足場へ戻す。
+         * 画面内に足場が無いあいだは、現れるまで待ち続ける。
+         */
+        if (respawnCountRef.current && game.fallenAtMs !== null) {
+          const remainSec = Math.max(
+            1,
+            Math.ceil((RESPAWN_DELAY_MS - (nowMs - game.fallenAtMs)) / 1000),
+          );
+          respawnCountRef.current.textContent = String(remainSec);
+        }
+        if (
+          game.fallenAtMs !== null &&
+          nowMs - game.fallenAtMs >= RESPAWN_DELAY_MS
+        ) {
+          const minTop = game.scrollY + TOP_MARGIN_PX + PLAYER_HEIGHT_PX + 4;
+          const maxTop = game.scrollY + viewportH() * 0.75;
+          const target = platformsRef.current.find(
+            (p) => p.top >= minTop && p.top <= maxTop && p.x < viewportW() - 60,
+          );
+          if (target) {
+            const half = PLAYER_WIDTH_PX / 2;
+            player.x = Math.max(
+              half,
+              Math.min(
+                target.x + Math.min(80, target.width * 0.4),
+                viewportW() - half,
+              ),
+            );
+            player.y = target.top;
+            player.vy = 0;
+            player.onGround = true;
+            /* ロボは復活地点へ瞬間移動させる（画面外から飛んでこないように）。 */
+            game.robo.initialized = false;
+            game.isFallen = false;
+            game.fallenAtMs = null;
+            setIsFallen(false);
+          }
         }
       }
 
@@ -615,6 +670,9 @@ function CreditsScreen({
       }
       if (hudCoinsRef.current) {
         hudCoinsRef.current.textContent = `${game.coinCount} / ${coins.length}`;
+      }
+      if (hudDeathsRef.current) {
+        hudDeathsRef.current.textContent = String(game.deathCount);
       }
 
       /* ロボの浮遊追従（ゆっくり寄る＋ふわふわ上下）。 */
@@ -696,10 +754,11 @@ function CreditsScreen({
   }, [phase]);
 
   /*
-   * リザルトの数値演出。コイン数と「のれてた わりあい」を 0 から最終値まで
-   * イーズアウトでカウントアップし、その時点の達成度に応じて文字色を
-   * グレー → 白 → 金のグラデーションでなめらかに変えていく。
-   * 毎フレームの更新は ref の textContent / style 直接更新で行う。
+   * リザルトの数値演出。コイン数・「のれてた わりあい」・「おちた かず」を
+   * 0 から最終値までイーズアウトでカウントアップし、その時点の達成度に
+   * 応じて文字色をグレー → 白 → 金のグラデーションでなめらかに変えていく
+   * （おちた かずは少ないほど金に近づく）。毎フレームの更新は ref の
+   * textContent / style 直接更新で行う。
    */
   useEffect(() => {
     if (!showResult) {
@@ -712,6 +771,7 @@ function CreditsScreen({
       const eased = 1 - (1 - t) ** 3;
       const coinValue = Math.round(finalCoins * eased);
       const rateValue = Math.round(finalRate * eased);
+      const deathValue = Math.round(finalDeaths * eased);
       if (resultCoinsRef.current) {
         resultCoinsRef.current.textContent = String(coinValue);
         resultCoinsRef.current.style.color = colorForAchievement(
@@ -722,13 +782,19 @@ function CreditsScreen({
         resultRateRef.current.textContent = `${rateValue}%`;
         resultRateRef.current.style.color = colorForAchievement(rateValue / 100);
       }
+      if (resultDeathsRef.current) {
+        resultDeathsRef.current.textContent = String(deathValue);
+        resultDeathsRef.current.style.color = colorForAchievement(
+          Math.max(0, 1 - deathValue / 4),
+        );
+      }
       if (t < 1) {
         rafId = requestAnimationFrame(tick);
       }
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showResult, finalCoins, finalRate, coins.length]);
+  }, [showResult, finalCoins, finalRate, finalDeaths, coins.length]);
 
   const lineClassByKind = {
     tag: styles.tagLine,
@@ -801,6 +867,8 @@ function CreditsScreen({
         <span ref={hudCoinsRef}>0 / {coins.length}</span>
         <span className={styles.hudDivider}> / </span>
         のれてた わりあい <span ref={hudRateRef}>0%</span>
+        <span className={styles.hudDivider}> / </span>
+        おちた かず <span ref={hudDeathsRef}>0</span>
       </div>
 
       {phase === 'intro' && (
@@ -811,7 +879,9 @@ function CreditsScreen({
 
       {isFallen && phase !== 'finished' && (
         <div className={styles.fallenHint}>
-          おっこちちゃった! そのまま ゆっくり みていってね
+          おっこちちゃった! あと{' '}
+          <span ref={respawnCountRef}>{Math.ceil(RESPAWN_DELAY_MS / 1000)}</span>{' '}
+          びょうで ふっかつするよ
         </div>
       )}
 
@@ -848,6 +918,12 @@ function CreditsScreen({
                 のれてた わりあい{' '}
                 <span className={styles.resultValue} ref={resultRateRef}>
                   0%
+                </span>
+              </p>
+              <p className={styles.resultRate}>
+                おちた かず{' '}
+                <span className={styles.resultValue} ref={resultDeathsRef}>
+                  0
                 </span>
               </p>
               <div className={styles.resultButtons}>
