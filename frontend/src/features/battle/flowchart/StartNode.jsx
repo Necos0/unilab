@@ -23,10 +23,10 @@ import useCutsceneStore from '../../../stores/cutsceneStore';
  *
  * `disabled` 判定は以下 6 条件の OR：
  *   - プレイヤーが置けるスロット（ロックカード `locked: true` 以外）に
- *     カードが 1 枚も入っていない：カード未配置での空実行を封じる。
- *     ロックカード（ほぼ全ステージに `monster` として初期配置される）は
- *     「入っている」判定から除外する。プレイヤーが置けるスロットが
- *     1 つも無いステージ（現状は存在しない）では常に実行可とする
+ *     1 つでも空きがある：全スロットを埋めるまで実行を封じる。ロックカード
+ *     （ほぼ全ステージに `monster` として初期配置される）は元から埋まって
+ *     いる扱いで判定対象から除外する。プレイヤーが置けるスロットが 1 つも
+ *     無いステージ（現状は存在しない）では常に実行可とする
  *   - 実行中（`isExecuting`）：連打防止
  *   - 拡大／縮小切替アニメーション中（`isTransitioning`）：状態の二重遷移を回避
  *   - チュートリアルの「カードを置こう」待ち（`waitForCardInSlot` step）中：
@@ -84,15 +84,15 @@ function StartNode({ data }){
     (s) => s.executionStep?.type === 'node' && s.executionStep?.id === 'start',
   );
   const isTraversed = useBattleStore((s) => s.traversedNodeIds.includes('start'));
-  const hasPlayerCardInSlot = useBattleStore((s) => {
+  const areAllPlayerSlotsFilled = useBattleStore((s) => {
     const playerSlots = Object.values(s.slotAssignments).filter(
       (card) => card == null || !card.locked,
     );
-    return playerSlots.length === 0 || playerSlots.some((card) => card != null);
+    return playerSlots.length === 0 || playerSlots.every((card) => card != null);
   });
 
   const isDisabled =
-    !hasPlayerCardInSlot ||
+    !areAllPlayerSlotsFilled ||
     isExecuting ||
     isTransitioning ||
     isWaitingForCardInSlot ||
