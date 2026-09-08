@@ -8,6 +8,7 @@
   "costToEnergy": 1,
   "attackIntervalMs": 260,
   "contactRangeDefault": 44,
+  "detectMargin": 30,
   "moveSpeedScale": 0.7,
   "guardian": {
     "hp": 220,
@@ -15,6 +16,26 @@
     "range": 120,
     "intervalMs": 600
   },
+  "field": {
+    "virtualWidth": 1000,
+    "virtualHeight": 600,
+    "laneCount": 3,
+    "laneYs": [140, 300, 460],
+    "laneHeight": 150,
+    "midX": 500,
+    "youBaseX": 60,
+    "cpuBaseX": 940
+  },
+  "deploy": {
+    "steps": 3,
+    "youSlotXs": [150, 300, 450],
+    "cpuSlotXs": [850, 700, 550]
+  },
+  "base": {
+    "hp": 300,
+    "defense": { "atk": 45, "range": 140, "intervalMs": 600 }
+  },
+  "timeLimitMs": 90000,
   "escalation": {
     "stepMs": 15000,
     "maxMul": 4

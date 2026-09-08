@@ -35,7 +35,8 @@ export function rosterIds() {
  *
  * Returns:
  *     object: ユニット定義。id / name / hp / cost / atk / spd / range /
- *         splash / deathbomb / ability / desc / sizeRatio と、
+ *         detectRange（探知距離＝射程＋config.detectMargin。overrides で個別
+ *         上書き可） / splash / deathbomb / ability / desc / sizeRatio と、
  *         idleFrames / idleMs / deadFrames / deadMs を持つ。
  */
 export function deriveUnitDef(enemyId) {
@@ -69,7 +70,9 @@ export function deriveUnitDef(enemyId) {
     deadMs: e?.animations?.dead?.frameDurationMs ?? 170,
   };
 
-  return { ...base, ...(OVERRIDES[enemyId] ?? {}) };
+  const merged = { ...base, ...(OVERRIDES[enemyId] ?? {}) };
+  merged.detectRange = merged.detectRange ?? merged.range + config.detectMargin;
+  return merged;
 }
 
 /**

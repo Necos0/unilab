@@ -1,5 +1,5 @@
 {
-  "_comment": "character-example.md（ユーザーのキャラ設定）に基づく暫定値。cost はエネルギー直値（costToEnergy=1）。ability 効果パラメータ：range=攻撃間合い / splash=着弾点まわりの範囲 / pierce=一直線上の敵全員に当たる / deathbomb=死亡時の範囲爆弾 / healOnAttack=攻撃時に味方全体を回復する量 / slowOnAttack={ms,mul}=攻撃時に敵全体を減速 / deathShield={ms,mul}=死亡時に味方の被ダメを一定時間 mul 倍 / atkIntervalMs=攻撃間隔の個別上書き / legend=1デッキ1体まで。バランスは未調整。",
+  "_comment": "character-example.md（ユーザーのキャラ設定）に基づく暫定値。cost はエネルギー直値（costToEnergy=1）。ability 効果パラメータ：range=攻撃間合い / splash=着弾点まわりの範囲 / pierce=一直線上の敵全員に当たる / deathbomb=死亡時の範囲爆弾 / healOnAttack=攻撃時に味方を回復する量 / slowOnAttack={ms,mul}=攻撃時に敵を減速 / supportAllLanes=回復・鈍足を全レーンに効かせる（既定false=自レーンのみ、レジェンド等がtrue） / attackAllLanes=範囲・貫通ダメージを全レーンに効かせる（既定false=同レーン、ドラゴン等がtrue。検知のlaneReachとは独立） / deathShield={ms,mul}=死亡時に味方の被ダメを一定時間 mul 倍 / atkIntervalMs=攻撃間隔の個別上書き / legend=1デッキ1体まで。バランスは未調整。",
   "roster": [
     "slime", "wolf", "knight", "cactus", "starfish", "shark",
     "crab", "lizard", "cobra", "squid", "scorpion", "golem",
@@ -43,7 +43,7 @@
       "ability": "こうげきしない かたい かべ", "desc": "攻撃しないが極めて硬い。前線を支える壁。" },
 
     { "id": "phoenix", "cost": 70, "hp": 80, "atk": 6, "range": 145,
-      "healOnAttack": 8, "atkIntervalMs": 1500, "legend": true,
+      "healOnAttack": 8, "supportAllLanes": true, "atkIntervalMs": 1500, "legend": true,
       "ability": "【でんせつ】みかたを かいふく", "desc": "中距離で攻撃しつつ、味方全体を回復する。" },
 
     { "id": "lagiacrus", "cost": 75, "hp": 90, "atk": 30, "range": 62, "splash": 70,
@@ -51,7 +51,7 @@
       "ability": "【でんせつ】はんい こうげき", "desc": "近距離で、中範囲に強攻撃。" },
 
     { "id": "goldenbird", "cost": 70, "hp": 80, "atk": 8, "range": 145,
-      "slowOnAttack": { "ms": 2500, "mul": 0.5 }, "atkIntervalMs": 1400, "legend": true,
+      "slowOnAttack": { "ms": 2500, "mul": 0.5 }, "supportAllLanes": true, "atkIntervalMs": 1400, "legend": true,
       "ability": "【でんせつ】てきを おそく", "desc": "中距離で攻撃しつつ、敵全体を減速させる。" },
 
     { "id": "dragon", "cost": 85, "hp": 100, "atk": 90, "range": 62, "splash": 55,
