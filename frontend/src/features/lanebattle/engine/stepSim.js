@@ -234,7 +234,8 @@ export function processDeaths(state) {
  * 対戦を 1 ステップ進める総合更新（要件 6・8）。
  *
  * 呼ぶ側（rAF ループや headless テスト）は `stepSim(state, dt)` を繰り返す
- * だけでよい。処理順は「時間加算 → 陣営シールドの減衰 → ユニットの移動/攻撃
+ * だけでよい。処理順は「時間加算 → 両陣営のエナジー回復（エスカレーション。
+ * CPU は `cpu.energyRegenMul` 倍）→ 陣営シールドの減衰 → ユニットの移動/攻撃
  * （`stepUnits`）→ 本陣の迎撃（`stepBaseDefense`）→ 死亡処理（`processDeaths`）
  * → dead の一括除去 → 決着判定」。シールド減衰を先頭に置くことで、前ティック
  * のシールドは減り、同ティックに死亡処理が張ったシールドは満タンのまま残る。
@@ -252,6 +253,10 @@ export function processDeaths(state) {
 export function stepSim(state, dt) {
   if (state.result) return;
   state.t += dt;
+  const regenMul = Math.min(config.escalation.maxMul, 1 + Math.floor(state.t / config.escalation.stepMs));
+  const es = (dt / 1000) * config.energyRegenPerSec * regenMul;
+  state.energy.you = Math.min(config.energyMax, state.energy.you + es);
+  state.energy.cpu = Math.min(config.energyMax, state.energy.cpu + es * (config.cpu.energyRegenMul ?? 1));
   for (const side of ['you', 'cpu']) {
     if (state.shield[side].t > 0) state.shield[side].t -= dt;
   }

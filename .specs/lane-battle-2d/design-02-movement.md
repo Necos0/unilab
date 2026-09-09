@@ -66,17 +66,42 @@
 
 `dir = side === 'you' ? +1 : -1`（自分は +x へ進む）。各ユニットの毎ステップ：
 
-```mermaid
-flowchart TD
-  A["1ステップ"] --> B{"同レーンに探知距離内の敵がいる?"}
-  B -- いる --> C{"距離 <= 射程?"}
-  C -- はい --> D["攻撃（atkTimerで間隔管理）"]
-  C -- いいえ・敵は前方 --> E["前進して射程に詰める"]
-  C -- いいえ・敵は後方 --> F["後退して射程に収める"]
-  B -- いない --> G{"本陣が射程内?"}
-  G -- はい --> H["本陣を攻撃（base.hp を削る）"]
-  G -- いいえ --> I["本陣へ向けて前進"]
-```
+<svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="各ユニットの1ステップの判定フロー（黄=判定）">
+  <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6b7a92"/></marker></defs>
+  <rect x="390" y="12" width="120" height="32" rx="8" fill="#e6efff" stroke="#5b7fc4" stroke-width="2"/>
+  <text x="450" y="33" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">1ステップ</text>
+  <rect x="325" y="64" width="250" height="46" rx="8" fill="#fff6e6" stroke="#e0b24a" stroke-width="1.5"/>
+  <text x="450" y="92" font-family="sans-serif" font-size="11.5" fill="#1f2a3d" text-anchor="middle">同レーンの探知内に敵がいる?</text>
+  <rect x="140" y="152" width="200" height="44" rx="8" fill="#fff6e6" stroke="#e0b24a" stroke-width="1.5"/>
+  <text x="240" y="179" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">距離 ≤ 射程?</text>
+  <rect x="560" y="152" width="200" height="44" rx="8" fill="#fff6e6" stroke="#e0b24a" stroke-width="1.5"/>
+  <text x="660" y="179" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">本陣が射程内?</text>
+  <rect x="30" y="244" width="150" height="38" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="105" y="267" font-family="sans-serif" font-size="11.5" fill="#1f2a3d" text-anchor="middle">攻撃（間隔管理）</text>
+  <rect x="196" y="244" width="150" height="38" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="271" y="267" font-family="sans-serif" font-size="11.5" fill="#1f2a3d" text-anchor="middle">前進して詰める</text>
+  <rect x="362" y="244" width="150" height="38" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="437" y="267" font-family="sans-serif" font-size="11.5" fill="#1f2a3d" text-anchor="middle">後退して収める</text>
+  <rect x="560" y="244" width="150" height="38" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="635" y="267" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">本陣を攻撃</text>
+  <rect x="726" y="244" width="150" height="38" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="801" y="267" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">本陣へ前進</text>
+  <path d="M450,44 L450,62" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <path d="M400,110 L302,150" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="338" y="128" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">いる</text>
+  <path d="M500,110 L598,150" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="562" y="128" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">いない</text>
+  <path d="M210,196 L132,242" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="150" y="222" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">はい</text>
+  <path d="M245,196 L268,242" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="272" y="222" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">前方</text>
+  <path d="M300,196 L418,242" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="382" y="222" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">後方</text>
+  <path d="M642,196 L638,242" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="660" y="222" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">はい</text>
+  <path d="M700,196 L790,242" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="758" y="222" font-family="sans-serif" font-size="10" fill="#6b7a92" text-anchor="middle">いいえ</text>
+</svg>
 
 - 「前方／後方」は符号付き距離 `(target.x - u.x) * dir` の正負で判定（正＝敵陣側＝前方、負＝自陣側＝後方）。
 - **後退**は `u.x` を自陣側（`-dir`）へ動かして、後ろに回り込まれた敵・すれ違った敵を射程に収め直す（要件1-8）。

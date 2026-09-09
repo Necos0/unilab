@@ -86,30 +86,31 @@ npm run preview    # ビルド結果をローカル確認
 
 ### デプロイとブランチ運用（Vercel）
 
-本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、以下のブランチ運用を守る。
+本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、次の 3 層ブランチ運用を守る。
 
 | ブランチ | 役割 | Vercel |
 |---|---|---|
-| `master` | **本番（Production）**。公開 URL がこのブランチを指す。理工展用の新ステージなどが揃った区切りでだけ更新する | Production Branch |
-| `dev` | **作業・確認用**。日々の編集・バランス調整・ミニゲーム改修はここで行う | Preview（自動） |
+| `master` | **配信済み・本番**。公開 URL がこのブランチを指す。触らない | Production Branch |
+| `dev` | **アップデート版リリースまでの共同作業基盤**（開発者複数）。**直接は編集・push しない**。各 `feature/*` を集約する場所 | Preview（自動） |
+| `feature/*` | **実作業ブランチ**（`dev` から切る。例：`feature/lane-battle-2d`）。日々の編集・コミット・push はここで行う | Preview（自動） |
 
-- `dev`（や `dev` から切った小ブランチ）に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
-- プレビューにはブランチごとの**固定エイリアス URL**（`https://<プロジェクト名>-git-dev-<スコープ>.vercel.app`）が付き、push のたびに中身だけが最新へ差し替わる。テスターにはこの 1 本を渡す。
-- 区切りで本番を更新するときだけ `dev` を `master` に merge して push する。
+- `feature/*`（や `dev`）に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
+- プレビューにはブランチごとの**固定エイリアス URL**（`https://<プロジェクト名>-git-<ブランチ名>-<スコープ>.vercel.app`）が付き、push のたびに中身だけが最新へ差し替わる。テスターにはこの 1 本を渡す。
+- 完成した `feature/*` は **PR で `dev` に merge**（共同基盤なので直接 push しない）。アップデート版がまとまったら **`dev` を `master` に merge** して配信を更新する。
 
 ```bash
-# 例）本番から dev を用意する（初回のみ）
-git checkout master && git pull
-git checkout -b dev
-git push -u origin dev
+# dev から実作業ブランチを切る
+git checkout dev && git pull
+git checkout -b feature/<機能名>
 
-# 以降は dev で作業し、push するとプレビューが更新される
-git checkout dev
+# 以降は feature ブランチで作業し、push するとプレビューが更新される
 # …編集・コミット…
-git push
+git push -u origin feature/<機能名>
+
+# 完成したら dev へ PR（dev / master は直接 push しない）
 ```
 
-- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `dev` への push で本番が変わることはない。
+- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `dev` / `feature/*` への push で本番が変わることはない。
 - セーブデータは **localStorage 依存**でドメインごとに独立するため、プレビューと本番でセーブは共有されない（プレビューは毎回まっさらから確認できる）。
 
 ### 使用ライブラリ

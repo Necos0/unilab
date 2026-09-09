@@ -75,14 +75,24 @@ createBattleState(config) → {
 
 ## データフロー（この段の骨格）
 
-```mermaid
-flowchart LR
-  in["入力（後続: 配置 / CPU）"] -.後続.-> st["battleState"]
-  st --> step["stepSim（後続）"]
-  step -.後続.-> st
-  st --> render["描画: 3レーン / 自陣ゾーン / 本陣HP"]
-  st --> score["スコア（後続）"]
-```
+<svg viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="データフロー: 入力→battleState→描画/スコア、stepSimと相互（点線＝後続）">
+  <defs><marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6b7a92"/></marker></defs>
+  <rect x="16" y="80" width="150" height="44" rx="8" fill="#f4f5f8" stroke="#b7c0d2" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="91" y="106" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">入力（後続:配置/CPU）</text>
+  <rect x="216" y="80" width="140" height="44" rx="8" fill="#e6efff" stroke="#5b7fc4" stroke-width="2"/>
+  <text x="286" y="106" font-family="sans-serif" font-size="13" fill="#1f2a3d" text-anchor="middle">battleState</text>
+  <rect x="216" y="16" width="140" height="36" rx="8" fill="#f4f5f8" stroke="#b7c0d2" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="286" y="38" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">stepSim（後続）</text>
+  <rect x="410" y="54" width="196" height="40" rx="8" fill="#eef2f9" stroke="#9fb0cc" stroke-width="1.5"/>
+  <text x="508" y="78" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">描画: 3レーン/ゾーン/本陣HP</text>
+  <rect x="410" y="114" width="196" height="36" rx="8" fill="#f4f5f8" stroke="#b7c0d2" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="508" y="136" font-family="sans-serif" font-size="12" fill="#1f2a3d" text-anchor="middle">スコア（後続）</text>
+  <path d="M166,102 L212,102" fill="none" stroke="#8894a8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar1)"/>
+  <path d="M272,80 L272,54" fill="none" stroke="#8894a8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar1)"/>
+  <path d="M300,52 L300,78" fill="none" stroke="#8894a8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar1)"/>
+  <path d="M356,96 L406,78" fill="none" stroke="#6b7a92" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <path d="M356,110 L406,130" fill="none" stroke="#8894a8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar1)"/>
+</svg>
 
 ## タスク（ユニット1）
 

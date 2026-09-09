@@ -757,7 +757,7 @@
 .lbf-field {
   position: relative;
   width: 100%;
-  aspect-ratio: 1000 / 600;
+  aspect-ratio: 1200 / 600;
   border-radius: 14px;
   overflow: hidden;
   background: linear-gradient(180deg, #23264a, #171a34);
@@ -790,6 +790,15 @@
   border: 2px dashed rgba(255, 255, 255, 0.28);
   border-radius: 8px;
   box-sizing: border-box;
+  background: transparent;
+  padding: 0;
+  cursor: default;
+}
+/* カード選択中：置ける自陣セルを金色に光らせる */
+.lbf-cell.active {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  cursor: pointer;
 }
 /* 中央ライン（自陣／敵陣の境。left は JSX がインライン指定） */
 .lbf-mid {
@@ -832,6 +841,51 @@
   display: block;
   height: 100%;
   transition: width 0.15s;
+}
+/* レーンごとの全幅ユニット層（スプライトはこの中で left%=x位置、縦はレーン帯に下寄せ） */
+.lbf-units {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* 遊べる版のレイアウト（盤面＋HUD）と HUD */
+.lbf-match {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lbf-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lbf-ebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--disp);
+  font-size: 13px;
+  color: var(--ink);
+}
+.lbf-ebar-track {
+  flex: 1;
+  min-width: 120px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lbf-ebar-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffe08a, var(--gold));
+  transition: width 0.1s;
+}
+.lb-hcard.sel {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
 }
 .lbf-base.you .lbf-hp i {
   background: linear-gradient(90deg, #7cc0ff, var(--you));

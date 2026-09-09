@@ -24,16 +24,23 @@ const pctY = (y) => (y / field.virtualHeight) * 100;
  *     props (object):
  *         state (object): `createBattleState` が返す対戦状態。`base.you.hp`
  *             / `base.cpu.hp` を読む。
+ *         fieldRef (object): `.lbf-field` 要素に付ける React ref（任意）。
+ *             描画層（`createRenderer`）がこの要素にユニット層を差し込むため、
+ *             駆動側が盤面要素を掴めるようにする。
+ *         onCellTap (function): 自陣セルがタップされたとき `(lane, slot)` を
+ *             渡すコールバック（任意）。無ければセルは非対話。
+ *         active (boolean): カード選択中か。true のとき自陣セルを光らせて
+ *             「ここに置ける」ことを示す（任意）。
  *
  * Returns:
  *     JSX.Element: 3 レーン盤面。
  */
-export default function BattleField({ state }) {
+export default function BattleField({ state, fieldRef, onCellTap, active }) {
   const youHpPct = (state.base.you.hp / config.base.hp) * 100;
   const cpuHpPct = (state.base.cpu.hp / config.base.hp) * 100;
 
   return (
-    <div className="lbf-field">
+    <div className="lbf-field" ref={fieldRef}>
       {field.laneYs.map((y, lane) => (
         <div
           key={lane}
@@ -44,7 +51,13 @@ export default function BattleField({ state }) {
           }}
         >
           {deploy.youSlotXs.map((x, step) => (
-            <span key={step} className="lbf-cell" style={{ left: `${pctX(x)}%` }} />
+            <button
+              key={step}
+              type="button"
+              className={`lbf-cell${active ? ' active' : ''}`}
+              style={{ left: `${pctX(x)}%` }}
+              onClick={onCellTap ? () => onCellTap(lane, step) : undefined}
+            />
           ))}
         </div>
       ))}

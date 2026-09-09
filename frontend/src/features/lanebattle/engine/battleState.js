@@ -10,9 +10,11 @@ import config from '../data/lanebattle_config.json';
  *                クールダウン）。
  *   - `shield` : 死亡シールド（deathShield 能力）の陣営フラグ。`{t, mul}` で
  *                残り時間と被ダメ倍率を持つ（個体ではなくチーム全体に効く）。
+ *   - `energy` : 各陣営の現在エナジー（`you`/`cpu`）。`stepSim` が時間で回復する。
+ *   - `energySpent` : 各陣営が使ったエナジー総量（スコア用。ユニット5で使う）。
  *   - `units`  : 場に出ているユニットの配列（`spawnUnit` が積む）。
  *   - `result` : 決着。`'you'` / `'cpu'` / `null`。
- * エナジーやデッキ、seed 付き乱数などは、それらが要る後続の作業ユニットで足す。
+ * デッキ（手札）や seed 付き乱数などは、それらが要る後続の作業ユニットで足す。
  *
  * config はインポート済みの既定値を使うが、引数 `cfg` でも差し込めるように
  * してある。headless テストで別の設定を渡してこの純関数を単体検証できる
@@ -36,6 +38,8 @@ export function createBattleState(cfg = config) {
       you: { t: 0, mul: 1 },
       cpu: { t: 0, mul: 1 },
     },
+    energy: { you: cfg.energyStart, cpu: cfg.energyStart },
+    energySpent: { you: 0, cpu: 0 },
     units: [],
     result: null,
   };

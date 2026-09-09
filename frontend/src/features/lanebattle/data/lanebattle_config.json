@@ -17,19 +17,19 @@
     "intervalMs": 600
   },
   "field": {
-    "virtualWidth": 1000,
+    "virtualWidth": 1200,
     "virtualHeight": 600,
     "laneCount": 3,
     "laneYs": [140, 300, 460],
     "laneHeight": 150,
-    "midX": 500,
+    "midX": 600,
     "youBaseX": 60,
-    "cpuBaseX": 940
+    "cpuBaseX": 1140
   },
   "deploy": {
     "steps": 3,
-    "youSlotXs": [150, 300, 450],
-    "cpuSlotXs": [850, 700, 550]
+    "youSlotXs": [100, 350, 560],
+    "cpuSlotXs": [1100, 850, 640]
   },
   "base": {
     "hp": 300,
