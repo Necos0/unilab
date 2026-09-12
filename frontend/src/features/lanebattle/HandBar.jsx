@@ -9,11 +9,12 @@ import Furigana from './Furigana';
  *         hand (Array<{id,name,cost,disabled}>): 現在の手札3枚。
  *         next (object|null): つぎに手札へ入るカード `{ id, name }`。
  *         onDeploy (function): 出撃する手札 index を渡すコールバック。
+ *         selectedIndex (number|null): 選択中の手札 index（ハイライト用。任意）。
  *
  * Returns:
  *     JSX.Element: 手札バー。
  */
-export default function HandBar({ hand, next, onDeploy }) {
+export default function HandBar({ hand, next, onDeploy, selectedIndex }) {
   return (
     <div className="lb-hand-wrap">
       <div className="lb-hand">
@@ -21,7 +22,7 @@ export default function HandBar({ hand, next, onDeploy }) {
           <button
             key={`${c.id}-${i}`}
             type="button"
-            className="lb-hcard"
+            className={`lb-hcard${i === selectedIndex ? ' sel' : ''}`}
             disabled={c.disabled}
             onClick={() => onDeploy(i)}
           >

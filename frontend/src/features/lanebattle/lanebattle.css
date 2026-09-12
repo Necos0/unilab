@@ -752,3 +752,149 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* ===== 3レーン盤面（lbf-）: フィールド整備。旧 lb- とは別系統 ===== */
+.lbf-field {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1200 / 600;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #23264a, #171a34);
+  border: 1px solid var(--line);
+}
+/* 自陣（中央ラインより左）を薄く色づけ＝ここだけ置ける */
+.lbf-field::before {
+  content: '';
+  position: absolute;
+  inset: 0 50% 0 0;
+  background: color-mix(in srgb, var(--you) 12%, transparent);
+  pointer-events: none;
+}
+/* レーン帯（top / height は JSX がインライン指定） */
+.lbf-lane {
+  position: absolute;
+  left: 1.5%;
+  right: 1.5%;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+/* 自陣の配置スロット（前後3段。left は JSX がインライン指定） */
+.lbf-cell {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 62%;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: transparent;
+  padding: 0;
+  cursor: default;
+}
+/* カード選択中：置ける自陣セルを金色に光らせる */
+.lbf-cell.active {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  cursor: pointer;
+}
+/* 中央ライン（自陣／敵陣の境。left は JSX がインライン指定） */
+.lbf-mid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px dashed var(--line);
+  transform: translateX(-50%);
+}
+/* 本陣（縦の柱。left は JSX がインライン指定） */
+.lbf-base {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 16px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  z-index: 2;
+}
+.lbf-base.you {
+  background: linear-gradient(180deg, #7cc0ff, var(--you));
+}
+.lbf-base.cpu {
+  background: linear-gradient(180deg, #ff9a86, var(--cpu));
+}
+/* 横向きHPバー（本陣の柱の上。width は JSX が state から指定） */
+.lbf-hp {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.lbf-hp i {
+  display: block;
+  height: 100%;
+  transition: width 0.15s;
+}
+/* レーンごとの全幅ユニット層（スプライトはこの中で left%=x位置、縦はレーン帯に下寄せ） */
+.lbf-units {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* 遊べる版のレイアウト（盤面＋HUD）と HUD */
+.lbf-match {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lbf-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lbf-ebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--disp);
+  font-size: 13px;
+  color: var(--ink);
+}
+.lbf-ebar-track {
+  flex: 1;
+  min-width: 120px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lbf-ebar-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffe08a, var(--gold));
+  transition: width 0.1s;
+}
+.lb-hcard.sel {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+}
+.lbf-mult {
+  margin-left: 8px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.lbf-base.you .lbf-hp i {
+  background: linear-gradient(90deg, #7cc0ff, var(--you));
+}
+.lbf-base.cpu .lbf-hp i {
+  background: linear-gradient(90deg, #ff9a86, var(--cpu));
+}

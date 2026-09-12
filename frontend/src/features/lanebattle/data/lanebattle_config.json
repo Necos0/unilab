@@ -8,16 +8,38 @@
   "costToEnergy": 1,
   "attackIntervalMs": 260,
   "contactRangeDefault": 44,
+  "detectMargin": 30,
   "moveSpeedScale": 0.7,
+  "stackGap": 16,
   "guardian": {
     "hp": 220,
     "atk": 45,
     "range": 120,
     "intervalMs": 600
   },
+  "field": {
+    "virtualWidth": 1200,
+    "virtualHeight": 600,
+    "laneCount": 3,
+    "laneYs": [140, 300, 460],
+    "laneHeight": 150,
+    "midX": 600,
+    "youBaseX": 60,
+    "cpuBaseX": 1140
+  },
+  "deploy": {
+    "steps": 3,
+    "youSlotXs": [100, 350, 560],
+    "cpuSlotXs": [1100, 850, 640]
+  },
+  "base": {
+    "hp": 300,
+    "defense": { "atk": 45, "range": 140, "intervalMs": 600 }
+  },
+  "timeLimitMs": 90000,
   "escalation": {
-    "stepMs": 15000,
-    "maxMul": 4
+    "stepMs": 60000,
+    "maxMul": 2
   },
   "derive": {
     "costDiv": 14,
@@ -45,6 +67,18 @@
     "firstPlayMs": 900,
     "minGapMs": 700,
     "randGapMs": 1100,
-    "energyRegenMul": 1.2
+    "energyRegenMul": 1.2,
+    "attr": { "rangedRange": 100, "dpsAtk": 30, "tankyHp": 60, "fastSpd": 80, "swarmCount": 3 },
+    "urgentDist": 400,
+    "pushEnergyFrac": 0.7,
+    "counter": {
+      "swarm": "aoe",
+      "ranged": "fastMelee",
+      "dps": "tanky",
+      "other": "dps"
+    },
+    "difficulty": {
+      "normal": { "reactionMs": 500, "accuracy": 0.7, "energyRegenMul": 1.2, "missChance": 0.15 }
+    }
   }
 }
