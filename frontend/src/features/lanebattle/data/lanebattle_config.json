@@ -10,6 +10,7 @@
   "contactRangeDefault": 44,
   "detectMargin": 30,
   "moveSpeedScale": 0.7,
+  "stackGap": 16,
   "guardian": {
     "hp": 220,
     "atk": 45,
@@ -37,8 +38,8 @@
   },
   "timeLimitMs": 90000,
   "escalation": {
-    "stepMs": 15000,
-    "maxMul": 4
+    "stepMs": 60000,
+    "maxMul": 2
   },
   "derive": {
     "costDiv": 14,
@@ -66,6 +67,18 @@
     "firstPlayMs": 900,
     "minGapMs": 700,
     "randGapMs": 1100,
-    "energyRegenMul": 1.2
+    "energyRegenMul": 1.2,
+    "attr": { "rangedRange": 100, "dpsAtk": 30, "tankyHp": 60, "fastSpd": 80, "swarmCount": 3 },
+    "urgentDist": 400,
+    "pushEnergyFrac": 0.7,
+    "counter": {
+      "swarm": "aoe",
+      "ranged": "fastMelee",
+      "dps": "tanky",
+      "other": "dps"
+    },
+    "difficulty": {
+      "normal": { "reactionMs": 500, "accuracy": 0.7, "energyRegenMul": 1.2, "missChance": 0.15 }
+    }
   }
 }

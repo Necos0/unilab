@@ -34,6 +34,35 @@ export function findTarget(state, u) {
 }
 
 /**
+ * 目標 `goalX` へ最大 `dist` だけ寄せる（味方の追い越し禁止つき。要件1・8）。
+ *
+ * 進行方向（前進でも後退でも）にいる同レーン・同陣営の最寄り味方を追い越さない
+ * よう、その手前 `config.stackGap` までに移動量を制限する。前進では前の味方（壁
+ * など）を追い越せず、後退では後ろの味方に留められる（＝壁が前・遠距離は壁に
+ * 守られる、の両方が成立）。敵味方はすり抜ける（同陣営のみ判定）。既に間隔以下
+ * なら進まない（後退で押し戻さない）。DOM に触れない純関数。
+ *
+ * Args:
+ *     state (object): 対戦状態。
+ *     u (object): 動かすユニット。
+ *     goalX (number): 目標 x。
+ *     dist (number): このステップで進みたい距離（正）。
+ */
+function moveToward(state, u, goalX, dist) {
+  const toward = Math.sign(goalX - u.x);
+  if (toward === 0) return;
+  let bestGap = Infinity;
+  for (const o of state.units) {
+    if (o.dead || o === u || o.side !== u.side || o.lane !== u.lane) continue;
+    const g = (o.x - u.x) * toward;
+    if (g > 0 && g < bestGap) bestGap = g;
+  }
+  let move = dist;
+  if (bestGap < Infinity) move = Math.max(0, Math.min(dist, bestGap - config.stackGap));
+  u.x += toward * move;
+}
+
+/**
  * 各ユニットを 1 ステップ分「移動 または 攻撃」させる（要件 1・8）。
  *
  * ユニット 1 体につき `findTarget` を 1 回だけ呼び、その 1 つの標的で「攻撃
@@ -60,7 +89,7 @@ export function stepUnits(state, dt) {
     }
     if (u.atkTimer > 0) u.atkTimer -= dt;
     const speed = u.spd * u.slowMul * config.moveSpeedScale;
-    const target = findTarget(state, u);
+    const target = u.rushBase ? null : findTarget(state, u);
     if (target) {
       if (Math.abs(target.x - u.x) <= u.range) {
         if (u.atkTimer <= 0) {
@@ -68,7 +97,7 @@ export function stepUnits(state, dt) {
           resolveAttack(state, u, target);
         }
       } else {
-        u.x += Math.sign(target.x - u.x) * speed * s;
+        moveToward(state, u, target.x, speed * s);
       }
     } else {
       const baseX = u.side === 'you' ? config.field.cpuBaseX : config.field.youBaseX;
@@ -79,7 +108,7 @@ export function stepUnits(state, dt) {
           state.base[enemyBase].hp -= u.atk;
         }
       } else {
-        u.x += Math.sign(baseX - u.x) * speed * s;
+        moveToward(state, u, baseX, speed * s);
       }
     }
   }
@@ -254,6 +283,7 @@ export function stepSim(state, dt) {
   if (state.result) return;
   state.t += dt;
   const regenMul = Math.min(config.escalation.maxMul, 1 + Math.floor(state.t / config.escalation.stepMs));
+  state.regenMul = regenMul;
   const es = (dt / 1000) * config.energyRegenPerSec * regenMul;
   state.energy.you = Math.min(config.energyMax, state.energy.you + es);
   state.energy.cpu = Math.min(config.energyMax, state.energy.cpu + es * (config.cpu.energyRegenMul ?? 1));

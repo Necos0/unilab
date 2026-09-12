@@ -71,6 +71,7 @@ export default function MatchView({ deckIds }) {
             <i style={{ width: `${energyPct}%` }} />
           </span>
           <b>{hud ? Math.floor(hud.energy) : 0}</b>/{hud ? hud.energyMax : 0}
+          <span className="lbf-mult">⏩×{hud ? hud.regenMul : 1}</span>
         </span>
         {hud && (
           <HandBar

@@ -4,6 +4,7 @@ import { applyDeploy } from './applyDeploy';
 import { stepSim } from './stepSim';
 import { createDeck } from './createDeck';
 import { deriveUnitDef } from './deriveUnitDef';
+import { decideCpu } from './cpuBrain';
 
 const FIXED_MS = 1000 / 60;
 const HUD_MS = 66;
@@ -40,7 +41,9 @@ function shuffle(ids) {
  * を呼ぶ（描画のフック）。HUD（エナジー・手札・次カード）は `HUD_MS` 間引きで
  * `onHud(hud)` に渡し、React の再描画を毎フレームにしない。出撃は
  * `deploy(handIndex, lane, slot)`：手札の該当カードで `applyDeploy` し、成功した
- * ときだけデッキをローテ（最後尾へ）する。
+ * ときだけデッキをローテ（最後尾へ）する。敵（CPU）も内部に 1 組のデッキと思考
+ * 状態を持ち、毎フレーム `decideCpu` で反応してプレイヤーと同じ `applyDeploy` から
+ * 出撃する（要件4・8）。難易度は `difficulty`（既定 `config.cpu.difficulty.normal`）。
  *
  * Args:
  *     opts (object):
@@ -49,6 +52,8 @@ function shuffle(ids) {
  *             同じ state オブジェクトを共有したいとき（本陣 HP の表示など）に渡す。
  *         onFrame (function): 毎フレーム `(state, dt)` を渡す（描画用）。
  *         onHud (function): HUD 情報 `{energy, energyMax, hand, next}` を渡す。
+ *         difficulty (object): CPU 難易度プリセット（任意）。省略時は
+ *             `config.cpu.difficulty.normal`。
  *
  * Returns:
  *     object: 制御ハンドル。
@@ -57,9 +62,12 @@ function shuffle(ids) {
  *         getState (function): 現在の state を返す（テスト・確認用）。
  *         destroy (function): ループ停止・破棄。
  */
-export function createRuntime({ deckIds, state: initialState, onFrame, onHud } = {}) {
+export function createRuntime({ deckIds, state: initialState, onFrame, onHud, difficulty } = {}) {
   const state = initialState ?? createBattleState();
   const deck = createDeck(shuffle(deckIds ?? []));
+  const cpuDeck = createDeck(shuffle(config.cpu.deck ?? []));
+  const diff = difficulty ?? config.cpu.difficulty.normal;
+  const cpuBrain = { reactT: diff.reactionMs };
   let running = false;
   let acc = 0;
   let last = 0;
@@ -77,6 +85,7 @@ export function createRuntime({ deckIds, state: initialState, onFrame, onHud } =
     return {
       energy: state.energy.you,
       energyMax: config.energyMax,
+      regenMul: state.regenMul,
       hand,
       next: nextId ? { id: nextId, name: deriveUnitDef(nextId).name } : null,
     };
@@ -91,6 +100,13 @@ export function createRuntime({ deckIds, state: initialState, onFrame, onHud } =
       while (acc >= FIXED_MS) {
         stepSim(state, FIXED_MS);
         acc -= FIXED_MS;
+      }
+      const cmd = decideCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random);
+      if (cmd) {
+        const id = cpuDeck.hand()[cmd.handIndex];
+        if (applyDeploy(state, { side: 'cpu', id, lane: cmd.lane, slot: cmd.slot })) {
+          cpuDeck.play(cmd.handIndex);
+        }
       }
       onFrame?.(state, dt);
       hudT += dt;

@@ -48,6 +48,7 @@ export function spawnUnit(state, { side, id, lane, x }) {
     slowOnAttack: def.slowOnAttack ?? null,
     supportAllLanes: def.supportAllLanes ?? false,
     attackAllLanes: def.attackAllLanes ?? false,
+    rushBase: def.rushBase ?? false,
     deathbomb: def.deathbomb ?? 0,
     deathShield: def.deathShield ?? null,
     atkInterval: def.atkIntervalMs ?? config.attackIntervalMs,

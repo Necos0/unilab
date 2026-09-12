@@ -887,6 +887,11 @@
   outline: 3px solid var(--gold);
   outline-offset: 1px;
 }
+.lbf-mult {
+  margin-left: 8px;
+  font-weight: 700;
+  color: var(--gold);
+}
 .lbf-base.you .lbf-hp i {
   background: linear-gradient(90deg, #7cc0ff, var(--you));
 }

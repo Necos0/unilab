@@ -6,6 +6,7 @@ import config from '../data/lanebattle_config.json';
  * DOM や React に一切依存しない純オブジェクトを返す。描画・入力・CPU から
  * 分離した「勝敗が決まる計算」の入れ物。フィールドは次のとおり：
  *   - `t`      : 経過ミリ秒（攻撃間隔・移動の積算に使う）。
+ *   - `regenMul` : エナジー回復の加速倍率（時間で 1→2→3→4…、上限あり）。HUD 表示用。
  *   - `base`   : 各陣営の本陣。`you.hp`/`cpu.hp`（体力）と `defT`（防衛攻撃の
  *                クールダウン）。
  *   - `shield` : 死亡シールド（deathShield 能力）の陣営フラグ。`{t, mul}` で
@@ -30,6 +31,7 @@ import config from '../data/lanebattle_config.json';
 export function createBattleState(cfg = config) {
   return {
     t: 0,
+    regenMul: 1,
     base: {
       you: { hp: cfg.base.hp, defT: 0 },
       cpu: { hp: cfg.base.hp, defT: 0 },
