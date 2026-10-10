@@ -5,6 +5,17 @@ import buildCutsceneFlow, {
 } from './buildCutsceneFlow.js';
 import styles from './CutsceneFlowScreen.module.css';
 
+/*
+ * 吹き出しを持たない「画面演出だけ」の step（`{ <key>: true }` 形式）と、
+ * 一覧で出すラベルの対応。`formatSteps` が先頭から照合し、最初に一致した
+ * ものを `🎬` 付きのアニメ行として描く。開発用ビューなのでふりがなは振らない。
+ */
+const EFFECT_STEP_LABELS = [
+  ['dragonShadow', 'ドラゴンの影が画面を横切る'],
+  ['boardTransform', '盤面変身（第二形態）'],
+  ['reviveBoss', 'ボス復活シーケンス再開'],
+];
+
 /**
  * 「漢字《よみ》」記法のルビ注記を取り除いて素のテキストに戻す。
  *
@@ -24,7 +35,8 @@ function stripRuby(text) {
 /**
  * カットシーン 1 件のステップ列を読みやすい文字列に整形する。
  *
- * `bubble` ステップはルビを外したセリフ、`playAnimation` ステップは
+ * `bubble` ステップはルビを外したセリフ、画面演出だけのステップ
+ * （`EFFECT_STEP_LABELS` のキーを持つもの）と `playAnimation` ステップは
  * `🎬 アニメ名(パラメータ)` の形にして配列で返す。ビュー側はこれを
  * 番号付きで縦に並べる。
  *
@@ -37,6 +49,10 @@ function stripRuby(text) {
  */
 function formatSteps(steps) {
   return (steps ?? []).map((step) => {
+    const effectLabel = EFFECT_STEP_LABELS.find(([key]) => step[key] === true)?.[1];
+    if (effectLabel) {
+      return { kind: 'anim', text: `🎬 ${effectLabel}`, point: null };
+    }
     if (step.playAnimation) {
       const params = step.params ? `（${Object.entries(step.params)
         .map(([key, value]) => `${key}: ${value}`)

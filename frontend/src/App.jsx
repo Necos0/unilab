@@ -102,6 +102,39 @@ function App() {
    */
   const pendingExitStageIdRef = useRef(null);
   /*
+   * クリア後にマップへ戻った直後のカットシーン（`returnToMap`、例: 1-4
+   * クリア後にドラゴンの影がマップを横切る `map-stage1-shadow`）の制御。
+   *   - `pendingReturnCutsceneStageIdRef`: 帰還演出の明転完了
+   *     （`handleReturnEnd`）で発火するステージ ID。暗転中（`handleReturn
+   *     Midpoint`）に退避し、明転後に `fireTrigger` する。
+   *   - `isWorldUnlockHeld` / `heldWorldUnlockCutsceneIdRef`: そのカット
+   *     シーンが終わるまで次ワールド解放シネマ（`WorldUnlockCutscene`）を
+   *     待たせるフラグと、待たせる原因になっているカットシーン ID。
+   *     `MapScreen` はフラグが立っている間シネマをマウントしない。カット
+   *     シーンの終了（`activeId` がその ID → null）をストア購読で検知して
+   *     解除すると、シネマ（暗転 → 全体マップ → 開放アニメ → 復帰）が走り、
+   *     その後に `exitStage`（「このマップを押して追いかけよう」）が続く。
+   *     購読は zustand の `subscribe` で行い、effect 本体で同期的に setState
+   *     しない（`react-hooks/set-state-in-effect` を避ける）。
+   */
+  const pendingReturnCutsceneStageIdRef = useRef(null);
+  const heldWorldUnlockCutsceneIdRef = useRef(null);
+  const [isWorldUnlockHeld, setIsWorldUnlockHeld] = useState(false);
+  useEffect(
+    () =>
+      useCutsceneStore.subscribe((state, prev) => {
+        if (
+          prev.activeId !== null &&
+          state.activeId === null &&
+          heldWorldUnlockCutsceneIdRef.current === prev.activeId
+        ) {
+          heldWorldUnlockCutsceneIdRef.current = null;
+          setIsWorldUnlockHeld(false);
+        }
+      }),
+    [],
+  );
+  /*
    * 開発用カットシーン・フロー画面（隠しコマンド `wqflow`）を開く直前の画面を
    * 控えておき、「戻る」で元の画面へ復帰できるようにする。バトル中に開いた
    * 場合は戻るとバトルが再マウントされてトリガーが再発火するため、`map` に
@@ -343,6 +376,25 @@ function App() {
 
   const handleReturnEnd = useCallback(() => {
     setIsReturningToMap(false);
+    /*
+     * マップが明転しきった時点で、帰還直後のカットシーン（`returnToMap`、
+     * 例: 1-4 クリア後にドラゴンの影がマップを横切る）を発火する。暗転中に
+     * 発火すると、影の演出が黒幕の下で見えないまま進んでしまうため、ここで
+     * 出す。何らかの理由で再生が始まらなかった（別の会話が再生中など）
+     * 場合は、解放シネマを待たせたまま詰まらないよう待ちを即解除する。
+     */
+    const returnStageId = pendingReturnCutsceneStageIdRef.current;
+    if (returnStageId !== null) {
+      pendingReturnCutsceneStageIdRef.current = null;
+      const cutscene = useCutsceneStore.getState();
+      cutscene.fireTrigger({ type: 'returnToMap', stageId: returnStageId });
+      if (
+        useCutsceneStore.getState().activeId !== heldWorldUnlockCutsceneIdRef.current
+      ) {
+        heldWorldUnlockCutsceneIdRef.current = null;
+        setIsWorldUnlockHeld(false);
+      }
+    }
   }, []);
 
   const handleStartGame = useCallback(() => {
@@ -504,6 +556,21 @@ function App() {
       }
       const progress = useProgressStore.getState();
       /*
+       * 帰還直後のカットシーン（`returnToMap`）が再生できるなら、明転後の
+       * 発火を予約し、次ワールド解放シネマをその終了まで待たせる。再生
+       * できない（視聴済み・定義なし）なら待たせない。待ちフラグは毎回
+       * 明示的に true/false で上書きし、途中リセット等で古い true が残って
+       * シネマが永久に出なくなるのを防ぐ。
+       */
+      const returnCutsceneId = useCutsceneStore
+        .getState()
+        .peekCutsceneId({ type: 'returnToMap', stageId: clearedStageId });
+      pendingReturnCutsceneStageIdRef.current = returnCutsceneId
+        ? clearedStageId
+        : null;
+      heldWorldUnlockCutsceneIdRef.current = returnCutsceneId;
+      setIsWorldUnlockHeld(returnCutsceneId !== null);
+      /*
        * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリアで次ワールド解放シネマ
        * （`WorldUnlockCutscene`）が走るときは、シネマ完了後に `exitStage` を
        * 出す（上の `pendingWorldUnlock` 監視 useEffect が発火する）。
@@ -572,6 +639,7 @@ function App() {
       <MapScreen
         onStartBattle={handleStartBattle}
         onBackToTitle={handleBackToTitle}
+        isWorldUnlockHeld={isWorldUnlockHeld}
       />
     );
   }
