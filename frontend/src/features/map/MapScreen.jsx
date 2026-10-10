@@ -16,6 +16,7 @@ import MapEditorLayer from './MapEditorLayer';
 import MapRegionEditorLayer from './MapRegionEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
 import RoboBubble from '../cutscene/RoboBubble';
+import DragonShadowOverlay from '../cutscene/DragonShadowOverlay';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
@@ -59,11 +60,15 @@ const OVERWORLD_MAP_ID = 'map_0';
  *             ボタン押下時に `stageId` を渡して呼ぶ関数。
  *         onBackToTitle (function): 左上「タイトルに もどる」ボタン押下時に
  *             呼ぶ関数（引数なし）。親（`App`）がタイトル画面へ切り替える。
+ *         isWorldUnlockHeld (boolean): true の間は次ワールド解放シネマ
+ *             （`WorldUnlockCutscene`）をマウントしない。帰還直後のカット
+ *             シーン（1-4 クリア後にドラゴンの影がマップを横切る）を先に
+ *             見せるために `App` が立て、終了で下ろす。既定は false。
  *
  * Returns:
  *     JSX.Element: マップ画面全体を表す `<section>` 要素。
  */
-function MapScreen({ onStartBattle, onBackToTitle }) {
+function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) {
   const initializeMap = useMapStore((state) => state.initializeMap);
   const switchMap = useMapStore((state) => state.switchMap);
   const isMoving = useMapStore((state) => state.isMoving);
@@ -76,6 +81,8 @@ function MapScreen({ onStartBattle, onBackToTitle }) {
    * ワールド最終ステージ（1-4 / 2-4 / 3-4）クリア後に立つ「次ワールド解放」
    * フラグ。非 null の間 `WorldUnlockCutscene`（暗転→全体マップ→開放アニメ→
    * 暗転→復帰）を再生する。完了で `finishWorldUnlockCutscene` が null に戻す。
+   * ただし `isWorldUnlockHeld`（帰還直後のカットシーン再生中）の間は
+   * マウントを待つ。
    */
   const pendingWorldUnlock = useProgressStore(
     (state) => state.pendingWorldUnlock,
@@ -227,6 +234,19 @@ function MapScreen({ onStartBattle, onBackToTitle }) {
     setPendingMapId(null);
   }, []);
 
+  /*
+   * カットシーンの「ドラゴンの影」step（`dragonShadow`、1-4 クリア後の
+   * `map-stage1-shadow`）。マップに戻って明転した直後にこの step へ進むと、
+   * マップの描画矩形（`.canvas`）に `DragonShadowOverlay`（黒いシルエットが
+   * 左から右へ飛び去る）を重ねる。演出が終わる（`onEnd`）とカットシーンを
+   * 進め、「なんだ、今の影は！？」の吹き出しへ続ける。会話が終わると `App`
+   * が `isWorldUnlockHeld` を下ろし、次ワールド解放シネマが始まる。
+   */
+  const isDragonShadowStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.dragonShadow === true,
+  );
+  const advanceCutscene = useCutsceneStore((s) => s.advance);
+
   const handleWorldUnlockEnd = useCallback(() => {
     /*
      * シネマ明けに再マウントされるマップ移動ボタンへデビュー演出を指示する。
@@ -297,6 +317,7 @@ function MapScreen({ onStartBattle, onBackToTitle }) {
             />
           )}
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
+        {isDragonShadowStep && <DragonShadowOverlay onEnd={advanceCutscene} />}
       </div>
       {pendingMapId !== null && (
         <MapSwitchTransition
@@ -304,7 +325,7 @@ function MapScreen({ onStartBattle, onBackToTitle }) {
           onEnd={handleSwitchTransitionEnd}
         />
       )}
-      {pendingWorldUnlock !== null && (
+      {pendingWorldUnlock !== null && !isWorldUnlockHeld && (
         <WorldUnlockCutscene onEnd={handleWorldUnlockEnd} />
       )}
       <RoboBubble variant="map" />

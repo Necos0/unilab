@@ -24,6 +24,10 @@ import parseStageId from '../features/map/parseStageId';
  *     その step に進むと `pendingSlotHelpId` を立て、`BattleScreen` が
  *     `HelpWindow` を「マス」カテゴリの該当タブで開く（例: 種類指定マス
  *     `acceptOnly`、倍率マス `multiplier`、条件マス `condition`）。
+ *   - 画面演出だけの step（`boardTransform` / `reviveBoss` / `dragonShadow`）:
+ *     吹き出しを持たず、`BattleScreen` が現在 step を見て演出を再生し、
+ *     終わったら `advance()` で次へ進める（例: `dragonShadow` は 1-4 撃破後に
+ *     ドラゴンの影が画面を横切る演出）。
  * `playAnimation`（再生アニメ）のみを持つ step は再生対象から除外する
  * （データとしては将来フェーズ用に温存される）。
  *
@@ -54,6 +58,8 @@ import parseStageId from '../features/map/parseStageId';
  *
  * 公開アクション:
  *   - `fireTrigger(event)` : イベントに一致するカットシーンを探して再生開始。
+ *   - `peekCutsceneId(event)`: 同じ条件で「再生できるか」だけを ID で返す
+ *     （再生はしない。演出の順番決めの事前判定用）。
  *   - `advance()`          : 次の step へ。末尾なら `finish()`。
  *   - `chooseOption(choice)`: 選択肢を選ぶ。`goto` があれば該当 `id` の step へ。
  *   - `goToStep(index)`    : 指定 step へ移動（`openCardHelp` ならモーダルを開く）。
@@ -159,6 +165,86 @@ function helpIdsFromStep(step) {
   };
 }
 
+/**
+ * カットシーン定義の `steps` から、フェーズ1で再生対象になる step だけを
+ * 取り出す。
+ *
+ * 吹き出し・選択肢・ヘルプ誘導・各種の待ち step・画面演出だけの step
+ * （`boardTransform` / `reviveBoss` / `dragonShadow`）を残し、`playAnimation`
+ * のみの step などは落とす。`fireTrigger` と `peekCutsceneId` の共通処理。
+ *
+ * Args:
+ *     def (object): カットシーン定義（`steps` を持つ）。
+ *
+ * Returns:
+ *     Array<object>: 再生対象の step 配列（元の順序を保つ）。
+ */
+function selectPlayableSteps(def) {
+  return (def.steps ?? []).filter(
+    (step) =>
+      typeof step.bubble === 'string' ||
+      Array.isArray(step.choices) ||
+      typeof step.openCardHelp === 'string' ||
+      typeof step.openSlotHelp === 'string' ||
+      typeof step.waitForArrival === 'string' ||
+      typeof step.waitForBattle === 'string' ||
+      /*
+       * 盤面変身 step（最終ボス第二形態）。吹き出しを持たず、`BattleScreen`
+       * がこの step に進んだのを検知してフローチャート・手札の変身演出＋
+       * 差し替えを行い、完了後に advance で次の吹き出しへ進める。
+       */
+      step.boardTransform === true ||
+      /*
+       * ボス復活再開 step（フェイクアウト会話の末尾）。吹き出しを持たず、
+       * `BattleScreen` がこの step で `resumeReviveSequence`（白フラッシュ
+       * 〜第二形態復活）を呼んで会話を終了させる。
+       */
+      step.reviveBoss === true ||
+      /*
+       * ドラゴンの影 step（1-4 クリア後にマップへ戻った直後）。吹き出しを
+       * 持たず、`MapScreen` がこの step でマップを左から右へ横切る影の演出
+       * （`DragonShadowOverlay`）を出し、終わったら advance で次の
+       * 吹き出し（「なんだ、今の影は！？」）へ進める。
+       */
+      step.dragonShadow === true,
+  );
+}
+
+/**
+ * イベントに一致し、いま `fireTrigger` すれば再生が始まるカットシーンの
+ * ID を返す（再生はしない）。
+ *
+ * 「一致する定義がある」「吹き出しを 1 つ以上持つ」「`once` なら未視聴」を
+ * すべて満たすときだけ ID を返す。別のカットシーンを再生中かどうかは
+ * 見ない（呼び出し側が、後で発火できるタイミングを選ぶ用途のため）。
+ * `App` が 1-4 クリア後のマップ帰還で「影のカットシーンを挟むか」を事前に
+ * 判断し、次ワールド解放シネマを待たせるかどうかを決めるのに使う。
+ *
+ * Args:
+ *     event (object): 発火イベント。`{ type, stageId?, screen? }`。
+ *
+ * Returns:
+ *     string | null: 再生可能なカットシーン ID。無ければ null。
+ */
+function peekCutsceneId(event, seenIds) {
+  const found = findCutscene(event);
+  if (!found) {
+    return null;
+  }
+  const { id, def } = found;
+  const hasBubble = selectPlayableSteps(def).some(
+    (step) => typeof step.bubble === 'string',
+  );
+  if (!hasBubble) {
+    return null;
+  }
+  const isOnce = def.once !== false;
+  if (isOnce && seenIds.includes(id)) {
+    return null;
+  }
+  return id;
+}
+
 const useCutsceneStore = create((set, get) => ({
   seenIds: loadSeenIds(),
   activeId: null,
@@ -204,40 +290,11 @@ const useCutsceneStore = create((set, get) => ({
     if (get().activeId) {
       return;
     }
-    const found = findCutscene(event);
-    if (!found) {
+    const id = peekCutsceneId(event, get().seenIds);
+    if (!id) {
       return;
     }
-    const { id, def } = found;
-    const steps = def.steps.filter(
-      (step) =>
-        typeof step.bubble === 'string' ||
-        Array.isArray(step.choices) ||
-        typeof step.openCardHelp === 'string' ||
-        typeof step.openSlotHelp === 'string' ||
-        typeof step.waitForArrival === 'string' ||
-        typeof step.waitForBattle === 'string' ||
-        /*
-         * 盤面変身 step（最終ボス第二形態）。吹き出しを持たず、`BattleScreen`
-         * がこの step に進んだのを検知してフローチャート・手札の変身演出＋
-         * 差し替えを行い、完了後に advance で次の吹き出しへ進める。
-         */
-        step.boardTransform === true ||
-        /*
-         * ボス復活再開 step（フェイクアウト会話の末尾）。吹き出しを持たず、
-         * `BattleScreen` がこの step で `resumeReviveSequence`（白フラッシュ
-         * 〜第二形態復活）を呼んで会話を終了させる。
-         */
-        step.reviveBoss === true,
-    );
-    const hasBubble = steps.some((step) => typeof step.bubble === 'string');
-    if (!hasBubble) {
-      return;
-    }
-    const isOnce = def.once !== false;
-    if (isOnce && get().seenIds.includes(id)) {
-      return;
-    }
+    const steps = selectPlayableSteps(cutscenesData[id]);
     set({
       activeId: id,
       steps,
@@ -245,6 +302,19 @@ const useCutsceneStore = create((set, get) => ({
       ...helpIdsFromStep(steps[0]),
     });
   },
+
+  /**
+   * イベントに一致し、いま `fireTrigger` すれば再生が始まるカットシーンの
+   * ID を返す（再生はしない）。判定内容はモジュール関数 `peekCutsceneId`
+   * を参照（現在の `seenIds` を渡して委譲する）。
+   *
+   * Args:
+   *     event (object): 発火イベント。`{ type, stageId?, screen? }`。
+   *
+   * Returns:
+   *     string | null: 再生可能なカットシーン ID。無ければ null。
+   */
+  peekCutsceneId: (event) => peekCutsceneId(event, get().seenIds),
 
   /**
    * 現在の step から次の step へ進める。

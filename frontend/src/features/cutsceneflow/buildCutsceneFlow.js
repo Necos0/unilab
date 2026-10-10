@@ -6,7 +6,8 @@ import parseStageId from '../map/parseStageId.js';
  * ステージ内で順に発生する「カットシーンの差し込み口」の定義。
  *
  * `cutscenes.json` の `trigger.type` と 1 対 1 で対応し、配列の並びが
- * そのままステージ内の時系列（到着 → バトル開始 → 敗北 → 撃破 → 退出）に
+ * そのままステージ内の時系列（到着 → バトル開始 → 敗北 → 撃破 → マップ帰還
+ * → 退出）に
  * なる。`CutsceneFlowScreen` はこの並びを縦に描いて、どのタイミングに
  * カットシーンが付いているかを見せる。開発用ビューのため、ラベルには
  * ふりがなを振らない（プレイヤー向けテキストではない）。
@@ -19,6 +20,7 @@ export const STAGE_TIMINGS = [
   { type: 'enterBattle', label: 'バトル開始', desc: 'バトル画面に入った直後' },
   { type: 'battleLost', label: 'バトル敗北', desc: 'バトルに負けたとき' },
   { type: 'defeatEnemy', label: '敵を倒す', desc: '勝利演出（撃破）のとき' },
+  { type: 'returnToMap', label: 'マップ帰還', desc: 'クリアしてマップへ戻った直後（解放アニメより前）' },
   { type: 'exitStage', label: 'ステージ退出', desc: 'クリアしてマップへ戻るとき（解放アニメ後）' },
 ];
 
@@ -80,7 +82,7 @@ function hasWorldUnlock(def) {
  *
  * ステージは `world`（数値順）→ `number`（昇順）でソートし、同じワールドの
  * ステージをまとめる。各ワールドの先頭には `enterMapArea`（マップ入場）の
- * 差し込み口を、各ステージには `STAGE_TIMINGS` 5 種の差し込み口を並べ、
+ * 差し込み口を、各ステージには `STAGE_TIMINGS` 6 種の差し込み口を並べ、
  * それぞれに該当するカットシーン（無ければ `null`）を割り当てる。これにより
  * 「1-1 入り口 → 1-1 → 1-2 …」という時系列フローを上から下へ描ける。
  *

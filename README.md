@@ -151,23 +151,24 @@ unilab/
     │   │   │   ├── down/         ← 下方向への歩行
     │   │   │   ├── left/         ← 左方向への歩行
     │   │   │   └── right/        ← 右方向への歩行
-    │   │   └── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
-    │   │       ├── slime/        ← idle / dead
-    │   │       ├── wolf/         ← idle / dead
-    │   │       ├── knight/       ← idle / dead
-    │   │       ├── golem/        ← idle / dead
-    │   │       ├── cactus/       ← idle / dead
-    │   │       ├── cobra/        ← idle / dead
-    │   │       ├── crab/         ← idle / dead
-    │   │       ├── dragon/       ← idle / dead
-    │   │       ├── lizard/       ← idle / dead
-    │   │       ├── phoenix/      ← idle / dead
-    │   │       ├── lagiacrus/    ← idle / dead
-    │   │       ├── starfish/     ← idle / dead
-    │   │       ├── scorpion/     ← idle / dead
-    │   │       ├── shark/        ← idle / dead
-    │   │       ├── squid/        ← idle / dead
-    │   │       └── goldenbird/   ← idle / dead
+    │   │   ├── enemies/          ← 敵スプライト(<id>/<state>/<id>_<state>_NN.png)
+    │   │   │   ├── slime/        ← idle / dead
+    │   │   │   ├── wolf/         ← idle / dead
+    │   │   │   ├── knight/       ← idle / dead
+    │   │   │   ├── golem/        ← idle / dead
+    │   │   │   ├── cactus/       ← idle / dead
+    │   │   │   ├── cobra/        ← idle / dead
+    │   │   │   ├── crab/         ← idle / dead
+    │   │   │   ├── dragon/       ← idle / dead
+    │   │   │   ├── lizard/       ← idle / dead
+    │   │   │   ├── phoenix/      ← idle / dead
+    │   │   │   ├── lagiacrus/    ← idle / dead
+    │   │   │   ├── starfish/     ← idle / dead
+    │   │   │   ├── scorpion/     ← idle / dead
+    │   │   │   ├── shark/        ← idle / dead
+    │   │   │   ├── squid/        ← idle / dead
+    │   │   │   └── goldenbird/   ← idle / dead
+    │   │   └── effects/          ← 演出用の単発画像(dragon_shadow.png: 翼を広げたドラゴンの影、DragonShadowOverlay が参照)
     │   └── story/                ← 紙芝居の画像(オープニング story_NN.png・エンディング ending_NN.png、StoryScreen が参照)
     └── src/
         ├── main.jsx              ← エントリポイント
@@ -309,6 +310,8 @@ unilab/
             │   ├── CutscenePointer.module.css
             │   ├── CutsceneDragDemo.jsx    ← カード→スロットのドラッグ&ドロップ操作デモ(ゴースト＋指先)
             │   ├── CutsceneDragDemo.module.css
+            │   ├── DragonShadowOverlay.jsx ← 1-4 クリア後にドラゴンの影がマップを左から右へ横切る演出(カットシーンの dragonShadow step、MapScreen が表示)
+            │   ├── DragonShadowOverlay.module.css
             │   ├── NameEntryPanel.jsx      ← ひらがな表でプレイヤー名を入力するパネル(オープニング用)
             │   ├── NameEntryPanel.module.css
             │   └── tokenizeFurigana.js     ← 「漢字《よみ》」記法を表示単位(文字/ルビ)に分解(純関数)

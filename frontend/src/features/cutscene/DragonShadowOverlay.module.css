@@ -1,0 +1,105 @@
+/*
+ * 「ドラゴンの影」がマップを左から右へ横切る演出（1-4 クリア後）。
+ * 全体 2000ms でマップ左外から右外へ飛び去り、その間だけマップ全体を
+ * うっすら暗くする。DragonShadowOverlay.jsx の SHADOW_TOTAL_MS
+ * （2000 + 余韻 400 = 2400ms）と同期させること。
+ *
+ * 寸法はすべて親（`MapScreen` の `.canvas`＝マップの 16:9 矩形）に対する
+ * 割合で指定し、ウィンドウサイズが変わっても影の大きさと軌道がマップに
+ * 対して一定になるようにする。
+ */
+
+/*
+ * 親の矩形全体を覆う層。ランドマーク・ボタンより上、ロボの吹き出し
+ * （z-index: 100）より下に置く。演出中は下の操作をブロックする。
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* 頭上を大きな何かが通り過ぎる「かげり」。中盤で最も暗くなる。 */
+.veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  animation: dragonShadowVeil 2000ms ease-in-out forwards;
+}
+
+/*
+ * 横方向の飛行。マップ幅に対する割合で左外（-60%）から右外（+160%）へ。
+ * 端で少しゆっくり・中央で速く見えるよう ease-in-out にする。影は画面
+ * 中央あたりの高さ（上下中央）を通る。
+ */
+.flight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transform: translateX(-60%);
+  animation: dragonShadowFly 2000ms cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+}
+
+/*
+ * はばたき。翼は画像の上下方向に広がっているので、縦に伸縮させると
+ * 翼を打ち下ろす／持ち上げる動きに見える。胴の中心を基準にする。
+ */
+.flap {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transform-origin: 50% 50%;
+  animation: dragonShadowFlap 460ms ease-in-out infinite alternate;
+}
+
+/*
+ * 影本体。画像は頭が右向き（進行方向）なので反転不要。画像自体を強く
+ * ぼかしてあり（輪郭をはっきり見せない）、ここでも軽くぼかして薄めに
+ * 重ねる。マップ矩形の高さの 60%（余白込みの画像高さ）を翼の端から端まで
+ * の大きさにし、画面中央の半分ほどを覆う。
+ */
+.shadow {
+  display: block;
+  height: 60%;
+  width: auto;
+  opacity: 0.62;
+  filter: blur(3px);
+  -webkit-user-drag: none;
+}
+
+@keyframes dragonShadowFly {
+  from {
+    transform: translateX(-60%);
+  }
+  to {
+    transform: translateX(160%);
+  }
+}
+
+@keyframes dragonShadowFlap {
+  from {
+    transform: scaleY(1) translateY(0);
+  }
+  to {
+    transform: scaleY(0.72) translateY(-2%);
+  }
+}
+
+@keyframes dragonShadowVeil {
+  0% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+  }
+}
