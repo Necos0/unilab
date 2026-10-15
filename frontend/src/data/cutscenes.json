@@ -177,6 +177,7 @@
     "once": true,
     "trigger": { "type": "returnToMap", "stageId": "1-4" },
     "steps": [
+      { "bubble": "なんとか ボスを 倒《たお》す ことが できたね！" },
       { "dragonShadow": true },
       { "bubble": "…！？ なんだ、今《いま》の 影《かげ》は！？" },
       { "bubble": "大《おお》きな はね… もしかして、ドラゴン！？" },

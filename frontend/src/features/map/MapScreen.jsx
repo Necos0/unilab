@@ -236,7 +236,7 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
 
   /*
    * カットシーンの「ドラゴンの影」step（`dragonShadow`、1-4 クリア後の
-   * `map-stage1-shadow`）。マップに戻って明転した直後にこの step へ進むと、
+   * `map-stage1-shadow`）。マップに戻った後のビットの吹き出しをクリックしてこの step へ進むと、
    * マップの描画矩形（`.canvas`）に `DragonShadowOverlay`（黒いシルエットが
    * 左から右へ飛び去る）を重ねる。演出が終わる（`onEnd`）とカットシーンを
    * 進め、「なんだ、今の影は！？」の吹き出しへ続ける。会話が終わると `App`

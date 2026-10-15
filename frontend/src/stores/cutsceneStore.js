@@ -201,7 +201,7 @@ function selectPlayableSteps(def) {
        */
       step.reviveBoss === true ||
       /*
-       * ドラゴンの影 step（1-4 クリア後にマップへ戻った直後）。吹き出しを
+       * ドラゴンの影 step（1-4 クリア後にマップへ戻り、ビットの吹き出しの後）。吹き出しを
        * 持たず、`MapScreen` がこの step でマップを左から右へ横切る影の演出
        * （`DragonShadowOverlay`）を出し、終わったら advance で次の
        * 吹き出し（「なんだ、今の影は！？」）へ進める。
