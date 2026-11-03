@@ -86,6 +86,24 @@
   -webkit-user-drag: none;
 }
 
+/*
+ * ビット以外の「姿の見えない話し手」（`speaker` を持つ step）のアイコン。
+ * `.icon` と同じ大きさの暗い影に「？」だけを出し、正体を伏せる。
+ */
+.unknownIcon {
+  flex: 0 0 auto;
+  width: 138px;
+  height: 138px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: 4.5rem;
+  color: rgba(255, 120, 90, 0.85);
+  background: radial-gradient(circle, rgba(40, 6, 6, 0.92) 55%, rgba(40, 6, 6, 0) 72%);
+  text-shadow: 0 0 10px rgba(200, 30, 0, 0.8);
+}
+
 /* アイコン下の名前プレート。自己紹介前は「???」、以降は「ビット」。
    HelpButton 等と同じ RPG 調（金枠＋暗い半透明地＋DotGothic16）で揃える */
 .iconName {

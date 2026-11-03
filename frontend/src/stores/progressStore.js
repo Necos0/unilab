@@ -4,6 +4,7 @@ import stagesData from '../data/stagesLoader.js';
 import mapsData from '../data/maps.json';
 import parseStageId from '../features/map/parseStageId';
 import getNextStageId from '../features/map/getNextStageId';
+import REGION_PRESETS from '../features/map/regionPresets';
 
 /**
  * ステージ解放・クリア進行状況を一元管理する Zustand ストア。
@@ -45,13 +46,55 @@ import getNextStageId from '../features/map/getNextStageId';
 const UNLOCK_FADE_DURATION_MS = 1500;
 
 /**
+ * 指定ワールドが全体マップ（`map_0`）上に領域を持つかを判定する。
+ *
+ * 領域の定義（`REGION_PRESETS` の `stageId` = `map_N`）に含まれ、かつ
+ * `maps.json` にそのマップがあるワールドだけを「全体マップのワールド」と
+ * みなす。タイトルから直接入る独立マップ（ワールド 5 の `map_5`）は除外される。
+ *
+ * Args:
+ *     world (string|number): ワールド番号。
+ *
+ * Returns:
+ *     boolean: 全体マップ上に領域を持つなら `true`。
+ */
+function isOverworldRegionWorld(world) {
+  const mapId = `map_${world}`;
+  return (
+    REGION_PRESETS.some((preset) => preset.stageId === mapId) &&
+    Boolean(mapsData.maps?.[mapId])
+  );
+}
+
+/**
+ * 指定マップが「独立マップ」かを判定する。
+ *
+ * 全体マップ（`map_0`）でも、その領域（`REGION_PRESETS`、`map_1`〜`map_4`）
+ * でもないマップを独立マップとみなす。現状はステージ5の `map_5` だけで、
+ * タイトルの専用ボタンからしか出入りしない。
+ *
+ * Args:
+ *     mapId (string): マップ ID。
+ *
+ * Returns:
+ *     boolean: 独立マップなら `true`。
+ */
+function isStandaloneMap(mapId) {
+  return (
+    mapId !== 'map_0' &&
+    !REGION_PRESETS.some((preset) => preset.stageId === mapId)
+  );
+}
+
+/**
  * 指定ワールドの次ワールドが全体マップ（`map_0`）上に領域を持つかを判定する。
  *
  * 全体マップの各領域は `map_1`〜`map_4`（ワールド 1〜4）に対応する。ワールド
  * `W` の最終ステージをクリアしたとき、次ワールド `W+1` に対応する `map_{W+1}`
- * が `maps.json` に存在すれば「全体マップで解放できる次ワールドがある」と
- * みなす。最終ワールド（領域を持たないワールド、例: 5）の最終ステージでは
- * `false` になり、解放シネマを発火させない。
+ * が全体マップの領域（`REGION_PRESETS`）に含まれていれば「全体マップで解放
+ * できる次ワールドがある」とみなす。`maps.json` にマップがあるだけでは足り
+ * ない：ワールド 5（`map_5`）はエンディング後にタイトルから入る独立マップで
+ * 全体マップに領域を持たないため、4-4 クリアで解放シネマを発火させない。
  *
  * Args:
  *     world (string|number): 現在のワールド番号。
@@ -64,7 +107,7 @@ function getNextUnlockableWorld(world) {
   if (Number.isNaN(Number(world))) {
     return null;
   }
-  return mapsData.maps?.[`map_${nextWorld}`] ? nextWorld : null;
+  return isOverworldRegionWorld(nextWorld) ? nextWorld : null;
 }
 
 const useProgressStore = create(
@@ -81,6 +124,7 @@ const useProgressStore = create(
   hasSeenOpeningStory: false,
   hasFinishedEndingGame: false,
   lastPosition: null,
+  lastStandalonePosition: null,
 
   /**
    * マップ上の最後の位置を記録する（「続きから」再開用）。
@@ -96,8 +140,20 @@ const useProgressStore = create(
    *     mapId (string): 現在のマップ ID（例: `"map_1"`）。
    *     locationId (string|null): 現在立っているノード ID。
    */
-  setLastPosition: (mapId, locationId) =>
-    set({ lastPosition: { mapId, locationId: locationId ?? null } }),
+  setLastPosition: (mapId, locationId) => {
+    const position = { mapId, locationId: locationId ?? null };
+    /*
+     * ステージ5（`map_5`）のような独立マップの位置は本編の「続きから」とは
+     * 別に覚える。混ぜると、ステージ5で終えた後にタイトルの「スタート」を
+     * 押したとき本編ではなくステージ5へ戻ってしまう。独立マップの位置は
+     * タイトルの「つづきの ぼうけんへ」（`App.handlePlayWorld5`）が使う。
+     */
+    if (isStandaloneMap(mapId)) {
+      set({ lastStandalonePosition: position });
+      return;
+    }
+    set({ lastPosition: position });
+  },
 
   /**
    * オープニング紙芝居（`StoryScreen`）を最後まで見たことを記録する。
@@ -117,7 +173,8 @@ const useProgressStore = create(
    *
    * ラスボス（4-4）クリア（`clearedStageIds` に `ENDING_STAGE_ID` を含む）と
    * この記録の両方がそろったとき、タイトル画面に「じんとりがっせん で あそぶ」
-   * ボタンを出す（おまけミニゲーム＝陣取り合戦への入口）。localStorage に
+   * ボタンと、ステージ5（`map_5`）への「つづきの ぼうけんへ」ボタンを出す
+   * （おまけミニゲーム＝陣取り合戦の入口と、エンディング後の続編の入口）。localStorage に
    * 永続化され、`wqreset`（`resetProgress`）で初期化される。既に記録済みなら
    * 参照を変えず no-op。
    */
@@ -127,7 +184,6 @@ const useProgressStore = create(
     }
     set({ hasFinishedEndingGame: true });
   },
-
   /**
    * プレイヤーが戦闘で「初めて出てきた」カードを既出として記録する。
    *
@@ -327,6 +383,7 @@ const useProgressStore = create(
       hasFinishedEndingGame: false,
       /* 「続きから」の保存位置も消し、次回スタートは最初のマップの入口から */
       lastPosition: null,
+      lastStandalonePosition: null,
     }),
 
   /**
@@ -380,7 +437,7 @@ const useProgressStore = create(
     });
     const unlockedWorlds = [];
     for (let world = 2; world <= targetWorld; world += 1) {
-      if (mapsData.maps?.[`map_${world}`]) {
+      if (isOverworldRegionWorld(world)) {
         unlockedWorlds.push(String(world));
       }
     }
@@ -462,6 +519,7 @@ const useProgressStore = create(
         hasSeenOpeningStory: state.hasSeenOpeningStory,
         hasFinishedEndingGame: state.hasFinishedEndingGame,
         lastPosition: state.lastPosition,
+        lastStandalonePosition: state.lastStandalonePosition,
       }),
     },
   ),

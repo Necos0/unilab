@@ -5,6 +5,13 @@ import useProgressStore, {
   isStageUnlockedSelector,
 } from '../../stores/progressStore';
 
+/* 詳細パネルの半高（`LandmarkDetail` の高さ 140 の半分）。 */
+const DETAIL_HALF_HEIGHT = 70;
+/* 詳細パネルを巻物の上に置くときの中心 y（巻物の上端 -71 に下端を接する）。 */
+const DETAIL_ABOVE_Y = -141;
+/* 詳細パネルを巻物の下に置くときの中心 y（巻物の下端 -1 に上端を接する）。 */
+const DETAIL_BELOW_Y = 69;
+
 /**
  * 1 個分のランドマークを SVG 上に描画し、クリック・到着判定を受け付ける
  * コンポーネント。
@@ -95,6 +102,14 @@ function Landmark({
     onStartBattle(stageId);
   };
 
+  /*
+   * 画面上端に近いランドマーク（5-4 のてっぺんの広場など）は、詳細パネルを
+   * 巻物の上に出すと viewBox の外にはみ出して「たたかう」ボタンが切れる。
+   * 上に収まらないときだけ巻物の下に出す。
+   */
+  const isDetailBelow = position.y + DETAIL_ABOVE_Y - DETAIL_HALF_HEIGHT < 0;
+  const detailY = isDetailBelow ? DETAIL_BELOW_Y : DETAIL_ABOVE_Y;
+
   return (
     <g
       className={groupClassName}
@@ -106,6 +121,7 @@ function Landmark({
         ラベルと詳細パネルは隙間なく接するように配置する。
           - ラベル：translate(0, -36)、半高 35 → 上端 y = -71
           - 詳細：translate(0, -141)、半高 70 → 下端 y = -71
+            （画面上端に収まらないときは translate(0, 69) で巻物の下に接する）
         詳細パネルの opacity は data-arrived 属性で CSS が切り替える。
       */}
       <g transform="translate(0, -36)">
@@ -118,7 +134,7 @@ function Landmark({
         />
       </g>
       {hasStage && (
-        <g transform="translate(0, -141)">
+        <g transform={`translate(0, ${detailY})`}>
           <LandmarkDetail
             difficulty={difficulty}
             onFight={handleFight}

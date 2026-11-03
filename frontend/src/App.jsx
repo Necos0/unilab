@@ -13,6 +13,7 @@ import CreditsEditorScreen from './features/ending/editor/CreditsEditorScreen.js
 import useProgressStore from './stores/progressStore.js';
 import useCutsceneStore from './stores/cutsceneStore.js';
 import useMapStore from './stores/mapStore.js';
+import useBattleStore from './stores/battleStore.js';
 import usePlayerStore from './stores/playerStore.js';
 import stagesData from './data/stagesLoader.js';
 import mapsData from './data/maps.json';
@@ -25,6 +26,18 @@ import ENDING_SLIDES from './data/ending_slides.json';
  * エンディング紙芝居（`screen === 'ending'`）へ遷移する。ラスボスの 4-4。
  */
 const ENDING_STAGE_ID = '4-4';
+
+/*
+ * ステージ5のマップ ID。全体マップ（`map_0`）に領域を持たない独立マップで、
+ * エピローグ後にタイトルの入口ボタンからだけ入る。
+ */
+const WORLD5_MAP_ID = 'map_5';
+
+/*
+ * 本編の最初のマップ ID（`MapScreen` の初期マップと同じ）。続きの位置が
+ * 無いままステージ5からタイトルへ戻ってスタートしたときの戻り先。
+ */
+const MAIN_START_MAP_ID = 'map_1';
 
 /**
  * アプリケーションのルートコンポーネント。
@@ -157,6 +170,14 @@ function App() {
    */
   const hasFinishedEndingGame = useProgressStore((s) => s.hasFinishedEndingGame);
   const canPlayLaneBattle = isEndingUnlocked && hasFinishedEndingGame;
+  /*
+   * ステージ5（`map_5`）の入口をタイトルに出すか。陣取り合戦と同じく、
+   * ラスボス（4-4）をクリアし、エンディングロール（コイン集め）も最後まで
+   * 遊び切ったプレイヤーにだけ出す。本編の流れ（エピローグ経由）でも、
+   * タイトルからの再プレイでも、遊び切った時点で解放される。ステージ5は
+   * 全体マップに領域を持たない独立マップで、入口はこのボタンだけ。
+   */
+  const canPlayWorld5 = isEndingUnlocked && hasFinishedEndingGame;
   const isUnlockAnimating = useProgressStore((s) => s.isUnlockAnimating);
   const wasUnlockAnimatingRef = useRef(false);
   useEffect(() => {
@@ -236,6 +257,12 @@ function App() {
    *   - wqfull  : ブラウザの全画面表示（Fullscreen API）を切り替える。展示や
    *               プレイ時にアドレスバー等を隠して大画面で遊ぶための切替。
    *               Esc（ブラウザ標準）でも解除できる。
+   *   - wqwin   : バトル画面にいるとき、そのバトルを即座に勝ちにする
+   *               （`battleStore.debugInstantWin`）。実行前・実行中・失敗表示中の
+   *               どこからでも効き、通常の勝利と同じ CLEAR! 演出と撃破後
+   *               カットシーン（`defeatEnemy`）が流れる。「マップへ戻る」で
+   *               クリア記録・帰還カットシーン（`returnToMap`）も本番どおり進む。
+   *               4-4 は第一形態ならフェイクアウト〜復活へ、第二形態なら勝利へ。
    */
   const handleDebugReset = useCallback(() => {
     useCutsceneStore.getState().resetSeen();
@@ -322,6 +349,14 @@ function App() {
     document.documentElement.requestFullscreen?.().catch(() => {});
   }, []);
 
+  const handleDebugInstantWin = useCallback(() => {
+    /* バトル画面以外（マップ・タイトル等）では何もしない。 */
+    if (screen !== 'battle') {
+      return;
+    }
+    useBattleStore.getState().debugInstantWin(stagesData.stages[stageId]);
+  }, [screen, stageId]);
+
   const handleDebugUnlock = useCallback((unlockStageId) => {
     /* 実在しないステージ ID（例: wqgo9-9）は何もしない。 */
     if (!stagesData.stages[unlockStageId]) {
@@ -338,6 +373,7 @@ function App() {
     onEnding: handleDebugEnding,
     onCreditsEditor: handleDebugCreditsEditor,
     onFullscreen: handleDebugFullscreen,
+    onInstantWin: handleDebugInstantWin,
     onUnlock: handleDebugUnlock,
   });
 
@@ -416,8 +452,25 @@ function App() {
        * 定義に存在しない場合（マップ改訂後など）は、そのマップの入口
        * （`startId`）へフォールバックする。
        */
-      const last = useProgressStore.getState().lastPosition;
+      /*
+       * ステージ5（`map_5`）の位置は本編の「続きから」に使わない。
+       * 独立マップの位置は別枠（`lastStandalonePosition`）に保存するが、
+       * それ以前のセーブデータでは `lastPosition` に `map_5` が残っている
+       * ことがあるため、ここでも除外する。
+       */
+      const savedLast = useProgressStore.getState().lastPosition;
+      const last = savedLast?.mapId === WORLD5_MAP_ID ? null : savedLast;
       const lastDef = last ? mapsData.maps[last.mapId] : null;
+      /*
+       * 同じセッションでステージ5から「タイトルに もどる」で戻った場合、
+       * マップの状態（`mapStore`）はまだ `map_5` のまま。続きの位置が無い
+       * ときは本編最初のマップの入口へ戻し、ステージ5に入らないようにする。
+       */
+      if (!lastDef && useMapStore.getState().currentMapId === WORLD5_MAP_ID) {
+        useMapStore
+          .getState()
+          .switchMap(MAIN_START_MAP_ID, mapsData.maps[MAIN_START_MAP_ID]);
+      }
       if (lastDef) {
         const isKnownNode = [
           ...(lastDef.landmarks ?? []),
@@ -495,6 +548,32 @@ function App() {
   /* エピローグの「つづく…」を見終えたらタイトルへ戻る。 */
   const handleEpilogueFinish = useCallback(() => {
     setScreen('title');
+  }, []);
+
+  /*
+   * タイトル画面のステージ5入口ボタン。ステージ5のマップ（`map_5`）へ直行
+   * する。前回ステージ5の途中で終えていれば（`progressStore.
+   * lastStandalonePosition`）、その地点から再開し、そうで
+   * なければ入口（`startId`）に立たせる。MapScreen マウント前に `switchMap`
+   * しておくと、MapScreen の初期化 effect（最初のマップの入口）はスキップ
+   * される（`handleStartGame` の「続きから」と同じ仕組み）。
+   */
+  const handlePlayWorld5 = useCallback(() => {
+    const world5Def = mapsData.maps[WORLD5_MAP_ID];
+    const last = useProgressStore.getState().lastStandalonePosition;
+    const isResumable =
+      last?.mapId === WORLD5_MAP_ID &&
+      [...(world5Def.landmarks ?? []), ...(world5Def.junctions ?? [])].some(
+        (node) => node.id === last.locationId,
+      );
+    useMapStore
+      .getState()
+      .switchMap(
+        WORLD5_MAP_ID,
+        world5Def,
+        isResumable ? last.locationId : undefined,
+      );
+    setScreen('map');
   }, []);
 
   /*
@@ -601,6 +680,8 @@ function App() {
         canPlayEnding={isEndingUnlocked}
         onPlayLaneBattle={handlePlayLaneBattle}
         canPlayLaneBattle={canPlayLaneBattle}
+        onPlayWorld5={handlePlayWorld5}
+        canPlayWorld5={canPlayWorld5}
       />
     );
   } else if (screen === 'story') {

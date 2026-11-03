@@ -1700,6 +1700,53 @@ const useBattleStore = create((set, get) => ({
    },
 
    /**
+    * 開発用：今のバトルを即座に勝ちにする（隠しコマンド `wqwin`）。
+    *
+    * ステージクリア後のカットシーン（`defeatEnemy` / `returnToMap` など）を
+    * 確認するたびに正攻法で勝つ手間を省くためのもの。実行中ならタイマーを
+    * 止め、失敗表示も消してから、敵の残り HP 分のダメージを与えて HP を 0 に
+    * し、通常の勝利と同じ経路へ流す：
+    *   - 第二形態を持つボス（4-4）の第一形態 → `startReviveSequence`
+    *     （フェイクアウト会話〜復活の流れもそのまま確認できる）
+    *   - 第二形態中 → 第二形態の敵 ID で `startVictorySequence`
+    *   - それ以外 → `startVictorySequence`
+    * 勝利演出・復活演出の途中や、画面遷移中は何もしない（二重発火防止）。
+    *
+    * Args:
+    *     stage (object): いま戦っているステージ定義（第一形態側。
+    *         `stagesData.stages[stageId]`）。
+    */
+   debugInstantWin: (stage) => {
+    const state = get();
+    if (
+      !stage ||
+      state.victoryPhase !== null ||
+      state.revivePhase !== null ||
+      state.isTransitioning
+    ) {
+      return;
+    }
+    cancelExecutionTimers();
+    set({
+      isExecuting: false,
+      executionStep: null,
+      currentPhaseMs: null,
+      failPhase: null,
+      failReason: null,
+      speedMultiplier: 1,
+    });
+    const remainingHp = get().currentEnemyHp || get().maxEnemyHp;
+    get().applyEnemyDamage(remainingHp);
+    if (state.isSecondPhase) {
+      get().startVictorySequence(stage.secondPhase?.enemyId ?? stage.enemyId);
+    } else if (stage.secondPhase) {
+      get().startReviveSequence(stage);
+    } else {
+      get().startVictorySequence(stage.enemyId);
+    }
+   },
+
+   /**
     * ボス復活（第二形態突入）シーケンスを開始する。
     *
     * 最終ボス戦（4-4）で第一形態の HP を 0 にしたとき、`scheduleComplete` の

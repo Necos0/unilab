@@ -1,0 +1,42 @@
+/*
+ * 「ドラゴンの叫び声」演出（3-4 クリア後）の背景層。2000ms で画面が赤黒く
+ * かげって戻る。叫び声の文字は吹き出し（RoboBubble）側に出す。
+ * マップ自体のゆれは MapScreen.module.css の `.roarShake`（同じ 2000ms）。
+ */
+
+/*
+ * 親の矩形全体を覆う層。ランドマーク・ボタンより上、ロボの吹き出し
+ * （z-index: 100）より下に置く。操作は吹き出しの全面レイヤーが受けるので、
+ * この層はクリックを通す。
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 声が響く間の赤黒いかげり。叫びのピークで最も濃くなる。 */
+.veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(60, 0, 0, 0.35), rgba(20, 0, 0, 0.75));
+  opacity: 0;
+  animation: dragonRoarVeil 2000ms ease-in-out forwards;
+}
+
+@keyframes dragonRoarVeil {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}

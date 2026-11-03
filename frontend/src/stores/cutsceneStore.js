@@ -24,10 +24,12 @@ import parseStageId from '../features/map/parseStageId';
  *     その step に進むと `pendingSlotHelpId` を立て、`BattleScreen` が
  *     `HelpWindow` を「マス」カテゴリの該当タブで開く（例: 種類指定マス
  *     `acceptOnly`、倍率マス `multiplier`、条件マス `condition`）。
- *   - 画面演出だけの step（`boardTransform` / `reviveBoss` / `dragonShadow`）:
+ *   - 画面演出だけの step（`boardTransform` / `reviveBoss` / `dragonShadow` /
+ *     `dragonRoar`）:
  *     吹き出しを持たず、`BattleScreen` が現在 step を見て演出を再生し、
  *     終わったら `advance()` で次へ進める（例: `dragonShadow` は 1-4 撃破後に
- *     ドラゴンの影が画面を横切る演出）。
+ *     ドラゴンの影が画面を横切る演出、`dragonRoar` は 3-4 撃破後にドラゴンの
+ *     叫び声が響く演出）。
  * `playAnimation`（再生アニメ）のみを持つ step は再生対象から除外する
  * （データとしては将来フェーズ用に温存される）。
  *
@@ -170,7 +172,7 @@ function helpIdsFromStep(step) {
  * 取り出す。
  *
  * 吹き出し・選択肢・ヘルプ誘導・各種の待ち step・画面演出だけの step
- * （`boardTransform` / `reviveBoss` / `dragonShadow`）を残し、`playAnimation`
+ * （`boardTransform` / `reviveBoss` / `dragonShadow` / `dragonRoar`）を残し、`playAnimation`
  * のみの step などは落とす。`fireTrigger` と `peekCutsceneId` の共通処理。
  *
  * Args:
@@ -206,7 +208,15 @@ function selectPlayableSteps(def) {
        * （`DragonShadowOverlay`）を出し、終わったら advance で次の
        * 吹き出し（「なんだ、今の影は！？」）へ進める。
        */
-      step.dragonShadow === true,
+      step.dragonShadow === true ||
+      /*
+       * ドラゴンの叫び声 step（3-4 クリア後にマップへ戻り、ビットの吹き出しの
+       * 後）。叫び声そのものは同じ step の `bubble`（話し手 `speaker: "???"`）
+       * として吹き出しに出し、`MapScreen` がこの step の間だけ画面のゆれと
+       * 赤黒いかげり（`DragonRoarOverlay`）を重ねる。吹き出しを持つので
+       * 上の条件でも残るが、演出だけの step として意図を明示しておく。
+       */
+      step.dragonRoar === true,
   );
 }
 
