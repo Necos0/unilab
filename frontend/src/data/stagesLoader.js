@@ -288,6 +288,25 @@ function isTurn(item) {
 }
 
 /**
+ * `flow` 配列の要素が改行（newline）構文かどうかを判定する（`flowchart-newline` 仕様）。
+ *
+ * `newline` キーにオブジェクトがセットされていれば改行要素とみなす。`isTurn` と同形に
+ * `typeof` で厳密判定し、`newline: true` のような誤記を誤分類しない。改行は `turn` と
+ * 違い**方向を反転せず**、以降のノードを次の行の左端から右方向で続ける（`processSubFlow`
+ * 側で行ジャンプ＋column リセット＋下回りエッジとして処理する）。将来の拡張に備えて値の
+ * 型は object に固定する。
+ *
+ * Args:
+ *     item (object): `flow` 配列の 1 要素。
+ *
+ * Returns:
+ *     boolean: 改行要素なら `true`。
+ */
+function isNewline(item) {
+  return typeof item?.newline === 'object' && item.newline !== null;
+}
+
+/**
  * `acceptOnly` フィールドの値がサポートされた種別かを判定する。
  *
  * `restricted-slot` 仕様で許可される値は `'attack'` / `'guard'` / `'heal'` の
@@ -369,6 +388,12 @@ function buildEdge(ending, targetId) {
   }
   if (ending.targetHandle) {
     edge.targetHandle = ending.targetHandle;
+  }
+  // 下回りエッジ（flowchart-stage5-layout）：`route` / `laneY` を edge.data に転記し、
+  // 描画側 `AnimatedProgressEdge` が centerY=laneY の smoothstep で潜らせる。
+  if (ending.route) {
+    edge.data = { route: ending.route };
+    if (typeof ending.laneY === 'number') edge.data.laneY = ending.laneY;
   }
   return edge;
 }
@@ -667,12 +692,59 @@ function processSubFlow(items, {
       ctx.turnCount += 1;
       ctx.afterTurn = true;
       continue;
+    } else if (isNewline(item)) {
+      // 改行（flowchart-newline 仕様）：方向反転なしで次行・左端へ折り返す。
+      // top-level のみ・先頭不可（turn と同じガード）。回数制限なし（複数回可）。
+      if (!isTopLevel) {
+        console.warn('[stagesLoader] newline must be at flow top level (not inside loop body or condition branch). Ignoring.');
+        continue;
+      }
+      if (endings[0]?.nodeId === 'start') {
+        console.warn('[stagesLoader] newline must follow at least one slot/loop/condition. Ignoring.');
+        continue;
+      }
+      // 行ジャンプ：配置済み全ノードの最大 y の 1 行下へ。
+      const maxY = Math.max(
+        SLOT_Y_DEFAULT,
+        ...ctx.slots.map((s) => s.position.y),
+        ...ctx.conditions.map((c) => c.position.y),
+        ...ctx.mergeNodes.map((m) => m.position.y),
+        ...ctx.forStarts.map((f) => f.position.y),
+        ...ctx.forEnds.map((f) => f.position.y),
+      );
+      // 改行先の行は「既存行＋スロット高＋1行ぶん」下げ、2本の下回りエッジ
+      // （ループ脱出の laneY と改行の laneY）が重ならない余白を確保する。
+      currentYLevel = maxY + SLOT_HEIGHT + LOOP_ROW_GAP;
+      column = 0; // 左端（START 列）へ戻す
+      // 方向は right のまま（turn のような左反転はしない）。
+      // 直後要素への接続は「下回りエッジ」：source は down-out、潜る深さ laneY は
+      // 既存行の下・改行先の content より上に取り、重ならず左端へ走る。ループ脱出の
+      // laneY（既存行のすぐ下）より少し深くして 2 本を分離する。
+      const laneY = maxY + SLOT_HEIGHT + 60;
+      // 着地点に merge ノードを置き、下回りエッジをそこへ（上から＝top で）繋ぐ。
+      // 次要素は merge の右隣から通常エッジで出すことで、折り返しの到達点が 1 つの
+      // ノードに集約され、slot へ直接潜り込むより見やすくなる。
+      ctx.mergeCounter += 1;
+      const landId = `merge-${ctx.mergeCounter}`;
+      ctx.mergeNodes.push({
+        id: landId,
+        position: {
+          x: SLOT_X_START + column * SLOT_X_STEP + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+          y: currentYLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+        },
+      });
+      for (const e of endings) {
+        ctx.edges.push(buildEdge({ ...e, sourceHandle: e.sourceHandle ?? 'down-out', targetHandle: 'top', route: 'under', laneY }, landId));
+      }
+      endings = [{ nodeId: landId }];
+      column += 1; // 次要素は merge の右隣から
+      continue;
     } else if (isLoop(item)) {
-      const loopResult = expandLoop(item.loop, { column, yLevel, endings, ctx, nestDepth });
+      const loopResult = expandLoop(item.loop, { column, yLevel: currentYLevel, endings, ctx, nestDepth });
       endings = loopResult.endings;
       column = loopResult.column;
     } else if (isForLoop(item)) {
-      const forResult = expandForLoop(item.for, { column, yLevel, endings, ctx, nestDepth });
+      const forResult = expandForLoop(item.for, { column, yLevel: currentYLevel, endings, ctx, nestDepth });
       endings = forResult.endings;
       column = forResult.column;
     } else if (isCondition(item)) {
@@ -827,6 +899,31 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
     return { endings, column };
   }
 
+  // 脱出エッジの下回りルーティング（flowchart-stage5-layout）：`exitRoute:'under'` の
+  // とき、脱出（true）エッジを false 分岐スロット列の下（laneY）を潜らせ、着地点に
+  // 置いた merge ノードへ（下から＝bottom で）繋ぐ。次要素はその merge の右隣から
+  // 通常エッジで出す。これで潜り込みの到達点が 1 ノードに集約され見やすくなる。
+  // 未指定なら従来どおり cond の true 出口をそのまま返す。
+  const makeExit = (endColumn) => {
+    if (loopDef.exitRoute !== 'under') {
+      return { endings: [{ nodeId: condId, sourceHandle: 'true' }], column: endColumn };
+    }
+    ctx.mergeCounter += 1;
+    const landId = `merge-${ctx.mergeCounter}`;
+    ctx.mergeNodes.push({
+      id: landId,
+      position: {
+        x: SLOT_X_START + endColumn * SLOT_X_STEP + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+        y: yLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+      },
+    });
+    ctx.edges.push(buildEdge(
+      { nodeId: condId, sourceHandle: 'true', targetHandle: 'bottom', route: 'under', laneY: yLevel + LOOP_ROW_GAP + SLOT_HEIGHT + 20 },
+      landId,
+    ));
+    return { endings: [{ nodeId: landId }], column: endColumn + 1 };
+  };
+
   ctx.condCounter += 1;
   const condId = `cond-${ctx.condCounter}`;
   ctx.mergeCounter += 1;
@@ -898,10 +995,7 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
       ctx.edges.push(loopBackEdge);
     }
 
-    return {
-      endings: [{ nodeId: condId, sourceHandle: 'true' }],
-      column: bodyResult.endColumn,
-    };
+    return makeExit(bodyResult.endColumn);
   }
 
   // post mode: body を先に展開してから cond をその右に置く
@@ -931,10 +1025,7 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
   loopBackEdge.data = { loopDepth: nestDepth };
   ctx.edges.push(loopBackEdge);
 
-  return {
-    endings: [{ nodeId: condId, sourceHandle: 'true' }],
-    column: condColumn + 1,
-  };
+  return makeExit(condColumn + 1);
 }
 
 /**
@@ -1166,7 +1257,7 @@ function resolveGoalPlacement(result, ctx) {
     };
   }
   return {
-    position: { x: SLOT_X_START + result.endColumn * SLOT_X_STEP, y: 120 },
+    position: { x: SLOT_X_START + result.endColumn * SLOT_X_STEP, y: result.yLevel },
     targetHandle: undefined,
   };
 }

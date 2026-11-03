@@ -130,6 +130,11 @@ function AnimatedProgressEdge({
   sourceHandleId, targetHandleId,
   markerEnd,
 }) {
+  // 下回りエッジ（flowchart-stage5-layout）：`data.route === 'under'` のとき、
+  // source から `data.laneY`（障害スロットの下）まで降り、水平に target 列へ移動し、
+  // target へ繋ぐ直交パスを自前で組む。`getSmoothStepPath` は source/target が同じ
+  // 行だと `centerY` を無視して潜らないため、専用パスで確実に laneY を通す。
+  const isUnder = data?.route === 'under' && typeof data?.laneY === 'number';
   const shouldUseStep = sourceHandleId === 'false' || targetHandleId === 'bottom' || targetHandleId === 'top';
   /*
    * ネストしたループのループバックエッジは stagesLoader が `data.loopDepth`
@@ -143,14 +148,21 @@ function AnimatedProgressEdge({
   const stepOffset = loopDepth !== null
     ? Math.max(20, 80 - loopDepth * 30)
     : 20;
-  const [edgePath] = shouldUseStep
-    ? getSmoothStepPath({
+  let edgePath;
+  if (isUnder) {
+    // source → 真下に laneY → 水平に target 列 → target への直交パス（確実に潜る）。
+    const ly = data.laneY;
+    edgePath = `M ${sourceX} ${sourceY} L ${sourceX} ${ly} L ${targetX} ${ly} L ${targetX} ${targetY}`;
+  } else if (shouldUseStep) {
+    [edgePath] = getSmoothStepPath({
       sourceX, sourceY, sourcePosition,
       targetX, targetY, targetPosition,
       borderRadius: 5,
       offset: stepOffset,
-    })
-    : getStraightPath({ sourceX, sourceY, targetX, targetY });
+    });
+  } else {
+    [edgePath] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+  }
 
   const isActive = useBattleStore(
       (s) => s.executionStep?.type === 'edge' && s.executionStep?.id === id,
