@@ -305,6 +305,42 @@
           "loop": false
         }
       }
+    },
+    {
+      "id": "dark_hero",
+      "displayName": "勇者《ゆうしゃ》",
+      "maxHp": 100,
+      "sizeRatio": 0.8,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 8,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "black_wing_dragon",
+      "displayName": "黒翼魔竜《こくよくまりゅう》",
+      "maxHp": 100,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 3,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
     }
   ]
 }

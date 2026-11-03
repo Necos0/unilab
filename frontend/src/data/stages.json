@@ -457,7 +457,7 @@
       }
     },
     "5-1": {
-      "enemyId": "goldenbird",
+      "enemyId": "black_wing_dragon",
       "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 10 },
@@ -536,7 +536,7 @@
       ]
     },
     "5-4": {
-      "enemyId": "knight",
+      "enemyId": "dark_hero",
       "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 30 },
