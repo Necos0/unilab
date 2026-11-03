@@ -86,30 +86,31 @@ npm run preview    # ビルド結果をローカル確認
 
 ### デプロイとブランチ運用（Vercel）
 
-本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、以下のブランチ運用を守る。
+本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、次の 3 層ブランチ運用を守る。
 
 | ブランチ | 役割 | Vercel |
 |---|---|---|
-| `master` | **本番（Production）**。公開 URL がこのブランチを指す。理工展用の新ステージなどが揃った区切りでだけ更新する | Production Branch |
-| `dev` | **作業・確認用**。日々の編集・バランス調整・ミニゲーム改修はここで行う | Preview（自動） |
+| `master` | **配信済み・本番**。公開 URL がこのブランチを指す。触らない | Production Branch |
+| `dev` | **アップデート版リリースまでの共同作業基盤**（開発者複数）。**直接は編集・push しない**。各 `feature/*` を集約する場所 | Preview（自動） |
+| `feature/*` | **実作業ブランチ**（`dev` から切る。例：`feature/lane-battle-2d`）。日々の編集・コミット・push はここで行う | Preview（自動） |
 
-- `dev`（や `dev` から切った小ブランチ）に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
-- プレビューにはブランチごとの**固定エイリアス URL**（`https://<プロジェクト名>-git-dev-<スコープ>.vercel.app`）が付き、push のたびに中身だけが最新へ差し替わる。テスターにはこの 1 本を渡す。
-- 区切りで本番を更新するときだけ `dev` を `master` に merge して push する。
+- `feature/*`（や `dev`）に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
+- プレビューにはブランチごとの**固定エイリアス URL**（`https://<プロジェクト名>-git-<ブランチ名>-<スコープ>.vercel.app`）が付き、push のたびに中身だけが最新へ差し替わる。テスターにはこの 1 本を渡す。
+- 完成した `feature/*` は **PR で `dev` に merge**（共同基盤なので直接 push しない）。アップデート版がまとまったら **`dev` を `master` に merge** して配信を更新する。
 
 ```bash
-# 例）本番から dev を用意する（初回のみ）
-git checkout master && git pull
-git checkout -b dev
-git push -u origin dev
+# dev から実作業ブランチを切る
+git checkout dev && git pull
+git checkout -b feature/<機能名>
 
-# 以降は dev で作業し、push するとプレビューが更新される
-git checkout dev
+# 以降は feature ブランチで作業し、push するとプレビューが更新される
 # …編集・コミット…
-git push
+git push -u origin feature/<機能名>
+
+# 完成したら dev へ PR（dev / master は直接 push しない）
 ```
 
-- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `dev` への push で本番が変わることはない。
+- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `dev` / `feature/*` への push で本番が変わることはない。
 - セーブデータは **localStorage 依存**でドメインごとに独立するため、プレビューと本番でセーブは共有されない（プレビューは毎回まっさらから確認できる）。
 
 ### 使用ライブラリ
@@ -253,19 +254,28 @@ unilab/
             ├── lanebattle/       ← おまけミニゲーム「陣取り合戦」(レーン大戦争。隠しコマンド wqinouelabegg で起動)
             │   │                    ※ 本編から隔離。既存コードへの変更は main.jsx への1行マウントのみ
             │   ├── LaneBattleGate.jsx     ← 隠しコマンド検出＋全画面オーバーレイの入口
-            │   ├── LaneBattleApp.jsx      ← 編成→対戦→結果のフェーズ統合
+            │   ├── LaneBattleApp.jsx      ← 編成→対戦のフェーズ統合
             │   ├── DeckBuilder.jsx        ← 16体から6体デッキ編成
-            │   ├── BattleView.jsx         ← アリーナ(HUD・レーン・見分けモード)
+            │   ├── MatchView.jsx          ← 3レーン版の対戦(盤面＋HUD＋結果画面)
+            │   ├── BattleField.jsx        ← 3レーン盤面(自陣ゾーン・中央ライン・本陣HP)
             │   ├── HandBar.jsx            ← 手札3枚＋つぎ(クラロワ的ローテ)
-            │   ├── ResultOverlay.jsx      ← 勝敗・スコア・自己ベスト・再戦/終了
+            │   ├── ResultOverlay.jsx      ← クリア/未クリア・スコア・自己ベスト・再戦/終了
+            │   ├── Furigana.jsx           ← 漢字《ふりがな》記法を ruby に変換
             │   ├── LbSprite.jsx           ← UI用の静止スプライト
             │   ├── lanebattle.css         ← 全スタイル(.lb-root スコープの単一シート)
-            │   ├── engine/    ← React非依存の対戦エンジン(rAFループで命令的にレーン描画)
-            │   │   ├── createLaneBattleEngine.js  ← 進軍・戦闘・特殊能力・CPU AI・スコア
+            │   ├── engine/    ← React非依存の対戦エンジン(純シム＋rAF駆動＋命令的描画に分離)
+            │   │   ├── battleState.js             ← 対戦状態の生成(純オブジェクト)
+            │   │   ├── stepSim.js                 ← 1ステップ進める純シム(移動・戦闘・本陣防衛・決着)
+            │   │   ├── createRuntime.js           ← rAF固定ステップで純シムを回しCPU・HUDをつなぐ駆動層
+            │   │   ├── createRenderer.js          ← stateを読みDOMスプライトへ反映する描画層
+            │   │   ├── cpuBrain.js                ← 反応型CPUの意思決定(属性相性・配置・難易度)
+            │   │   ├── applyDeploy.js             ← 出撃コマンド処理(コスト・群れ生成)
+            │   │   ├── spawnUnit.js               ← ランタイムユニットをstateに積む
             │   │   ├── deriveUnitDef.js           ← maxHp/sizeRatioから既定値算出＋上書き
             │   │   ├── createDeck.js              ← 6枚デッキ・手札3のローテ(自陣/CPU共通)
+            │   │   ├── score.js                   ← 決着スコア算出(集約点)
             │   │   └── laneSprite.js              ← 1ユニットのDOM(getEnemyFramePathを再利用)
-            │   ├── hooks/     ← useHiddenCommand / useLaneBattleEngine / useLaneBattleBest
+            │   ├── hooks/     ← useHiddenCommand / useLaneBattleBest
             │   └── data/      ← lanebattle_config.json / lanebattle_units.json(バランス調整の集約点)
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx
