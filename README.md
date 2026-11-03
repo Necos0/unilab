@@ -130,7 +130,9 @@ unilab/
 ├── .specs/                       ← /spec コマンドの成果物(要件・設計・タスク)
 ├── docs/                         ← 開発者向けドキュメント(仕組みの解説等)
 │   ├── flowchart-rendering.md
-│   └── map-landmark-movement.md
+│   ├── enemy-action-cards.html   ← 敵カード 3 種(敵防御・敵カウンター・敵回復)のルール案
+│   ├── map-landmark-movement.md
+│   └── stage5-model-flowcharts.html ← ワールド 5(敵防御・敵カウンター・敵回復)の設計案とモデルフローチャート
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
