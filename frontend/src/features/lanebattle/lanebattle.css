@@ -757,6 +757,10 @@
 .lbf-field {
   position: relative;
   width: 100%;
+  /* 高さを画面高で頭打ちにする（幅を 2×高さ上限で制限＝2:1 のまま縦だけ縮む）。
+     ヘッダー・残り時間・手札を含めて1画面に収め、下スクロールで手札が隠れないように。 */
+  max-width: min(100%, 116vh);
+  margin-inline: auto;
   aspect-ratio: 1200 / 600;
   border-radius: 14px;
   overflow: hidden;
@@ -855,6 +859,22 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.lbf-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.lbf-time {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.lbf-time.low {
+  color: #ff6b6b;
 }
 .lbf-hud {
   display: flex;

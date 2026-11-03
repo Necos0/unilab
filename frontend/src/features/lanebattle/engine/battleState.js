@@ -13,6 +13,8 @@ import config from '../data/lanebattle_config.json';
  *                残り時間と被ダメ倍率を持つ（個体ではなくチーム全体に効く）。
  *   - `energy` : 各陣営の現在エナジー（`you`/`cpu`）。`stepSim` が時間で回復する。
  *   - `energySpent` : 各陣営が使ったエナジー総量（スコア用。ユニット5で使う）。
+ *   - `cpuRegenMul` : CPU のエナジー回復倍率（難易度で決まる。既定 1＝互角）。
+ *                `createRuntime` が選んだ難易度の `energyRegenMul` を積む。
  *   - `units`  : 場に出ているユニットの配列（`spawnUnit` が積む）。
  *   - `result` : 決着。`'you'` / `'cpu'` / `null`。
  * デッキ（手札）や seed 付き乱数などは、それらが要る後続の作業ユニットで足す。
@@ -42,6 +44,8 @@ export function createBattleState(cfg = config) {
     },
     energy: { you: cfg.energyStart, cpu: cfg.energyStart },
     energySpent: { you: 0, cpu: 0 },
+    cpuRegenMul: 1,
+
     units: [],
     result: null,
   };

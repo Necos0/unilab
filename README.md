@@ -254,19 +254,28 @@ unilab/
             ├── lanebattle/       ← おまけミニゲーム「陣取り合戦」(レーン大戦争。隠しコマンド wqinouelabegg で起動)
             │   │                    ※ 本編から隔離。既存コードへの変更は main.jsx への1行マウントのみ
             │   ├── LaneBattleGate.jsx     ← 隠しコマンド検出＋全画面オーバーレイの入口
-            │   ├── LaneBattleApp.jsx      ← 編成→対戦→結果のフェーズ統合
+            │   ├── LaneBattleApp.jsx      ← 編成→対戦のフェーズ統合
             │   ├── DeckBuilder.jsx        ← 16体から6体デッキ編成
-            │   ├── BattleView.jsx         ← アリーナ(HUD・レーン・見分けモード)
+            │   ├── MatchView.jsx          ← 3レーン版の対戦(盤面＋HUD＋結果画面)
+            │   ├── BattleField.jsx        ← 3レーン盤面(自陣ゾーン・中央ライン・本陣HP)
             │   ├── HandBar.jsx            ← 手札3枚＋つぎ(クラロワ的ローテ)
-            │   ├── ResultOverlay.jsx      ← 勝敗・スコア・自己ベスト・再戦/終了
+            │   ├── ResultOverlay.jsx      ← クリア/未クリア・スコア・自己ベスト・再戦/終了
+            │   ├── Furigana.jsx           ← 漢字《ふりがな》記法を ruby に変換
             │   ├── LbSprite.jsx           ← UI用の静止スプライト
             │   ├── lanebattle.css         ← 全スタイル(.lb-root スコープの単一シート)
-            │   ├── engine/    ← React非依存の対戦エンジン(rAFループで命令的にレーン描画)
-            │   │   ├── createLaneBattleEngine.js  ← 進軍・戦闘・特殊能力・CPU AI・スコア
+            │   ├── engine/    ← React非依存の対戦エンジン(純シム＋rAF駆動＋命令的描画に分離)
+            │   │   ├── battleState.js             ← 対戦状態の生成(純オブジェクト)
+            │   │   ├── stepSim.js                 ← 1ステップ進める純シム(移動・戦闘・本陣防衛・決着)
+            │   │   ├── createRuntime.js           ← rAF固定ステップで純シムを回しCPU・HUDをつなぐ駆動層
+            │   │   ├── createRenderer.js          ← stateを読みDOMスプライトへ反映する描画層
+            │   │   ├── cpuBrain.js                ← 反応型CPUの意思決定(属性相性・配置・難易度)
+            │   │   ├── applyDeploy.js             ← 出撃コマンド処理(コスト・群れ生成)
+            │   │   ├── spawnUnit.js               ← ランタイムユニットをstateに積む
             │   │   ├── deriveUnitDef.js           ← maxHp/sizeRatioから既定値算出＋上書き
             │   │   ├── createDeck.js              ← 6枚デッキ・手札3のローテ(自陣/CPU共通)
+            │   │   ├── score.js                   ← 決着スコア算出(集約点)
             │   │   └── laneSprite.js              ← 1ユニットのDOM(getEnemyFramePathを再利用)
-            │   ├── hooks/     ← useHiddenCommand / useLaneBattleEngine / useLaneBattleBest
+            │   ├── hooks/     ← useHiddenCommand / useLaneBattleBest
             │   └── data/      ← lanebattle_config.json / lanebattle_units.json(バランス調整の集約点)
             ├── battle/           ← 戦闘画面
             │   ├── BattleScreen.jsx

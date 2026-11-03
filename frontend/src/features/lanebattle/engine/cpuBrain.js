@@ -73,16 +73,17 @@ const MATCHERS = {
  *     answerAttr (string): 返す属性（`'aoe'`/`'fastMelee'`/`'tanky'`/`'dps'`）。
  *     hand (string[]): CPU の手札（カード ID の配列）。
  *     energy (number): CPU の現在エナジー。
+ *     canUse (function): カード id → いま選んでよいか（出撃ゲート。既定は常に true）。
  *
  * Returns:
  *     number: 出せる該当カードの手札 index。無ければ -1。
  */
-export function pickAnswer(answerAttr, hand, energy) {
+export function pickAnswer(answerAttr, hand, energy, canUse = () => true) {
   const match = MATCHERS[answerAttr];
   if (!match) return -1;
   const opts = hand
     .map((id, i) => ({ i, d: deriveUnitDef(id) }))
-    .filter((o) => match(o.d) && o.d.cost * config.costToEnergy <= energy);
+    .filter((o) => match(o.d) && o.d.cost * config.costToEnergy <= energy && canUse(o.d.id));
   if (opts.length === 0) return -1;
   return opts.reduce((a, b) => (b.d.cost < a.d.cost ? b : a)).i;
 }
@@ -144,6 +145,32 @@ export function isUrgent(state, lane) {
 }
 
 /**
+ * プレイヤーユニットが最も多くいるレーンを返す（要件4）。
+ *
+ * 生存しているプレイヤーユニットの頭数をレーンごとに数え、最多のレーンを返す
+ * （火力合計の `evaluateLanes` とは別軸＝「数が多い所」を見る）。レジェンド等を
+ * 迎え撃つレーン選びに使う。1 体もいなければ null。同数なら小さいレーン番号を
+ * 優先。DOM に触れない純関数。
+ *
+ * Args:
+ *     state (object): 対戦状態。`units` を走査する。
+ *
+ * Returns:
+ *     number|null: 最多レーン。敵が 0 なら null。
+ */
+export function busiestEnemyLane(state) {
+  const count = [0, 0, 0];
+  for (const u of state.units) {
+    if (!u.dead && u.side === 'you') count[u.lane] += 1;
+  }
+  let lane = null;
+  for (let l = 0; l < 3; l += 1) {
+    if (count[l] > 0 && (lane === null || count[l] > count[lane])) lane = l;
+  }
+  return lane;
+}
+
+/**
  * 買える手札からランダムに 1 枚選び、手札 index を返す（要件4-4）。
  *
  * 「良い手（該当カウンター）は無いが切迫していて出さざるを得ない」ときの妥協や、
@@ -154,14 +181,15 @@ export function isUrgent(state, lane) {
  *     hand (string[]): CPU の手札（カード ID）。
  *     energy (number): CPU の現在エナジー。
  *     rng (function): 0〜1 の乱数を返す関数。
+ *     canUse (function): カード id → いま選んでよいか（出撃ゲート。既定は常に true）。
  *
  * Returns:
  *     number: 選んだ手札 index。無ければ -1。
  */
-export function pickAnyAffordable(hand, energy, rng) {
+export function pickAnyAffordable(hand, energy, rng, canUse = () => true) {
   const opts = hand
-    .map((id, i) => ({ i, cost: deriveUnitDef(id).cost * config.costToEnergy }))
-    .filter((o) => o.cost <= energy);
+    .map((id, i) => ({ i, id, cost: deriveUnitDef(id).cost * config.costToEnergy }))
+    .filter((o) => o.cost <= energy && canUse(o.id));
   if (opts.length === 0) return -1;
   return opts[Math.floor(rng() * opts.length)].i;
 }
@@ -175,6 +203,9 @@ export function pickAnyAffordable(hand, energy, rng) {
  * で出せる該当カードを探す。良い手が無ければ、切迫（`isUrgent`）していなければ
  * 出さずに貯め、切迫していれば手持ちで妥協する（`pickAnyAffordable`）。脅威が
  * 無くエナジーが潤沢なら簡易のカウンター攻めをする。配置は `choosePlacement`。
+ * レジェンド（`legend`）と `config.cpu.deployGate` 指定カードは `state.regenMul`
+ * が規定倍率（`config.cpu.legendGate`。例 2＝60 秒経過後）に達するまで全経路で
+ * 候補外。解禁後は敵が最も多いレーンへ slot 0（自陣後ろ）から最優先で出す。
  * 返り値の出撃コマンドは駆動側が `applyDeploy(側=cpu)` に流す。乱数は引数の
  * `rng` に集約（純関数）。
  *
@@ -196,6 +227,22 @@ export function decideCpu(brain, state, cpuHand, dt, diff, rng) {
   if (rng() < diff.missChance) return null;
 
   const energy = state.energy.cpu;
+  // 出撃ゲート：regenMul が規定倍率に達するまで特定カードを選ばない。レジェンドは
+  // `config.cpu.legendGate`（例 2＝60秒経過）、個別指定は `deployGate[id]`。両者の
+  // 大きい方を解禁しきい値とする。例) ドラゴン等レジェンドは regenMul 2 まで候補外。
+  const legendGate = config.cpu.legendGate ?? 0;
+  const perCard = config.cpu.deployGate ?? {};
+  const gateMul = (id) => Math.max(perCard[id] ?? 0, deriveUnitDef(id).legend ? legendGate : 0);
+  const canUse = (id) => state.regenMul >= gateMul(id);
+  // 解禁済みのゲートカード（レジェンド等）は最優先で、敵が最も多いレーンへ自陣後ろ
+  // （slot 0）から迎え撃つ形で出す。エナジーを規定倍率まで貯めた見返りを能動的に使う。
+  const gatedIdx = cpuHand.findIndex(
+    (id) => gateMul(id) > 0 && canUse(id) && deriveUnitDef(id).cost * config.costToEnergy <= energy,
+  );
+  if (gatedIdx >= 0) {
+    const lane = busiestEnemyLane(state);
+    if (lane != null) return { lane, slot: 0, handIndex: gatedIdx };
+  }
   const threat = evaluateLanes(state);
   let lane = 0;
   for (let l = 1; l < 3; l += 1) if (threat[l] > threat[lane]) lane = l;
@@ -204,11 +251,11 @@ export function decideCpu(brain, state, cpuHand, dt, diff, rng) {
     const laneUnits = state.units.filter((u) => !u.dead && u.side === 'you' && u.lane === lane);
     const ideal = config.cpu.counter[classifyThreat(laneUnits)] ?? config.cpu.counter.other;
     const answerAttr = rng() < diff.accuracy ? ideal : 'dps';
-    let idx = pickAnswer(answerAttr, cpuHand, energy);
+    let idx = pickAnswer(answerAttr, cpuHand, energy, canUse);
     if (idx < 0) {
       const highEnergy = energy >= config.energyMax * config.cpu.pushEnergyFrac;
       if (!isUrgent(state, lane) && !highEnergy) return null; // 切迫せず余力もない → 貯める
-      idx = pickAnyAffordable(cpuHand, energy, rng); // 切迫 or エナジー上限近く → 妥協して出す
+      idx = pickAnyAffordable(cpuHand, energy, rng, canUse); // 切迫 or エナジー上限近く → 妥協して出す
       if (idx < 0) return null;
     }
     const def = deriveUnitDef(cpuHand[idx]);
@@ -216,7 +263,7 @@ export function decideCpu(brain, state, cpuHand, dt, diff, rng) {
   }
 
   if (energy >= config.energyMax * config.cpu.pushEnergyFrac) {
-    const idx = pickAnyAffordable(cpuHand, energy, rng);
+    const idx = pickAnyAffordable(cpuHand, energy, rng, canUse);
     if (idx >= 0) {
       const def = deriveUnitDef(cpuHand[idx]);
       return { lane: Math.floor(rng() * 3), slot: def.ranged ? 1 : 2, handIndex: idx };

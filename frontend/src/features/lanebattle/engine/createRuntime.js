@@ -52,6 +52,8 @@ function shuffle(ids) {
  *             同じ state オブジェクトを共有したいとき（本陣 HP の表示など）に渡す。
  *         onFrame (function): 毎フレーム `(state, dt)` を渡す（描画用）。
  *         onHud (function): HUD 情報 `{energy, energyMax, hand, next}` を渡す。
+ *         onResult (function): 決着時に 1 回だけ `(state)` を渡す（結果画面用）。
+ *             `running` を落として通知するので二度は呼ばれない。
  *         difficulty (object): CPU 難易度プリセット（任意）。省略時は
  *             `config.cpu.difficulty.normal`。
  *
@@ -62,11 +64,12 @@ function shuffle(ids) {
  *         getState (function): 現在の state を返す（テスト・確認用）。
  *         destroy (function): ループ停止・破棄。
  */
-export function createRuntime({ deckIds, state: initialState, onFrame, onHud, difficulty } = {}) {
+export function createRuntime({ deckIds, state: initialState, onFrame, onHud, onResult, difficulty } = {}) {
   const state = initialState ?? createBattleState();
   const deck = createDeck(shuffle(deckIds ?? []));
   const cpuDeck = createDeck(shuffle(config.cpu.deck ?? []));
   const diff = difficulty ?? config.cpu.difficulty.normal;
+  state.cpuRegenMul = diff.energyRegenMul ?? 1; // CPU のエナジー回復倍率は難易度で決まる
   const cpuBrain = { reactT: diff.reactionMs };
   let running = false;
   let acc = 0;
@@ -86,6 +89,7 @@ export function createRuntime({ deckIds, state: initialState, onFrame, onHud, di
       energy: state.energy.you,
       energyMax: config.energyMax,
       regenMul: state.regenMul,
+      timeLeft: Math.max(0, (config.timeLimitMs - state.t) / 1000),
       hand,
       next: nextId ? { id: nextId, name: deriveUnitDef(nextId).name } : null,
     };
@@ -101,18 +105,26 @@ export function createRuntime({ deckIds, state: initialState, onFrame, onHud, di
         stepSim(state, FIXED_MS);
         acc -= FIXED_MS;
       }
-      const cmd = decideCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random);
-      if (cmd) {
-        const id = cpuDeck.hand()[cmd.handIndex];
-        if (applyDeploy(state, { side: 'cpu', id, lane: cmd.lane, slot: cmd.slot })) {
-          cpuDeck.play(cmd.handIndex);
-        }
-      }
-      onFrame?.(state, dt);
-      hudT += dt;
-      if (hudT >= HUD_MS) {
-        hudT = 0;
+      if (state.result) {
+        // 決着：CPU 思考・HUD 更新を止め、最終フレームを描いて 1 回だけ通知する。
+        running = false;
+        onFrame?.(state, dt);
         onHud?.(buildHud());
+        onResult?.(state);
+      } else {
+        const cmd = decideCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random);
+        if (cmd) {
+          const id = cpuDeck.hand()[cmd.handIndex];
+          if (applyDeploy(state, { side: 'cpu', id, lane: cmd.lane, slot: cmd.slot })) {
+            cpuDeck.play(cmd.handIndex);
+          }
+        }
+        onFrame?.(state, dt);
+        hudT += dt;
+        if (hudT >= HUD_MS) {
+          hudT = 0;
+          onHud?.(buildHud());
+        }
       }
     }
     rafId = requestAnimationFrame(frame);

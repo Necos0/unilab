@@ -1,17 +1,16 @@
 import { useCallback, useState } from 'react';
 import DeckBuilder from './DeckBuilder';
-import BattleView from './BattleView';
-import ResultOverlay from './ResultOverlay';
+import MatchView from './MatchView';
 import Furigana from './Furigana';
-import useLaneBattleBest from './hooks/useLaneBattleBest';
 
 /**
- * ミニゲームのルート。フェーズ（編成→対戦→結果）を束ねる（要件13）。
+ * ミニゲームのルート。フェーズ（編成→対戦）を束ねる（要件13）。
  *
- * 本編のストアや画面遷移には一切依存しない自己完結コンポーネント。再戦は
- * `BattleView` の key を変えて再マウントし、エンジンを作り直すことで実現
- * する（城 HP・エネルギー・スコアの初期化）。自己ベストは
- * `useLaneBattleBest` 経由で localStorage に保存する。
+ * 本編のストアや画面遷移には一切依存しない自己完結コンポーネント。編成
+ * （`DeckBuilder`）で 6 体を選んで開始すると、3 レーン版の対戦（`MatchView`）を
+ * 新しい `key` でマウントする（毎回エンジン・盤面・スコアを初期化）。対戦の
+ * 結果画面・自己ベスト・再戦は `MatchView` が内部で持つので、ここでは扱わない。
+ * 「デッキを かえる」で編成へ戻り、「もどる」でゲートを閉じる。
  *
  * Args:
  *     props (object):
@@ -21,38 +20,17 @@ import useLaneBattleBest from './hooks/useLaneBattleBest';
  *     JSX.Element: ミニゲーム全体。
  */
 export default function LaneBattleApp({ onClose }) {
-  const [phase, setPhase] = useState('deckbuild'); // 'deckbuild' | 'battle' | 'result'
+  const [phase, setPhase] = useState('deckbuild'); // 'deckbuild' | 'battle'
   const [deck, setDeck] = useState([]);
   const [battleKey, setBattleKey] = useState(0);
-  const [result, setResult] = useState(null);
-  const { best, submit } = useLaneBattleBest();
 
   const startBattle = useCallback((ids) => {
     setDeck(ids);
-    setResult(null);
     setBattleKey((k) => k + 1);
     setPhase('battle');
   }, []);
 
-  const handleEnd = useCallback(
-    (r) => {
-      const isNewBest = submit(r.score);
-      setResult({ ...r, isNewBest });
-      setPhase('result');
-    },
-    [submit],
-  );
-
-  const rematch = useCallback(() => {
-    setResult(null);
-    setBattleKey((k) => k + 1);
-    setPhase('battle');
-  }, []);
-
-  const rebuild = useCallback(() => {
-    setResult(null);
-    setPhase('deckbuild');
-  }, []);
+  const rebuild = useCallback(() => setPhase('deckbuild'), []);
 
   return (
     <div className="lb-app">
@@ -67,17 +45,8 @@ export default function LaneBattleApp({ onClose }) {
 
       <main className="lb-main">
         {phase === 'deckbuild' && <DeckBuilder onStart={startBattle} />}
-        {(phase === 'battle' || phase === 'result') && (
-          <BattleView key={battleKey} deckIds={deck} onEnd={handleEnd} />
-        )}
-        {phase === 'result' && result && (
-          <ResultOverlay
-            result={result}
-            best={best}
-            onRematch={rematch}
-            onRebuild={rebuild}
-            onExit={onClose}
-          />
+        {phase === 'battle' && (
+          <MatchView key={battleKey} deckIds={deck} onExit={onClose} onRebuild={rebuild} />
         )}
       </main>
     </div>

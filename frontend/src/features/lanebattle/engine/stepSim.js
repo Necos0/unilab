@@ -189,12 +189,15 @@ export function resolveAttack(state, u, target) {
 /**
  * 本陣の自動迎撃（要件 6・8）。
  *
- * 各陣営の本陣が、自陣 `baseX` から `config.base.defense.range` 内にいる敵
- * ユニットのうち最も近い 1 体を、`intervalMs` 間隔で `atk` ぶん撃つ。本陣は
- * 各陣営 1 つ（要件 6）なので、レーンをまたいで全レーンから最寄り敵を選ぶ。
- * クールダウン `base[side].defT` は撃った時だけリセットするので、敵が射程に
- * 入った瞬間に反応する。`dealDamage` を通すため、死亡シールド中の敵には本陣
- * の弾も軽減される。DOM に触れない純関数。
+ * 各陣営の本陣は「固定射程」ではなく**自陣全域**を守る：中央 `field.midX` を
+ * 越えて自本陣側に踏み込んだ敵ユニットのうち、**本陣に最も近い 1 体**（＝一番
+ * 奥まで侵入した敵）を `intervalMs` 間隔で `atk` ぶん撃つ。自陣側かどうかは
+ * `(o.x - midX) * dirToBase > 0`（`dirToBase` は midX から本陣への向き。
+ * you:-1／cpu:+1）で判定するので、レーンをまたいで全レーンの侵入敵が対象になる。
+ * これにより、本陣防衛より射程の長い遠距離ユニット（トカゲ等）でも、自陣に
+ * 入れば必ず被弾する。クールダウン `base[side].defT` は撃った時だけリセット
+ * するので、敵が自陣に入った瞬間に反応する。`dealDamage` を通すため、死亡
+ * シールド中の敵には本陣の弾も軽減される。DOM に触れない純関数。
  *
  * Args:
  *     state (object): 対戦状態。`base` / `units` を更新する。
@@ -202,6 +205,7 @@ export function resolveAttack(state, u, target) {
  */
 export function stepBaseDefense(state, dt) {
   const def = config.base.defense;
+  const midX = config.field.midX;
   for (const side of ['you', 'cpu']) {
     const b = state.base[side];
     if (b.defT > 0) {
@@ -209,12 +213,14 @@ export function stepBaseDefense(state, dt) {
       if (b.defT > 0) continue;
     }
     const baseX = side === 'you' ? config.field.youBaseX : config.field.cpuBaseX;
+    const dirToBase = Math.sign(baseX - midX); // 中央から本陣への向き（you:-1／cpu:+1）
     let target = null;
     let best = Infinity;
     for (const o of state.units) {
       if (o.dead || o.side === side) continue;
+      if ((o.x - midX) * dirToBase <= 0) continue; // 自陣側に入っていない敵は無視
       const dist = Math.abs(o.x - baseX);
-      if (dist <= def.range && dist < best) {
+      if (dist < best) {
         best = dist;
         target = o;
       }
@@ -264,14 +270,15 @@ export function processDeaths(state) {
  *
  * 呼ぶ側（rAF ループや headless テスト）は `stepSim(state, dt)` を繰り返す
  * だけでよい。処理順は「時間加算 → 両陣営のエナジー回復（エスカレーション。
- * CPU は `cpu.energyRegenMul` 倍）→ 陣営シールドの減衰 → ユニットの移動/攻撃
+ * CPU は難易度で決まる `state.cpuRegenMul` 倍）→ 陣営シールドの減衰 → ユニットの移動/攻撃
  * （`stepUnits`）→ 本陣の迎撃（`stepBaseDefense`）→ 死亡処理（`processDeaths`）
  * → dead の一括除去 → 決着判定」。シールド減衰を先頭に置くことで、前ティック
  * のシールドは減り、同ティックに死亡処理が張ったシールドは満タンのまま残る。
  * 死亡処理を攻撃の後に置くことで、本陣の弾で死んだ敵も同ティックで死ぬ。dead は
  * 反復中は立てるだけにして最後に 1 回の filter で除去する（反復中の削除による
- * 取りこぼしを避ける mark-and-sweep）。`state.base` のどちらかの HP が 0 以下に
- * なったら `state.result` に勝者を入れ、以降は早期 return で凍結する。dead を
+ * 取りこぼしを避ける mark-and-sweep）。決着は `state.result` に入れ、以降は早期
+ * return で凍結する：敵本陣 0＝`'you'`（クリア）、自本陣 0＝`'cpu'`、どちらも 0 で
+ * なく `t >= config.timeLimitMs`＝`'timeout'`（時間切れ）。dead を
  * 即除去するため、死亡アニメの表示（少し残す等）は描画側（後続ユニット）で扱う。
  * DOM に触れない純関数。
  *
@@ -286,7 +293,7 @@ export function stepSim(state, dt) {
   state.regenMul = regenMul;
   const es = (dt / 1000) * config.energyRegenPerSec * regenMul;
   state.energy.you = Math.min(config.energyMax, state.energy.you + es);
-  state.energy.cpu = Math.min(config.energyMax, state.energy.cpu + es * (config.cpu.energyRegenMul ?? 1));
+  state.energy.cpu = Math.min(config.energyMax, state.energy.cpu + es * (state.cpuRegenMul ?? 1));
   for (const side of ['you', 'cpu']) {
     if (state.shield[side].t > 0) state.shield[side].t -= dt;
   }
@@ -296,4 +303,5 @@ export function stepSim(state, dt) {
   state.units = state.units.filter((u) => !u.dead);
   if (state.base.cpu.hp <= 0) state.result = 'you';
   else if (state.base.you.hp <= 0) state.result = 'cpu';
+  else if (state.t >= config.timeLimitMs) state.result = 'timeout';
 }

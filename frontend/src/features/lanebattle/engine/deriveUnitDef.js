@@ -40,7 +40,8 @@ export function rosterIds() {
  *         idleFrames / idleMs / deadFrames / deadMs を持つ。さらに CPU の相性
  *         判定用の属性 aoe（splash>0||pierce＝範囲攻撃）/ ranged（range が
  *         config.cpu.attr.rangedRange 以上＝遠距離）/ swarm（群れ。override の
- *         フラグ、既定 false）を導出して持つ。
+ *         フラグ、既定 false）/ swarmSize（1枚で湧く体数。既定 1、群れは
+ *         override で指定）を導出して持つ。
  */
 export function deriveUnitDef(enemyId) {
   const e = enemiesData.enemies.find((x) => x.id === enemyId);
@@ -79,6 +80,7 @@ export function deriveUnitDef(enemyId) {
   merged.aoe = merged.splash > 0 || !!merged.pierce;
   merged.ranged = merged.range >= config.cpu.attr.rangedRange;
   merged.swarm = merged.swarm ?? false;
+  merged.swarmSize = merged.swarmSize ?? 1; // 1枚で湧く体数（既定1）。群れは override で指定
   return merged;
 }
 

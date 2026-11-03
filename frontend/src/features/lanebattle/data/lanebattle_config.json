@@ -11,6 +11,7 @@
   "detectMargin": 30,
   "moveSpeedScale": 0.7,
   "stackGap": 16,
+  "swarmSpread": 26,
   "guardian": {
     "hp": 220,
     "atk": 45,
@@ -33,10 +34,10 @@
     "cpuSlotXs": [1100, 850, 640]
   },
   "base": {
-    "hp": 300,
-    "defense": { "atk": 45, "range": 140, "intervalMs": 600 }
+    "hp": 2600,
+    "defense": { "atk": 7, "intervalMs": 900 }
   },
-  "timeLimitMs": 90000,
+  "timeLimitMs": 180000,
   "escalation": {
     "stepMs": 60000,
     "maxMul": 2
@@ -52,22 +53,24 @@
     "winBase": 10000,
     "timePenaltyPerSec": 15,
     "energyPenalty": 5,
-    "min": 100
+    "min": 100,
+    "timeBonusPerSec": 50,
+    "damageScoreMax": 8000
   },
   "cpu": {
     "deck": [
-      "phoenix",
-      "crab",
+      "dragon",
+      "shark",
       "squid",
-      "wolf",
-      "slime",
-      "shark"
+      "lizard",
+      "crab",
+      "knight"
     ],
     "energyStart": 20,
+    "legendGate": 2,
     "firstPlayMs": 900,
     "minGapMs": 700,
     "randGapMs": 1100,
-    "energyRegenMul": 1.2,
     "attr": { "rangedRange": 100, "dpsAtk": 30, "tankyHp": 60, "fastSpd": 80, "swarmCount": 3 },
     "urgentDist": 400,
     "pushEnergyFrac": 0.7,
@@ -78,7 +81,7 @@
       "other": "dps"
     },
     "difficulty": {
-      "normal": { "reactionMs": 500, "accuracy": 0.7, "energyRegenMul": 1.2, "missChance": 0.15 }
+      "normal": { "reactionMs": 500, "accuracy": 0.7, "energyRegenMul": 1.0, "missChance": 0.15 }
     }
   }
 }
