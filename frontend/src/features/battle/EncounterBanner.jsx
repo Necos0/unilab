@@ -17,6 +17,10 @@ import styles from './EncounterBanner.module.css';
  * ように `漢字《ふりがな》` 記法を含む名前に対応するため、文言全体を
  * `tokenizeFurigana` でトークン化し、ルビ対象は `<ruby>` 要素で描画する。
  *
+ * 最終ボス（`isFinalBoss`、5-4 の前の勇者）では文言が「〇〇が
+ * たちはだかった!!!」になり、紫基調・さらに大きな文字・紫のグロー明滅の
+ * 最終ボス版スタイル（`.bannerFinal`）で 3000ms 表示される（`isBoss` より優先）。
+ *
  * ボスステージ（`isBoss`）では文言が「ボスの 〇〇が あらわれた!!」に
  * 変わり、赤基調・大きめの文字・赤いグロー明滅つきのボス版スタイル
  * （`.bannerBoss`）で、通常より長い時間（2400ms）表示される。
@@ -25,17 +29,22 @@ import styles from './EncounterBanner.module.css';
  *     props (object): React プロパティ。
  *         enemyName (string): 表示する敵の名前（例: "スライム"）。
  *         isBoss (boolean): ボスステージなら true。既定は false。
+ *         isFinalBoss (boolean): 最終ボス戦なら true。既定は false。
  *
  * Returns:
  *     JSX.Element: 敵エリアに絶対配置されるバナー要素。
  */
-function EncounterBanner({ enemyName, isBoss = false }) {
-  const className = isBoss
-    ? `${styles.banner} ${styles.bannerBoss}`
-    : styles.banner;
-  const message = isBoss
-    ? `ボスの ${enemyName}が あらわれた!!`
-    : `${enemyName}が あらわれた!`;
+function EncounterBanner({ enemyName, isBoss = false, isFinalBoss = false }) {
+  const className = isFinalBoss
+    ? `${styles.banner} ${styles.bannerFinal}`
+    : isBoss
+      ? `${styles.banner} ${styles.bannerBoss}`
+      : styles.banner;
+  const message = isFinalBoss
+    ? `${enemyName}が たちはだかった!!!`
+    : isBoss
+      ? `ボスの ${enemyName}が あらわれた!!`
+      : `${enemyName}が あらわれた!`;
   const textNodes = tokenizeFurigana(message).map((token, index) =>
     token.type === 'ruby' ? (
       <ruby key={index}>

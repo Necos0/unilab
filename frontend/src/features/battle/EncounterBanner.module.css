@@ -88,3 +88,35 @@
     opacity: 0;
   }
 }
+
+/*
+ * 最終ボス版バナー（5-4 の前の勇者）。紫基調＋さらに大きな文字＋紫の
+ * グロー明滅。アニメーションは「ポップイン（350ms）→ グロー明滅
+ * （1000ms × 3）→ フェードアウト（300ms、2700ms 遅延開始）」で合計 3000ms。
+ * `BattleScreen` の FINAL_INTRO_PHASE_DURATIONS_MS.banner と同期させている。
+ */
+.bannerFinal {
+  background: linear-gradient(rgba(36, 10, 60, 0.94), rgba(16, 4, 30, 0.94));
+  border-top: 3px solid #b85cff;
+  border-bottom: 3px solid #b85cff;
+  animation:
+    encounterBannerIn 350ms cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    encounterFinalGlow 1000ms ease-in-out 3,
+    encounterBannerOut 300ms ease-in 2700ms forwards;
+}
+
+.bannerFinal .text {
+  font-size: clamp(1.5rem, 6vw, 2.4rem);
+  letter-spacing: 4px;
+  color: #f4e4ff;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.7),
+    0 0 14px rgba(184, 92, 255, 0.95),
+    0 0 28px rgba(140, 40, 255, 0.7);
+}
+
+@keyframes encounterFinalGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(184, 92, 255, 0); }
+  50%  { box-shadow: 0 0 36px 10px rgba(184, 92, 255, 0.75); }
+  100% { box-shadow: 0 0 0 0 rgba(184, 92, 255, 0); }
+}

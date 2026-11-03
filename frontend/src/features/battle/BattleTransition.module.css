@@ -59,6 +59,30 @@
   animation-duration: 650ms;
 }
 
+/* 最終ボス戦（5-4）用のフラッシュ。紫と白が交互に光る稲妻のような明滅を
+   140ms × 5 回（計 700ms）。JS の FINAL_FLASH_MS と合わせる */
+.flashLayerFinal {
+  background: #b040ff;
+  animation: encounterFlashFinal 140ms ease-in-out 5;
+}
+/* 最終ボス戦用のアイリス。さらに遅く（900ms）閉じる */
+.irisHoleFinal {
+  animation-duration: 900ms;
+}
+@keyframes encounterFlashFinal {
+  0% {
+    opacity: 0;
+    background: #b040ff;
+  }
+  40% {
+    opacity: 0.95;
+    background: #ffffff;
+  }
+  100% {
+    opacity: 0;
+    background: #b040ff;
+  }
+}
 @keyframes encounterFlash {
   0% {
     opacity: 0;
