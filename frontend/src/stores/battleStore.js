@@ -1181,11 +1181,17 @@ const useBattleStore = create((set, get) => ({
           const prevCard = get().slotAssignments[prevNodeId];
           const isPrevGuard = prevCard && prevCard.id === 'guard';
           const isPrevReflect = prevCard && prevCard.id === 'reflect';
-          if (!isPrevGuard && get().guardShield > 0) {
-            get().clearGuard();
-          }
-          if (!isPrevReflect && get().reflectActive) {
-            get().clearReflect();
+          // merge（合流）はカードを持たない構造ノードで「直後の1マス」に数えない
+          // ため、通過してもバフ（シールド・反射）を消費せず次のマスへ通す
+          // （sim 側 `clearTransientBuffs` の merge 透過と対称）。
+          const isPrevMerge = nodeMap[prevNodeId]?.type === 'merge';
+          if (!isPrevMerge) {
+            if (!isPrevGuard && get().guardShield > 0) {
+              get().clearGuard();
+            }
+            if (!isPrevReflect && get().reflectActive) {
+              get().clearReflect();
+            }
           }
 
           scheduleNodePhase(edge.target, edgePhaseMs);

@@ -458,42 +458,99 @@
     },
     "5-1": {
       "enemyId": "black_wing_dragon",
-      "maxEnemyHp": 100,
+      "maxEnemyHp": 270,
       "cards": [
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 15 },
         { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
-        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 6 },
         { "id": "attack", "power": 5 },
-        { "id": "attack", "power": 5 },
+        { "id": "guard", "power": 25 },
         { "id": "guard", "power": 10 },
-        { "id": "heal", "power": 10 },
+        { "id": "guard", "power": 10 },
         { "id": "heal", "power": 30 },
+        { "id": "heal", "power": 25 },
         { "id": "reflect" }
       ],
       "flow": [
-        {},
-        {},
-        { "lockedCard": { "id": "monster", "power": 20 } },
-        {},
-        {},
+        { "acceptOnly": "guard" },
         { "lockedCard": { "id": "monster", "power": 15 } },
-        { "acceptOnly": "attack" },
-        { "turn": {} },
-        { "lockedCard": { "id": "monster", "power": 95 } },
-        { "multiplier": 2 },
-        { "multiplier": 3 },
-        {},
-        { "lockedCard": { "id": "monster", "power": 30 } },
+        { "lockedCard": { "id": "monster", "power": 75 } },
         {
-          "condition": "enemyHp === 40",
-          "label": "敵《てき》のHPが40?",
-          "true": [
-            { "multiplier": 4 }
-          ],
-          "false": [
-            { "lockedCard": { "id": "monster", "power": 100 } }
-          ]
-        }
+          "loop": {
+            "mode": "pre",
+            "condition": "enemyHp <= 240",
+            "label": "敵《てき》のHPが 240 いか？",
+            "trueDir": "down",
+            "falseDir": "right",
+            "exitRoute": "under",
+            "body": [
+              {
+                "condition": "playerHp <= 30",
+                "label": "自分《じぶん》のHPが 30 いか？",
+                "true": [
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 30 } },
+                  {}
+                ],
+                "false": [
+                  { "lockedCard": { "id": "guard", "power": 5 } },
+                  { "lockedCard": { "id": "monster", "power": 40 } },
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 5 } },
+                  { "lockedCard": { "id": "guard", "power": 5 } }
+                ]
+              },
+              { "lockedCard": { "id": "monster", "power": 15 } },
+              {}
+            ]
+          }
+        },
+        {
+          "loop": {
+            "mode": "pre",
+            "condition": "playerHp >= 60",
+            "label": "自分《じぶん》のHPが 60 いじょう？",
+            "trueDir": "down",
+            "falseDir": "right",
+            "exitRoute": "under",
+            "body": [
+              { "lockedCard": { "id": "heal", "power": 10 } }
+            ]
+          }
+        },
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        { "lockedCard": { "id": "heal", "power": 45 } },
+        { "newline": {} },
+        {
+          "for": {
+            "iterations": 5,
+            "body": [
+              {
+                "condition": "forCounter('for-start-1') === 5 || forCounter('for-start-1') === 3 || forCounter('for-start-1') === 1",
+                "label": "ループが 1・3・5 回目《かいめ》？",
+                "true": [
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 20 } },
+                  {}
+                ],
+                "false": [
+                  {
+                    "condition": "playerHp <= 20",
+                    "label": "自分《じぶん》のHPが 20 いか？",
+                    "true": [],
+                    "false": [
+                      {}
+                    ]
+                  }
+                ]
+              },
+              { "lockedCard": { "id": "monster", "power": 15 } },
+              {}
+            ]
+          }
+        },
+        { "multiplier": 4 }
       ]
     },
     "5-2": {

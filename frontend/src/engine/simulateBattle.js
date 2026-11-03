@@ -76,7 +76,13 @@ export function applyNodeEffect(state, card, multiplier) {
  * Returns:
  *     object: バフ解除後の新しい状態。
  */
-export function clearTransientBuffs(state, prevCard) {
+export function clearTransientBuffs(state, prevCard, prevNodeType) {
+  // merge（合流）ノードはカードを持たない純粋な構造ノードで「1 マス」に数えない
+  // ため、通過してもバフ（シールド・反射）を消費せずそのまま次へ通す。これにより
+  // 条件分岐の各経路の末尾でシールドを張り、合流後の攻撃に効かせられる。
+  if (prevNodeType === 'merge') {
+    return state;
+  }
   const isPrevGuard = prevCard?.id === 'guard';
   const isPrevReflect = prevCard?.id === 'reflect';
   return {
@@ -247,7 +253,7 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
     if (!nextEdge) {
       return state.enemyHp <= 0 && state.playerHp > 0 ? 'win' : 'lose';
     }
-    state = clearTransientBuffs(state, card);
+    state = clearTransientBuffs(state, card, nodeMap[nodeId]?.type);
     nodeId = nextEdge.target;
   }
 }
