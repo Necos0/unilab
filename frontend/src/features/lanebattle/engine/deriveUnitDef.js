@@ -35,8 +35,13 @@ export function rosterIds() {
  *
  * Returns:
  *     object: ユニット定義。id / name / hp / cost / atk / spd / range /
- *         splash / deathbomb / ability / desc / sizeRatio と、
- *         idleFrames / idleMs / deadFrames / deadMs を持つ。
+ *         detectRange（探知距離＝射程＋config.detectMargin。overrides で個別
+ *         上書き可） / splash / deathbomb / ability / desc / sizeRatio と、
+ *         idleFrames / idleMs / deadFrames / deadMs を持つ。さらに CPU の相性
+ *         判定用の属性 aoe（splash>0||pierce＝範囲攻撃）/ ranged（range が
+ *         config.cpu.attr.rangedRange 以上＝遠距離）/ swarm（群れ。override の
+ *         フラグ、既定 false）/ swarmSize（1枚で湧く体数。既定 1、群れは
+ *         override で指定）を導出して持つ。
  */
 export function deriveUnitDef(enemyId) {
   const e = enemiesData.enemies.find((x) => x.id === enemyId);
@@ -59,6 +64,7 @@ export function deriveUnitDef(enemyId) {
     slowOnAttack: null,
     deathShield: null,
     atkIntervalMs: null,
+    rushBase: false,
     legend: false,
     ability: '近接',
     desc: 'ふつうの近接攻撃。',
@@ -69,7 +75,13 @@ export function deriveUnitDef(enemyId) {
     deadMs: e?.animations?.dead?.frameDurationMs ?? 170,
   };
 
-  return { ...base, ...(OVERRIDES[enemyId] ?? {}) };
+  const merged = { ...base, ...(OVERRIDES[enemyId] ?? {}) };
+  merged.detectRange = merged.detectRange ?? merged.range + config.detectMargin;
+  merged.aoe = merged.splash > 0 || !!merged.pierce;
+  merged.ranged = merged.range >= config.cpu.attr.rangedRange;
+  merged.swarm = merged.swarm ?? false;
+  merged.swarmSize = merged.swarmSize ?? 1; // 1枚で湧く体数（既定1）。群れは override で指定
+  return merged;
 }
 
 /**
