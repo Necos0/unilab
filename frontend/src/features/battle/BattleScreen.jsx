@@ -39,6 +39,8 @@ import FinaleOverlay from './FinaleOverlay';
 import EncounterBanner from './EncounterBanner';
 import enemiesData from '../../data/enemies.json';
 import isBossStage from './isBossStage';
+import isFinalBossStage from './isFinalBossStage';
+import FinalBossOmen from './FinalBossOmen';
 
 /*
  * バトル入場演出（イントロ）の各フェーズの表示時間（ms）と遷移先。
@@ -53,7 +55,24 @@ import isBossStage from './isBossStage';
  */
 const INTRO_PHASE_DURATIONS_MS = { enemyEnter: 700, banner: 1600, uiEnter: 450 };
 const BOSS_INTRO_PHASE_DURATIONS_MS = { enemyEnter: 900, banner: 2400, uiEnter: 450 };
-const INTRO_NEXT_PHASE = { enemyEnter: 'banner', banner: 'uiEnter', uiEnter: 'done' };
+/*
+ * 最終ボス（5-4、`isFinalBossStage`）専用の時間割。通常のボス演出の前に
+ * シネマ演出 `finalOmen`（`FinalBossOmen`、4200ms）を挟み、敵の入場を
+ * さらにゆっくり（CSS 1100ms）、バナーを最終ボス版（EncounterBanner の
+ * `isFinalBoss`、3000ms）にする。
+ */
+const FINAL_INTRO_PHASE_DURATIONS_MS = {
+  finalOmen: 4200,
+  enemyEnter: 1200,
+  banner: 3000,
+  uiEnter: 450,
+};
+const INTRO_NEXT_PHASE = {
+  finalOmen: 'enemyEnter',
+  enemyEnter: 'banner',
+  banner: 'uiEnter',
+  uiEnter: 'done',
+};
 
 /*
  * 盤面変身（最終ボス第二形態、カットシーンの `boardTransform` step）の時間割。
@@ -329,6 +348,11 @@ function CrossIcon() {
  *   - 入場ガイドのカットシーン（`enterBattle` トリガー）は演出完了
  *     （`introPhase === 'done'`）まで遅延させ、演出とロボのセリフが
  *     重ならないようにする
+ *   - 最終ボス（`isFinalBossStage`、5-4 の前の勇者）は、さらに先頭に
+ *     シネマ演出フェーズ `'finalOmen'`（`FinalBossOmen`：黒帯・中央へ走る
+ *     フローチャートの線・勇者のシルエット・閃光）を挟み、敵の入場・ゆれ・
+ *     ビネット・バナーを紫基調の最終ボス版に差し替える。時間割は
+ *     `FINAL_INTRO_PHASE_DURATIONS_MS`。タップスキップは同じく効く
  *   - ボスステージ（`isBossStage`、各ワールドの *-4）ではボス専用の派手な
  *     演出に切り替わる: 敵の入場がゆっくり大きく（`.introEnemyEnterBoss`）、
  *     バナー表示と同時に敵エリアが激しく揺れ（`.introBossShake`）、赤い
@@ -431,21 +455,34 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * 破棄される）。リトライ（retryFromFail）では再マウントされないため、
    * イントロが再生されるのはステージ入場時の 1 回だけ。
    */
-  const [introPhase, setIntroPhase] = useState('enemyEnter');
+  /*
+   * 最終ボス（5-4）は、敵が出てくる前にシネマ演出 `finalOmen` から始める。
+   * 最終ボスは *-4 なので `isBoss` も true になり、ボス用のゆれ等はそのまま
+   * 使いつつ、最終ボス専用のクラスで上書きする。
+   */
+  const isFinalBoss = isFinalBossStage(resolvedStageId);
   const isBoss = isBossStage(resolvedStageId);
+  const [introPhase, setIntroPhase] = useState(
+    isFinalBoss ? 'finalOmen' : 'enemyEnter',
+  );
   useEffect(() => {
     if (introPhase === 'done') return undefined;
-    const durations = isBoss
-      ? BOSS_INTRO_PHASE_DURATIONS_MS
-      : INTRO_PHASE_DURATIONS_MS;
+    const durations = isFinalBoss
+      ? FINAL_INTRO_PHASE_DURATIONS_MS
+      : isBoss
+        ? BOSS_INTRO_PHASE_DURATIONS_MS
+        : INTRO_PHASE_DURATIONS_MS;
     const timer = setTimeout(
       () => setIntroPhase(INTRO_NEXT_PHASE[introPhase]),
       durations[introPhase],
     );
     return () => clearTimeout(timer);
-  }, [introPhase, isBoss]);
+  }, [introPhase, isBoss, isFinalBoss]);
   const isIntroActive = introPhase !== 'done';
-  const isIntroUiHidden = introPhase === 'enemyEnter' || introPhase === 'banner';
+  const isIntroUiHidden =
+    introPhase === 'finalOmen' ||
+    introPhase === 'enemyEnter' ||
+    introPhase === 'banner';
   const introUiClass = isIntroUiHidden
     ? styles.introUiHidden
     : introPhase === 'uiEnter'
@@ -775,6 +812,10 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             aria-label="えんしゅつを スキップ"
           />
         )}
+        {/* 最終ボス（5-4）だけの、敵が出てくる前のシネマ演出 */}
+        {introPhase === 'finalOmen' && enemy && (
+          <FinalBossOmen enemyId={enemy.id} />
+        )}
         {/*
           * 左上ヘルプ・右上マップ戻りボタンは、入場演出中は非表示にして
           * uiEnter フェーズで他の UI と一緒にスライドインさせる。ラッパー div
@@ -810,8 +851,13 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
         <div
           className={[
             styles.enemyArea,
-            /* ボス戦はバナー表示と同時に敵エリアを激しく揺らす */
-            introPhase === 'banner' && isBoss && styles.introBossShake,
+            /*
+             * ボス戦はバナー表示と同時に敵エリアを激しく揺らす。最終ボスは
+             * さらに長く大きくゆらす（`.introFinalShake`）
+             */
+            introPhase === 'banner' &&
+              isBoss &&
+              (isFinalBoss ? styles.introFinalShake : styles.introBossShake),
           ].filter(Boolean).join(' ')}
         >
           <EnemySprite
@@ -819,10 +865,14 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             state={enemySpriteState}
             className={
               introPhase === 'enemyEnter'
-                ? isBoss
-                  ? styles.introEnemyEnterBoss
-                  : styles.introEnemyEnter
-                : undefined
+                ? isFinalBoss
+                  ? styles.introEnemyEnterFinal
+                  : isBoss
+                    ? styles.introEnemyEnterBoss
+                    : styles.introEnemyEnter
+                : introPhase === 'finalOmen'
+                  ? styles.introUiHidden
+                  : undefined
             }
           />
           {/*
@@ -832,10 +882,19 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             * 敵エリア全体へ赤いビネット（縁の明滅）を重ねる。
             */}
           {introPhase === 'banner' && isBoss && (
-            <div className={styles.introBossVignette} aria-hidden="true" />
+            <div
+              className={
+                isFinalBoss ? styles.introFinalVignette : styles.introBossVignette
+              }
+              aria-hidden="true"
+            />
           )}
           {introPhase === 'banner' && enemy && (
-            <EncounterBanner enemyName={enemy.displayName} isBoss={isBoss} />
+            <EncounterBanner
+              enemyName={enemy.displayName}
+              isBoss={isBoss}
+              isFinalBoss={isFinalBoss}
+            />
           )}
           <div
             data-cutscene-point="enemyHpBar"

@@ -53,6 +53,8 @@ import useBattleStore from '../../../stores/battleStore';
  * 失敗演出への連動として `battleStore.failPhase` を購読し、`'shown'` の
  * とき `<img>` に `.dimmed` クラスを付与して `opacity: 0.4` へ 0.3 秒の
  * トランジションをかける（`battle-fail-retry` 要件 3-5）。CLEAR! 時の
+ * ただし `enemies.json` のやられアニメに `keepVisible: true` がある敵（5-4 の
+ * 勇者）は、倒しても消えずに最後のコマ（元に戻った姿）のまま残す。
  * 完全透明（`.fading`）と区別できる「敵がまだ残っているが弱まって見える」
  * 半透過状態を表現する。`failPhase` と `victoryPhase` は相互排他なので
  * `.fading` と `.dimmed` が同時に当たることは無いが、CSS は独立クラスに
@@ -88,7 +90,13 @@ function EnemySprite({ enemyId, state = 'idle', className }) {
   const [consumedDamageId, setConsumedDamageId] = useState(null);
   const isFlashing = lastDamageId !== null && lastDamageId !== consumedDamageId;
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
-  const isFading = victoryPhase === 'fading' || victoryPhase === 'cleared';
+  /*
+   * やられアニメに `keepVisible: true` がある敵（5-4 の勇者＝倒すと元の姿に
+   * もどる）は、勝利後も消さずに最後のコマのまま残す。
+   */
+  const isKeptAfterDefeat = enemy?.animations?.dead?.keepVisible === true;
+  const isFading =
+    !isKeptAfterDefeat && (victoryPhase === 'fading' || victoryPhase === 'cleared');
   const failPhase = useBattleStore((s) => s.failPhase);
   const isDimmed = failPhase === 'shown';
   const { containerRef, onImageLoad, zoom } = useResponsiveSpriteZoom(

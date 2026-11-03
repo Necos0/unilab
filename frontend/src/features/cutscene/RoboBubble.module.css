@@ -104,6 +104,35 @@
   text-shadow: 0 0 10px rgba(200, 30, 0, 0.8);
 }
 
+/*
+ * ビット以外の話し手で、絵のある相手（`speakerIcon`、5-4 の勇者など）の
+ * アイコン。`.icon` と同じ大きさの枠に、全身スプライトを拡大して顔まわり
+ * だけを見せる。どこを真ん中に出すかは、JS 側が `translate` で指定する
+ * （step の `speakerIconFocus`、既定は立ち姿の顔の位置）。
+ */
+.portraitFrame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 138px;
+  height: 138px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #f0c040;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.portrait {
+  position: absolute;
+  width: 250%;
+  height: auto;
+  left: 50%;
+  top: 50%;
+  image-rendering: pixelated;
+  -webkit-user-drag: none;
+}
+
 /* アイコン下の名前プレート。自己紹介前は「???」、以降は「ビット」。
    HelpButton 等と同じ RPG 調（金枠＋暗い半透明地＋DotGothic16）で揃える */
 .iconName {

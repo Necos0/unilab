@@ -1,0 +1,47 @@
+/*
+ * 魔気が晴れていく演出の前景。てっぺん（5-4 の広場）のあたりから白い光が
+ * 広がって画面をやさしく照らし、背景のクロスフェード（3000ms）が終わる
+ * ころに消える。MapPurifyOverlay.jsx の PURIFY_MS（3400ms）と合わせる。
+ */
+
+/*
+ * 親の矩形全体を覆う層。ランドマーク・ボタンより上、ロボの吹き出し
+ * （z-index: 100）より下に置く。演出中は下の操作をブロックする。
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* てっぺん（マップ右上、x 約 85% / y 約 16%）から広がる白い光 */
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 85% 16%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(200, 240, 255, 0.55) 25%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  opacity: 0;
+  transform-origin: 85% 16%;
+  animation: mapPurifyGlow 3000ms ease-in-out forwards;
+}
+
+@keyframes mapPurifyGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}

@@ -1,0 +1,196 @@
+/*
+ * 最終ボス（5-4）の入場前シネマ演出。全体 4200ms で、BattleScreen の
+ * FINAL_INTRO_PHASE_DURATIONS_MS.finalOmen と同期させること。
+ *   0     – 600ms  : 上下の黒帯がすべりこむ
+ *   400   – 2200ms : フローチャートの線が四方から中央へ描かれる（線ごとに遅延）
+ *   1600  – 3700ms : 中央の光の輪が脈打ち、勇者のシルエットが浮かび上がる
+ *   3700  – 4200ms : 紫白の閃光ではじけ、層全体が消える
+ */
+
+/*
+ * バトル画面全体を覆う層。敵・UI より上、演出スキップ用の透明ボタン
+ * （`.introSkipLayer`、z-index: 30）より下に置く。
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+  background: #05020a;
+  pointer-events: none;
+  animation: finalOmenOverlayOut 500ms ease-in 3700ms forwards;
+}
+
+/* ---- フローチャートの線 ---- */
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* pathLength=1 にそろえて、dashoffset 1 → 0 で「描かれていく」線にする */
+.line {
+  fill: none;
+  stroke: #c05cff;
+  stroke-width: 4;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 6px #b040ff) drop-shadow(0 0 14px #8a20ff);
+  animation:
+    finalOmenDraw 1400ms cubic-bezier(0.5, 0, 0.3, 1) forwards,
+    finalOmenLinePulse 600ms ease-in-out 1800ms infinite alternate;
+}
+
+.arrowHead {
+  fill: #e0a0ff;
+}
+
+/* ---- 中央の光の輪とシルエット ---- */
+
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(46vh, 60vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(
+    circle,
+    rgba(200, 90, 255, 0.55) 0%,
+    rgba(140, 40, 255, 0.25) 45%,
+    rgba(80, 0, 160, 0) 70%
+  );
+  opacity: 0;
+  scale: 0.3;
+  animation:
+    finalOmenRingIn 900ms ease-out 1600ms forwards,
+    finalOmenRingPulse 700ms ease-in-out 2500ms infinite alternate;
+}
+
+/*
+ * 勇者のシルエット。待機アニメの 1 コマ目を真っ黒にし、紫のふちどり光で
+ * 輪郭だけを見せる（まだ正体ははっきり見せない）。
+ */
+.silhouette {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: min(42vh, 55vw);
+  width: auto;
+  translate: -50% -50%;
+  image-rendering: pixelated;
+  filter: brightness(0) drop-shadow(0 0 3px #d080ff) drop-shadow(0 0 16px #9030ff);
+  opacity: 0;
+  scale: 0.85;
+  -webkit-user-drag: none;
+  animation: finalOmenSilhouetteIn 1500ms ease-out 1900ms forwards;
+}
+
+/* ---- シネマスコープの黒帯 ---- */
+
+.barTop,
+.barBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12%;
+  background: #000;
+  z-index: 2;
+}
+
+.barTop {
+  top: 0;
+  translate: 0 -100%;
+  animation: finalOmenBarIn 600ms ease-out forwards;
+}
+
+.barBottom {
+  bottom: 0;
+  translate: 0 100%;
+  animation: finalOmenBarIn 600ms ease-out forwards;
+}
+
+/* ---- 最後の閃光 ---- */
+
+.flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(circle, #ffffff 0%, #e4b8ff 40%, #9a40ff 100%);
+  opacity: 0;
+  animation: finalOmenFlash 700ms ease-out 3500ms forwards;
+}
+
+@keyframes finalOmenBarIn {
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes finalOmenDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes finalOmenLinePulse {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes finalOmenRingIn {
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes finalOmenRingPulse {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: 1.12;
+  }
+}
+
+@keyframes finalOmenSilhouetteIn {
+  0% {
+    opacity: 0;
+    scale: 0.85;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    scale: 1.05;
+  }
+}
+
+@keyframes finalOmenFlash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes finalOmenOverlayOut {
+  to {
+    opacity: 0;
+  }
+}

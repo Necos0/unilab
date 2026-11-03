@@ -160,12 +160,29 @@ function RoboBubble({ variant = 'map' }) {
   const roboLabel = isRoboNameKnown ? ROBO_NAME : ROBO_NAME_HIDDEN;
 
   /*
-   * ビット以外の話し手（`speaker` を持つ step）。姿を見せない声だけの登場
-   * （3-4 クリア後のドラゴンの叫び声＝`speaker: "???"`）に使う。名前プレートを
-   * この文字列にし、アイコンはビットの絵ではなく「？」の影にする。
+   * ビット以外の話し手（`speaker` を持つ step）。名前プレートをこの文字列に
+   * する（`漢字《ふりがな》` 記法可）。アイコンは `speakerIcon`（画像パス）が
+   * あればその絵の顔まわりを、なければ「？」の影を出す。
+   *   - 姿を見せない声: 3-4 クリア後のドラゴンの叫び声（`speaker: "???"`）
+   *   - 姿のある相手: 5-4 の勇者（`speakerIcon` に勇者のスプライト）
+   * バトル画面ではビットの名前プレートを出さないが、ビット以外の話し手の
+   * ときは誰の声か分かるように出す。
    */
   const speakerName =
     typeof steps[stepIndex]?.speaker === 'string' ? steps[stepIndex].speaker : null;
+  const speakerIcon =
+    typeof steps[stepIndex]?.speakerIcon === 'string'
+      ? steps[stepIndex].speakerIcon
+      : null;
+  /*
+   * アイコンの枠の中心に来る、画像上の点（幅・高さに対する割合）。立ち姿の
+   * 敵スプライトは顔が上のほう（既定 x 0.5 / y 0.28）にあるが、ひざをついた
+   * 絵などは `speakerIconFocus: { x, y }` で顔の位置を指定する。
+   */
+  const iconFocus = steps[stepIndex]?.speakerIconFocus ?? {};
+  const portraitStyle = {
+    translate: `${-(iconFocus.x ?? 0.5) * 100}% ${-(iconFocus.y ?? 0.28) * 100}%`,
+  };
 
   /*
    * 現在の step。`bubble` を持つ step だけロボの吹き出しを描画する。
@@ -488,13 +505,25 @@ function RoboBubble({ variant = 'map' }) {
                 alt="ロボ"
                 draggable={false}
               />
+            ) : speakerIcon !== null ? (
+              <div className={styles.portraitFrame} aria-hidden="true">
+                <img
+                  className={styles.portrait}
+                  style={portraitStyle}
+                  src={speakerIcon}
+                  alt=""
+                  draggable={false}
+                />
+              </div>
             ) : (
               <div className={styles.unknownIcon} aria-hidden="true">
                 ？
               </div>
             )}
-            {variant !== 'battle' && (
-              <span className={styles.iconName}>{speakerName ?? roboLabel}</span>
+            {(variant !== 'battle' || speakerName !== null) && (
+              <span className={styles.iconName}>
+                {speakerName !== null ? renderFurigana(speakerName) : roboLabel}
+              </span>
             )}
           </div>
           <div className={styles.bubble}>

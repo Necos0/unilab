@@ -172,7 +172,8 @@ function helpIdsFromStep(step) {
  * 取り出す。
  *
  * 吹き出し・選択肢・ヘルプ誘導・各種の待ち step・画面演出だけの step
- * （`boardTransform` / `reviveBoss` / `dragonShadow` / `dragonRoar`）を残し、`playAnimation`
+ * （`boardTransform` / `reviveBoss` / `dragonShadow` / `dragonRoar` /
+ * `theEnd` / `purifyMap`）を残し、`playAnimation`
  * のみの step などは落とす。`fireTrigger` と `peekCutsceneId` の共通処理。
  *
  * Args:
@@ -216,7 +217,20 @@ function selectPlayableSteps(def) {
        * 赤黒いかげり（`DragonRoarOverlay`）を重ねる。吹き出しを持つので
        * 上の条件でも残るが、演出だけの step として意図を明示しておく。
        */
-      step.dragonRoar === true,
+      step.dragonRoar === true ||
+      /*
+       * 「おしまい」step（ステージ5の最後、`map-stage5-reunion` の末尾）。
+       * 吹き出しを持たず、`MapScreen` がこの step で「おしまい」画面
+       * （`TheEndOverlay`）を出し、タップでカットシーンを終えてタイトルへ戻す。
+       */
+      step.theEnd === true ||
+      /*
+       * 魔気が晴れる step（5-4 クリア後にマップへ戻った直後、
+       * `map-stage5-reunion` の先頭）。吹き出しを持たず、`MapBackground` が
+       * 紫の島 → 晴れた島をクロスフェードし、`MapScreen` が光の演出
+       * （`MapPurifyOverlay`）を重ねて、終わったら advance で次の吹き出しへ。
+       */
+      step.purifyMap === true,
   );
 }
 

@@ -169,7 +169,10 @@ unilab/
     │   │   │   ├── scorpion/     ← idle / dead
     │   │   │   ├── shark/        ← idle / dead
     │   │   │   ├── squid/        ← idle / dead
-    │   │   │   └── goldenbird/   ← idle / dead
+    │   │   │   ├── goldenbird/   ← idle / dead
+    │   │   │   ├── black_wing_dragon/ ← idle / dead(5-1 のボス、ゴールデンバードの進化形)
+    │   │   │   └── dark_hero/    ← idle / dead(5-4 の最終ボス、魔気に操られた勇者)
+    │   │   ├── portraits/        ← 会話アイコン用の立ち絵(hero.png: 元に戻った勇者、cutscenes.json の speakerIcon が参照)
     │   │   └── effects/          ← 演出用の単発画像(dragon_shadow.png: 翼を広げたドラゴンの影、DragonShadowOverlay が参照)
     │   └── story/                ← 紙芝居の画像(オープニング story_NN.png・エンディング ending_NN.png、StoryScreen が参照)
     └── src/

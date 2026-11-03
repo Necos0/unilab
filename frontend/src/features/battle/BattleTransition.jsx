@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './BattleTransition.module.css';
 import preloadBattleAssets from './preloadBattleAssets';
 import isBossStage from './isBossStage';
+import isFinalBossStage from './isFinalBossStage';
 
 const FLASH_MS = 360;
 const IRIS_MS = 450;
@@ -12,6 +13,13 @@ const IRIS_MS = 450;
  */
 const BOSS_FLASH_MS = 480;
 const BOSS_IRIS_MS = 650;
+/*
+ * 最終ボス戦（5-4）用のタイミング。紫と白の稲妻のような明滅を 140ms × 5 回
+ * （700ms）に増やし、アイリスもさらにゆっくり（900ms）閉じる。CSS 側の
+ * `.flashLayerFinal` / `.irisHoleFinal` と合わせる。
+ */
+const FINAL_FLASH_MS = 700;
+const FINAL_IRIS_MS = 900;
 const FADE_OUT_MS = 350;
 
 /**
@@ -36,7 +44,9 @@ const FADE_OUT_MS = 350;
  *
  * ボスステージ（`isBossStage`、各ワールドの *-4）への遷移では、フラッシュが
  * 白 2 回 → 赤 3 回（`BOSS_FLASH_MS`）になり、アイリスも遅く
- * （`BOSS_IRIS_MS`）閉じるボス専用の重い演出に切り替わる。
+ * （`BOSS_IRIS_MS`）閉じるボス専用の重い演出に切り替わる。最終ボス
+ * （`isFinalBossStage`、5-4）ではさらに、紫と白の稲妻のような明滅 5 回
+ * （`FINAL_FLASH_MS`）と、もっと遅いアイリス（`FINAL_IRIS_MS`）になる。
  *
  * 演出の最低時間とプリロード完了の遅い方に合わせるため、`Promise.all` で
  * 演出用タイマー（フラッシュ→アイリスの `setTimeout` 連鎖）とプリロード
@@ -71,9 +81,10 @@ function BattleTransition({ targetStageId, onMidpoint, onEnd }) {
   useEffect(() => {
     let cancelled = false;
 
+    const isFinal = isFinalBossStage(targetStageId);
     const isBoss = isBossStage(targetStageId);
-    const flashMs = isBoss ? BOSS_FLASH_MS : FLASH_MS;
-    const irisMs = isBoss ? BOSS_IRIS_MS : IRIS_MS;
+    const flashMs = isFinal ? FINAL_FLASH_MS : isBoss ? BOSS_FLASH_MS : FLASH_MS;
+    const irisMs = isFinal ? FINAL_IRIS_MS : isBoss ? BOSS_IRIS_MS : IRIS_MS;
 
     /* フラッシュ → アイリスの 2 段演出を setTimeout 連鎖で進め、
        アイリス全閉（画面が完全に黒になる）まで待つタイマー Promise */
@@ -101,26 +112,23 @@ function BattleTransition({ targetStageId, onMidpoint, onEnd }) {
     };
   }, [targetStageId]);
 
+  const isFinal = isFinalBossStage(targetStageId);
   const isBoss = isBossStage(targetStageId);
   const className = [styles.overlay, styles[phase]].join(' ');
+  const flashClassName = isFinal
+    ? `${styles.flashLayer} ${styles.flashLayerFinal}`
+    : isBoss
+      ? `${styles.flashLayer} ${styles.flashLayerBoss}`
+      : styles.flashLayer;
+  const irisClassName = isFinal
+    ? `${styles.irisHole} ${styles.irisHoleFinal}`
+    : isBoss
+      ? `${styles.irisHole} ${styles.irisHoleBoss}`
+      : styles.irisHole;
   return (
     <div className={className} aria-hidden="true">
-      {phase === 'flash' && (
-        <div
-          className={
-            isBoss
-              ? `${styles.flashLayer} ${styles.flashLayerBoss}`
-              : styles.flashLayer
-          }
-        />
-      )}
-      {phase === 'iris' && (
-        <div
-          className={
-            isBoss ? `${styles.irisHole} ${styles.irisHoleBoss}` : styles.irisHole
-          }
-        />
-      )}
+      {phase === 'flash' && <div className={flashClassName} />}
+      {phase === 'iris' && <div className={irisClassName} />}
     </div>
   );
 }

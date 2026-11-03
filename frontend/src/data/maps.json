@@ -979,6 +979,9 @@
     },
     "map_5": {
       "image": "/maps/map_5.png",
+      "clearedImage": "/maps/map_5_cleared.png",
+      "clearedStageId": "5-4",
+      "clearedRevealCutsceneId": "map-stage5-reunion",
       "viewBox": {
         "width": 1920,
         "height": 1080
