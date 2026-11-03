@@ -86,31 +86,32 @@ npm run preview    # ビルド結果をローカル確認
 
 ### デプロイとブランチ運用（Vercel）
 
-本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、次の 3 層ブランチ運用を守る。
+本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、次のブランチ運用を守る。
+
+> 以前は `master` / `dev` / `feature/*` の 3 層運用だったが、**`dev` は廃止**（`master` へ merge 済み）。現在は `master` を本番兼統合先とし、`feature/*` から直接 `master` へ取り込む。
 
 | ブランチ | 役割 | Vercel |
 |---|---|---|
-| `master` | **配信済み・本番**。公開 URL がこのブランチを指す。触らない | Production Branch |
-| `dev` | **アップデート版リリースまでの共同作業基盤**（開発者複数）。**直接は編集・push しない**。各 `feature/*` を集約する場所 | Preview（自動） |
-| `feature/*` | **実作業ブランチ**（`dev` から切る。例：`feature/lane-battle-2d`）。日々の編集・コミット・push はここで行う | Preview（自動） |
+| `master` | **配信済み・本番 兼 統合先**。公開 URL がこのブランチを指す。直接編集・push はしない（`feature/*` を merge して更新） | Production Branch |
+| `feature/*` | **実作業ブランチ**（`master` から切る。例：`feature/lane-battle-2d`）。日々の編集・コミット・push はここで行う | Preview（自動） |
 
-- `feature/*`（や `dev`）に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
+- `feature/*` に push すると、Vercel が本番とは別 URL の **プレビューを自動生成**する。`master` は一切更新されない。
 - プレビューにはブランチごとの**固定エイリアス URL**（`https://<プロジェクト名>-git-<ブランチ名>-<スコープ>.vercel.app`）が付き、push のたびに中身だけが最新へ差し替わる。テスターにはこの 1 本を渡す。
-- 完成した `feature/*` は **PR で `dev` に merge**（共同基盤なので直接 push しない）。アップデート版がまとまったら **`dev` を `master` に merge** して配信を更新する。
+- 完成した `feature/*` は **`master` に merge**（PR 推奨）して配信を更新する。
 
 ```bash
-# dev から実作業ブランチを切る
-git checkout dev && git pull
+# master から実作業ブランチを切る
+git checkout master && git pull
 git checkout -b feature/<機能名>
 
 # 以降は feature ブランチで作業し、push するとプレビューが更新される
 # …編集・コミット…
 git push -u origin feature/<機能名>
 
-# 完成したら dev へ PR（dev / master は直接 push しない）
+# 完成したら master へ merge（master は直接 push しない／PR 推奨）
 ```
 
-- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `dev` / `feature/*` への push で本番が変わることはない。
+- **Vercel 側の確認**：Project → Settings → Git の *Production Branch* が `master` になっていること。ここが `master` なら `feature/*` への push で本番が変わることはない。
 - セーブデータは **localStorage 依存**でドメインごとに独立するため、プレビューと本番でセーブは共有されない（プレビューは毎回まっさらから確認できる）。
 
 ### 使用ライブラリ
