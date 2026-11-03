@@ -18,6 +18,8 @@ import MapEditorPanel from './MapEditorPanel';
 import RoboBubble from '../cutscene/RoboBubble';
 import DragonShadowOverlay from '../cutscene/DragonShadowOverlay';
 import DragonRoarOverlay from '../cutscene/DragonRoarOverlay';
+import TheEndOverlay from '../cutscene/TheEndOverlay';
+import MapPurifyOverlay from '../cutscene/MapPurifyOverlay';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
@@ -266,6 +268,26 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
     (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.dragonRoar === true,
   );
   const advanceCutscene = useCutsceneStore((s) => s.advance);
+  /*
+   * カットシーンの「おしまい」step（`theEnd`、ステージ5の最後の再会の会話
+   * `map-stage5-reunion` の末尾）。`TheEndOverlay` を出し、タップされたら
+   * カットシーンを進めて（＝終えて視聴済みにし）タイトルへ戻す。
+   */
+  const isTheEndStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.theEnd === true,
+  );
+  /*
+   * カットシーンの「魔気が晴れる」step（`purifyMap`、5-4 クリア後の
+   * `map-stage5-reunion` の先頭）。背景のクロスフェードは `MapBackground` が
+   * 行い、ここでは光の演出（`MapPurifyOverlay`）を重ねて、終わったら進める。
+   */
+  const isPurifyStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.purifyMap === true,
+  );
+  const handleTheEndFinish = useCallback(() => {
+    advanceCutscene();
+    onBackToTitle?.();
+  }, [advanceCutscene, onBackToTitle]);
 
   const handleWorldUnlockEnd = useCallback(() => {
     /*
@@ -341,6 +363,8 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
         {isDragonShadowStep && <DragonShadowOverlay onEnd={advanceCutscene} />}
         {isDragonRoarStep && <DragonRoarOverlay />}
+        {isTheEndStep && <TheEndOverlay onFinish={handleTheEndFinish} />}
+        {isPurifyStep && <MapPurifyOverlay onEnd={advanceCutscene} />}
       </div>
       {pendingMapId !== null && (
         <MapSwitchTransition

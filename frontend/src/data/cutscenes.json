@@ -372,6 +372,126 @@
       { "bubble": "このフローチャートは 無限《むげん》ループ！倒《たお》すまで 攻撃《こうげき》し続《つづ》けるよ。じっこうだ、{playerName}！！", "point": "executeButton", "waitForExecute": true }
     ]
   },
+
+  "map-stage5-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterMapArea", "stageId": "5-1" },
+    "steps": [
+      { "bubble": "ここは… 島《しま》じゅうに 魔気《まき》が うずまいてる…！" },
+      { "bubble": "魔気《まき》は 魔物《まもの》を あばれさせる、わるい 力《ちから》なんだ。こんなに こいのは はじめてだよ…" },
+      { "speaker": "???", "bubble": "……ビット…… にげろ……" },
+      { "bubble": "！！ 今《いま》の 声《こえ》… まさか…！" },
+      { "bubble": "勇者《ゆうしゃ》だ…！ 生《い》きてたんだ…！" },
+      { "bubble": "でも、なんだか 声《こえ》の ようすが へんだった… {playerName}、てっぺんを めざそう！", "point": "scroll-5-4" }
+    ]
+  },
+
+  "stage5-1-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "5-1" },
+    "steps": [
+      { "bubble": "な、なんだ この 魔物《まもの》…！ 黒《くろ》い つばさに、魔気《まき》が まとわりついてる…！" },
+      { "bubble": "すごい 力《ちから》を 感《かん》じる… 気《き》を つけて、{playerName}！" }
+    ]
+  },
+
+  "stage5-1-defeat": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "5-1" },
+    "steps": [
+      { "bubble": "やった…！ 魔気《まき》が ぬけていく…" },
+      { "bubble": "…あれ？ 金色《きんいろ》の 鳥《とり》の すがたに… こいつ、ゴールデンバードだったのか…！" },
+      { "bubble": "魔気《まき》が ぬけて、力《ちから》を なくしたみたい。にげていったよ" },
+      { "bubble": "そうか、倒《たお》せば 魔気《まき》は ぬけるんだ… それなら 勇者《ゆうしゃ》も、元《もと》に もどせるかも！" }
+    ]
+  },
+
+"stage5-2-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "5-2" },
+    "steps": [
+      { "bubble": "ラギアクルス…！ 前《まえ》に 戦《たたか》った ときより、ずっと 大《おお》きく なってる…" },
+      { "bubble": "こ、こわくなんか ないよ！ {playerName}と いっしょなら 勝《か》てる！" }
+    ]
+  },
+
+  "stage5-2-defeat": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "5-2" },
+    "steps": [
+      { "bubble": "ふぅ… なんとか 勝《か》てた…！" },
+      { "bubble": "てっぺんに 近《ちか》づくほど、魔物《まもの》が 強《つよ》く なってる… 勇者《ゆうしゃ》は、もっと すごい 魔気《まき》の 中《なか》に いるんだ…" }
+    ]
+  },
+
+"stage5-3-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "5-3" },
+    "steps": [
+      { "bubble": "ドラゴン…！ 魔気《まき》で よみがえったのか！" },
+      { "bubble": "勇者《ゆうしゃ》を あんなふうに したのは、おまえだな… ぜったい ゆるさない！" },
+      { "bubble": "{playerName}、もう いちど 倒《たお》そう！" }
+    ]
+  },
+
+  "stage5-3-defeat": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "5-3" },
+    "steps": [
+      { "bubble": "やった…！ こんどこそ ドラゴンを 倒《たお》したよ！" },
+      { "bubble": "でも… 魔気《まき》が きえない。てっぺんの ほうへ 流《なが》れていく…" },
+      { "bubble": "勇者《ゆうしゃ》の 中《なか》に 魔気《まき》が のこってるんだ… 急《いそ》ごう、{playerName}！" }
+    ]
+  },
+
+"stage5-4-enter": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "enterBattle", "stageId": "5-4" },
+    "steps": [
+      { "bubble": "勇者《ゆうしゃ》！ ぼくだよ、ビットだよ！" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/enemies/dark_hero/idle/dark_hero_idle_00.png", "bubble": "……ビッ…ト…… にげ…ろ……" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/enemies/dark_hero/idle/dark_hero_idle_00.png", "bubble": "……う… うぅ…… てきは…… たおす……！" },
+      { "bubble": "魔気《まき》に あらがってるんだ… 勇者《ゆうしゃ》は まだ 中《なか》に いる！" },
+      { "bubble": "{playerName}、力《ちから》を かして！ 倒《たお》して 魔気《まき》を ぬくんだ！" }
+    ]
+  },
+
+"stage5-4-defeat": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "defeatEnemy", "stageId": "5-4" },
+    "steps": [
+      { "bubble": "やった…！ 魔気《まき》が ぬけていく…！" },
+      { "bubble": "勇者《ゆうしゃ》！ しっかりして！" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/portraits/hero.png", "speakerIconFocus": { "x": 0.48, "y": 0.22 }, "bubble": "……ここは…… ビット……？" },
+      { "bubble": "勇者《ゆうしゃ》…！ もどったんだね…！" }
+    ]
+  },
+
+"map-stage5-reunion": {
+    "category": "story",
+    "once": true,
+    "trigger": { "type": "returnToMap", "stageId": "5-4" },
+    "steps": [
+      { "purifyMap": true },
+      { "bubble": "見《み》て…！ 島《しま》の 魔気《まき》が なくなっていく…！" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/portraits/hero.png", "speakerIconFocus": { "x": 0.48, "y": 0.22 }, "bubble": "…ビット。あの日《ひ》、おまえを 逃《に》がした あと… ずっと 暗《くら》い 夢《ゆめ》の 中《なか》に いた 気《き》がする" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/portraits/hero.png", "speakerIconFocus": { "x": 0.48, "y": 0.22 }, "bubble": "でも 声《こえ》が 聞《き》こえたんだ。おまえの 声《こえ》が" },
+      { "bubble": "ぼく ひとりじゃ ないよ。{playerName}が いっしょに 戦《たたか》ってくれたんだ！" },
+      { "speaker": "勇者《ゆうしゃ》", "speakerIcon": "/sprites/portraits/hero.png", "speakerIconFocus": { "x": 0.48, "y": 0.22 }, "bubble": "{playerName}… ありがとう。きみの おかげで、もどってこられた" },
+      { "bubble": "さあ、みんなの いる 町《まち》へ 帰《かえ》ろう！" },
+      { "theEnd": true }
+    ]
+  },
+
   "runaway-blocked": {
     "category": "help",
     "once": false,

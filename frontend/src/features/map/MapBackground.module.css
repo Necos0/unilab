@@ -1,0 +1,16 @@
+/*
+ * マップ背景のクロスフェード。ステージ5の 5-4 クリア後、カットシーンの
+ * `purifyMap` step の間だけ、晴れた島の絵（`clearedImage`）を元の絵の上で
+ * ゆっくり不透明にしていく。長さは MapPurifyOverlay.jsx の PURIFY_MS
+ * （3000ms）と合わせる。
+ */
+.fadeIn {
+  opacity: 0;
+  animation: mapPurifyFadeIn 3000ms ease-in-out forwards;
+}
+
+@keyframes mapPurifyFadeIn {
+  to {
+    opacity: 1;
+  }
+}
