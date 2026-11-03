@@ -130,6 +130,36 @@
   filter: brightness(0.9);
 }
 
+/*
+ * ステージ5（`map_5`）への入口。エンディングロールを遊び切ったプレイヤーにだけ出る
+ * 4 番手のボタン。ステージ5のマップ（黒と紫の島、入口だけ水色に光る）に
+ * 合わせて、濃い紫地＋水色の枠と文字にし、ほかの金枠ボタンと区別する。
+ */
+.world5Button {
+  padding: 0.5rem 1.6rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.8rem, 2vw, 1.15rem);
+  letter-spacing: 0.1em;
+  color: #b8f4ff;
+  background: linear-gradient(rgba(40, 18, 64, 0.92), rgba(22, 10, 38, 0.92));
+  border: 2px solid #5fe3ff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 10px rgba(95, 227, 255, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 6px rgba(95, 227, 255, 0.6);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.world5Button:hover {
+  filter: brightness(1.2);
+}
+
+.world5Button:active {
+  filter: brightness(0.9);
+}
+
 @keyframes titlePulse {
   0%,
   100% {

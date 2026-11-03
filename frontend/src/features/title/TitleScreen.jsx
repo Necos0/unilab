@@ -26,6 +26,10 @@ const TITLE_IMAGE_SRC = '/title.png';
  * その下に「じんとりがっせん で あそぶ」ボタンを出し、おまけミニゲーム
  * （陣取り合戦）へ入れるようにする（本編＋エンディングのさらにおまけ）。
  *
+ * 陣取り合戦と同じ条件（ラスボスクリア＋エンディングロールを遊び切った）で、
+ * いちばん下に「つづきの ぼうけんへ」ボタンも出し、
+ * ステージ5（`map_5`）へ入れるようにする。ステージ5の入口はこのボタンだけ。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         onStart (function): スタートボタン押下時に呼ぶ関数（引数なし）。
@@ -37,6 +41,10 @@ const TITLE_IMAGE_SRC = '/title.png';
  *             呼ぶ関数（引数なし）。おまけミニゲーム（陣取り合戦）を開く。
  *         canPlayLaneBattle (boolean): 陣取り合戦ボタンを出すか（ラスボス
  *             クリア済み かつ エンディングロールを遊び切ったか）。
+ *         onPlayWorld5 (function): 「つづきの ぼうけんへ」押下時に呼ぶ関数
+ *             （引数なし）。ステージ5のマップへ移動する。
+ *         canPlayWorld5 (boolean): ステージ5入口ボタンを出すか（ラスボス
+ *             クリア済み かつ エンディングロールを遊び切ったか）。
  *
  * Returns:
  *     JSX.Element: タイトル画面全体を表す `<section>` 要素。
@@ -47,6 +55,8 @@ function TitleScreen({
   canPlayEnding = false,
   onPlayLaneBattle,
   canPlayLaneBattle = false,
+  onPlayWorld5,
+  canPlayWorld5 = false,
 }) {
   return (
     <section className={styles.root}>
@@ -80,6 +90,15 @@ function TitleScreen({
               onClick={onPlayLaneBattle}
             >
               ⚔️ じんとりがっせん で あそぶ
+            </button>
+          )}
+          {canPlayWorld5 && (
+            <button
+              type="button"
+              className={styles.world5Button}
+              onClick={onPlayWorld5}
+            >
+              つづきの ぼうけんへ
             </button>
           )}
           <FullscreenToggleButton className={styles.fullscreenButton} />

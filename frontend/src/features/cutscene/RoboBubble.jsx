@@ -160,6 +160,14 @@ function RoboBubble({ variant = 'map' }) {
   const roboLabel = isRoboNameKnown ? ROBO_NAME : ROBO_NAME_HIDDEN;
 
   /*
+   * ビット以外の話し手（`speaker` を持つ step）。姿を見せない声だけの登場
+   * （3-4 クリア後のドラゴンの叫び声＝`speaker: "???"`）に使う。名前プレートを
+   * この文字列にし、アイコンはビットの絵ではなく「？」の影にする。
+   */
+  const speakerName =
+    typeof steps[stepIndex]?.speaker === 'string' ? steps[stepIndex].speaker : null;
+
+  /*
    * 現在の step。`bubble` を持つ step だけロボの吹き出しを描画する。
    * `openCardHelp` step（カード説明モーダル誘導）は吹き出しを持たないため、
    * このコンポーネントは何も出さず、モーダル表示を `BattleScreen` に委ねる。
@@ -473,14 +481,20 @@ function RoboBubble({ variant = 'map' }) {
       {isBubbleStep && (
         <div className={styles.group}>
           <div className={styles.iconColumn}>
-            <img
-              className={styles.icon}
-              src={ROBO_ICON_SRC}
-              alt="ロボ"
-              draggable={false}
-            />
+            {speakerName === null ? (
+              <img
+                className={styles.icon}
+                src={ROBO_ICON_SRC}
+                alt="ロボ"
+                draggable={false}
+              />
+            ) : (
+              <div className={styles.unknownIcon} aria-hidden="true">
+                ？
+              </div>
+            )}
             {variant !== 'battle' && (
-              <span className={styles.iconName}>{roboLabel}</span>
+              <span className={styles.iconName}>{speakerName ?? roboLabel}</span>
             )}
           </div>
           <div className={styles.bubble}>

@@ -12,6 +12,7 @@ import styles from './CutsceneFlowScreen.module.css';
  */
 const EFFECT_STEP_LABELS = [
   ['dragonShadow', 'ドラゴンの影が画面を横切る'],
+  ['dragonRoar', 'ドラゴンの叫び声が響く（画面ゆれ）'],
   ['boardTransform', '盤面変身（第二形態）'],
   ['reviveBoss', 'ボス復活シーケンス再開'],
 ];

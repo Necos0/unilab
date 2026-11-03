@@ -17,11 +17,13 @@ import MapRegionEditorLayer from './MapRegionEditorLayer';
 import MapEditorPanel from './MapEditorPanel';
 import RoboBubble from '../cutscene/RoboBubble';
 import DragonShadowOverlay from '../cutscene/DragonShadowOverlay';
+import DragonRoarOverlay from '../cutscene/DragonRoarOverlay';
 import useMapStore from '../../stores/mapStore';
 import useMapEditorStore from '../../stores/mapEditorStore';
 import useProgressStore from '../../stores/progressStore';
 import useCutsceneStore from '../../stores/cutsceneStore';
 import mapsData from '../../data/maps.json';
+import REGION_PRESETS from './regionPresets';
 
 const DEFAULT_MAP_ID = 'map_1';
 
@@ -97,6 +99,15 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
    * 指差せるようにする。
    */
   const unlockedWorlds = useProgressStore((state) => state.unlockedWorlds);
+  /*
+   * 今いるマップが全体マップの領域（`map_1`〜`map_4`）か。ステージ5の
+   * `map_5` のように全体マップに領域を持たない独立マップでは、右上の
+   * 「マップ移動」ボタンを出さず、ほかのワールドへ移動できないようにする
+   * （ステージ5の入口・出口はタイトル画面だけ）。
+   */
+  const isOverworldRegionMap = REGION_PRESETS.some(
+    (preset) => preset.stageId === currentMapId,
+  );
 
   /*
    * マップ移動ボタンの初登場（デビュー）演出フラグ。ワールド解放シネマの
@@ -245,6 +256,15 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
   const isDragonShadowStep = useCutsceneStore(
     (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.dragonShadow === true,
   );
+  /*
+   * カットシーンの「ドラゴンの叫び声」step（`dragonRoar`、3-4 クリア後の
+   * `map-stage3-roar`）。この step の間だけ、マップ（`.svg`）をゆらし、
+   * `DragonRoarOverlay`（赤黒いかげり）を重ねる。叫び声の文字は同じ step の
+   * 吹き出し（名前「???」）に出し、クリックで「い、今の 声…！」へ進む。
+   */
+  const isDragonRoarStep = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.dragonRoar === true,
+  );
   const advanceCutscene = useCutsceneStore((s) => s.advance);
 
   const handleWorldUnlockEnd = useCallback(() => {
@@ -265,7 +285,9 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
     <section className={styles.root}>
       <div className={styles.canvas}>
         <svg
-          className={styles.svg}
+          className={
+            isDragonRoarStep ? `${styles.svg} ${styles.roarShake}` : styles.svg
+          }
           viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
           preserveAspectRatio="xMidYMid meet"
         >
@@ -307,7 +329,7 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
           <BackToTitleButton onClick={onBackToTitle} />
         )}
         {!isEditing &&
-          currentMapId !== OVERWORLD_MAP_ID &&
+          isOverworldRegionMap &&
           unlockedWorlds.length > 0 &&
           pendingWorldUnlock === null && (
             <MapTravelButton
@@ -318,6 +340,7 @@ function MapScreen({ onStartBattle, onBackToTitle, isWorldUnlockHeld = false }) 
           )}
         {isEditing && <MapEditorPanel onClose={stopEditing} />}
         {isDragonShadowStep && <DragonShadowOverlay onEnd={advanceCutscene} />}
+        {isDragonRoarStep && <DragonRoarOverlay />}
       </div>
       {pendingMapId !== null && (
         <MapSwitchTransition

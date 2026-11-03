@@ -976,6 +976,215 @@
           ]
         }
       ]
+    },
+    "map_5": {
+      "image": "/maps/map_5.png",
+      "viewBox": {
+        "width": 1920,
+        "height": 1080
+      },
+      "startId": "dark_gate",
+      "junctions": [],
+      "landmarks": [
+        {
+          "id": "dark_gate",
+          "label": "いりぐち",
+          "position": {
+            "x": 140,
+            "y": 820
+          },
+          "stopPoint": {
+            "x": 200,
+            "y": 895
+          }
+        },
+        {
+          "id": "dark_ruins",
+          "label": "くろい いせき",
+          "position": {
+            "x": 520,
+            "y": 560
+          },
+          "stopPoint": {
+            "x": 590,
+            "y": 712
+          },
+          "stageId": "5-1",
+          "difficulty": 4
+        },
+        {
+          "id": "dark_cave",
+          "label": "うみの どうくつ",
+          "position": {
+            "x": 985,
+            "y": 640
+          },
+          "stopPoint": {
+            "x": 1000,
+            "y": 785
+          },
+          "stageId": "5-2",
+          "difficulty": 4
+        },
+        {
+          "id": "dark_crater",
+          "label": "むらさきの かこう",
+          "position": {
+            "x": 1200,
+            "y": 420
+          },
+          "stopPoint": {
+            "x": 1320,
+            "y": 560
+          },
+          "stageId": "5-3",
+          "difficulty": 5
+        },
+        {
+          "id": "summit_circle",
+          "label": "てっぺんの ひろば",
+          "position": {
+            "x": 1640,
+            "y": 120
+          },
+          "stopPoint": {
+            "x": 1570,
+            "y": 255
+          },
+          "stageId": "5-4",
+          "difficulty": 5
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-gate-ruins",
+          "from": "dark_gate",
+          "to": "dark_ruins",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 250,
+              "y": 890
+            },
+            {
+              "x": 290,
+              "y": 850
+            },
+            {
+              "x": 330,
+              "y": 812
+            },
+            {
+              "x": 420,
+              "y": 797
+            },
+            {
+              "x": 480,
+              "y": 777
+            },
+            {
+              "x": 520,
+              "y": 735
+            },
+            {
+              "x": 550,
+              "y": 715
+            }
+          ]
+        },
+        {
+          "id": "e-ruins-cave",
+          "from": "dark_ruins",
+          "to": "dark_cave",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 645,
+              "y": 725
+            },
+            {
+              "x": 685,
+              "y": 760
+            },
+            {
+              "x": 735,
+              "y": 778
+            },
+            {
+              "x": 850,
+              "y": 775
+            },
+            {
+              "x": 950,
+              "y": 782
+            }
+          ]
+        },
+        {
+          "id": "e-cave-crater",
+          "from": "dark_cave",
+          "to": "dark_crater",
+          "direction": "right",
+          "waypoints": [
+            {
+              "x": 1060,
+              "y": 780
+            },
+            {
+              "x": 1110,
+              "y": 730
+            },
+            {
+              "x": 1155,
+              "y": 675
+            },
+            {
+              "x": 1165,
+              "y": 620
+            },
+            {
+              "x": 1200,
+              "y": 582
+            },
+            {
+              "x": 1260,
+              "y": 567
+            }
+          ]
+        },
+        {
+          "id": "e-crater-summit",
+          "from": "dark_crater",
+          "to": "summit_circle",
+          "direction": "up",
+          "waypoints": [
+            {
+              "x": 1390,
+              "y": 535
+            },
+            {
+              "x": 1428,
+              "y": 492
+            },
+            {
+              "x": 1445,
+              "y": 445
+            },
+            {
+              "x": 1470,
+              "y": 410
+            },
+            {
+              "x": 1495,
+              "y": 385
+            },
+            {
+              "x": 1530,
+              "y": 320
+            }
+          ]
+        }
+      ]
     }
   }
 }

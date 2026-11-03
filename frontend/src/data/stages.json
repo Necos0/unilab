@@ -457,7 +457,7 @@
       }
     },
     "5-1": {
-      "enemyId": "cobra",
+      "enemyId": "goldenbird",
       "maxEnemyHp": 100,
       "cards": [
         { "id": "attack", "power": 10 },
@@ -494,6 +494,66 @@
             { "lockedCard": { "id": "monster", "power": 100 } }
           ]
         }
+      ]
+    },
+    "5-2": {
+      "enemyId": "lagiacrus",
+      "maxEnemyHp": 60,
+      "cards": [
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 20 },
+        { "id": "guard", "power": 30 },
+        { "id": "heal", "power": 20 }
+      ],
+      "flow": [
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 40 } },
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        {}
+      ]
+    },
+    "5-3": {
+      "enemyId": "dragon",
+      "maxEnemyHp": 60,
+      "cards": [
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 20 },
+        { "id": "guard", "power": 40 },
+        { "id": "heal", "power": 30 }
+      ],
+      "flow": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        {},
+        { "multiplier": 2 },
+        {},
+        { "lockedCard": { "id": "monster", "power": 60 } },
+        {}
+      ]
+    },
+    "5-4": {
+      "enemyId": "knight",
+      "maxEnemyHp": 100,
+      "cards": [
+        { "id": "attack", "power": 30 },
+        { "id": "attack", "power": 30 },
+        { "id": "guard", "power": 50 },
+        { "id": "heal", "power": 40 },
+        { "id": "reflect" }
+      ],
+      "flow": [
+        {},
+        { "lockedCard": { "id": "monster", "power": 50 } },
+        { "multiplier": 2 },
+        {},
+        {},
+        { "lockedCard": { "id": "monster", "power": 70 } },
+        {},
+        {}
       ]
     }
   }

@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ステージ 5 モデルフローチャート（敵防御・敵カウンター・敵回復）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<style>
+  /* ===== ページ全体（BattleScreen と同じダークトーン） ===== */
+  body {
+    margin: 0;
+    background: #0b0b10;
+    color: #c9c9d4;
+    font-family: 'DotGothic16', sans-serif;
+    line-height: 1.9;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 32px 24px 96px; }
+  h1 {
+    color: #f5f5ff;
+    font-size: 26px;
+    border-bottom: 2px solid #2a2a35;
+    padding-bottom: 12px;
+  }
+  h2 {
+    color: #ffd54a;
+    font-size: 20px;
+    margin-top: 64px;
+    border-left: 6px solid #ffd54a;
+    padding-left: 12px;
+  }
+  h3 { color: #f5f5ff; font-size: 17px; margin-top: 40px; }
+  p, li { font-size: 15px; }
+  strong { color: #f5f5ff; }
+  em { color: #ffd54a; font-style: normal; }
+  .note { color: #8a8a99; font-size: 13px; }
+  rt { font-size: 0.5em; }
+
+  /* ===== テーブル ===== */
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #2a2a35; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #1c1c26; color: #f5f5ff; white-space: nowrap; }
+  td { background: #12121a; }
+  code {
+    font-family: 'VT323', monospace;
+    font-size: 17px;
+    background: #1c1c26;
+    color: #a8d8a8;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* ===== フローチャート・キャンバス（FlowchartArea と同じ背景） ===== */
+  .canvasWrap {
+    overflow-x: auto;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    background: #12121a;
+    margin: 20px 0;
+  }
+  .canvas { position: relative; }
+  .canvas svg.edges { position: absolute; inset: 0; pointer-events: none; }
+  .canvas .node { position: absolute; }
+
+  /* ===== 空きスロット（SlotNode.module.css の写し） ===== */
+  .slot {
+    width: 80px; height: 120px;
+    border: 2px dashed #4a4a52;
+    border-radius: 6px;
+    background: #15151c;
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .slotNumber {
+    color: #6a6a78;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 1.25rem;
+    user-select: none;
+  }
+  .slot.counterPaired { outline: 2px solid #ffd54a; outline-offset: 2px; }
+
+  /* ===== 配置済みカード（Card.module.css の写し・スロット寸法） ===== */
+  .cardNode { position: relative; width: 80px; height: 120px; user-select: none; }
+  .cardNode img {
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated;
+  }
+  .cardNode .power {
+    position: absolute; left: 0; right: 0; bottom: 13%;
+    text-align: center;
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    color: #f5f5f5;
+    text-shadow: 1px 1px 0 #000;
+    letter-spacing: 1px;
+  }
+  .cardNode.counterPaired { outline: 2px solid #ffd54a; outline-offset: 2px; border-radius: 6px; }
+
+  /* 倍率バッジ（MultiplierIndicator.module.css の写し） */
+  .mult {
+    position: absolute; top: 2px; right: 2px;
+    color: #000;
+    -webkit-text-stroke: 5px #fff;
+    paint-order: stroke fill;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px; font-weight: bold;
+    z-index: 2; user-select: none;
+  }
+
+  /* 新カードのモック印（画像が未制作のため、既存カードに「てき」バッジを重ねた仮表示） */
+  .mockBadge {
+    position: absolute; top: 3px; left: 3px;
+    background: #7b1fa2;
+    color: #f5e9ff;
+    border: 1px solid #c084fc;
+    border-radius: 3px;
+    font-size: 11px; line-height: 1.3;
+    padding: 0 4px;
+    z-index: 2; user-select: none;
+  }
+
+  /* ===== 条件ノード（ConditionNode.module.css の写し） ===== */
+  .condRoot { position: relative; width: 140px; height: 120px; }
+  .diamond {
+    position: absolute; inset: 0;
+    background: #4a4a52;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
+  }
+  .diamond::before {
+    content: '';
+    position: absolute; inset: 4px;
+    background: #15151c;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    z-index: 0;
+  }
+  .expression {
+    color: #f5f5f5;
+    line-height: 1.15;
+    text-align: center;
+    width: 72px;
+    position: relative; z-index: 1;
+    word-break: normal; overflow-wrap: break-word;
+  }
+
+  /* ===== スタート／ゴール（StartNode / GoalNode の写し） ===== */
+  .marker {
+    width: 80px; height: 120px;
+    border: 2px solid #4a4a52;
+    border-radius: 6px;
+    background: #15151c;
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .marker svg { width: 48px; height: 48px; }
+
+  /* ===== for ループノード（ForNode.module.css の写し） ===== */
+  .forNode {
+    width: 80px; height: 120px;
+    background: #ffd54a;
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .forNode::before {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px; right: 2px; bottom: 2px;
+    background: #15151c;
+  }
+  .forNode.start, .forNode.start::before { clip-path: polygon(0 20%, 20% 0, 100% 0, 100% 100%, 20% 100%, 0 80%); }
+  .forNode.end,   .forNode.end::before   { clip-path: polygon(0 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 0 100%); }
+  .forCount {
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-size: 1.75rem;
+    color: #ffd54a;
+    position: relative; z-index: 1;
+    user-select: none;
+  }
+
+  /* ===== 合流ノード（MergeNode.module.css の写し） ===== */
+  .mergeCircle {
+    width: 16px; height: 16px;
+    background: #4a4a52;
+    border-radius: 50%;
+    position: relative;
+  }
+  .mergeCircle::before {
+    content: '';
+    position: absolute; inset: 3px;
+    background: #15151c;
+    border-radius: 50%;
+  }
+
+  /* ===== エッジの はい／いいえ ラベル（AnimatedProgressEdge の写し） ===== */
+  .edges text.handleLabel {
+    fill: #f5f5f5;
+    font-size: 13px; font-weight: bold;
+    font-family: 'DotGothic16', sans-serif;
+    paint-order: stroke;
+    stroke: #12121a; stroke-width: 3px; stroke-linejoin: round;
+    user-select: none;
+  }
+  .edges text.annot {
+    fill: #8a8a99;
+    font-size: 13px;
+    font-family: 'DotGothic16', sans-serif;
+    user-select: none;
+  }
+
+  /* ===== 結果ボックス（解決フロー図の説明用。スタート枠と同トーン） ===== */
+  .resultBox {
+    width: 150px; min-height: 64px;
+    border: 2px solid #4a4a52;
+    border-radius: 6px;
+    background: #15151c;
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    color: #f5f5f5; font-size: 13px; line-height: 1.5;
+    padding: 6px;
+  }
+  .resultBox.bad  { border-color: #c62828; }
+  .resultBox.mid  { border-color: #4a8ef0; }
+  .resultBox.good { border-color: #3ad430; }
+
+  /* ===== カード見本ギャラリー（手札サイズ 120×180） ===== */
+  .gallery { display: flex; flex-wrap: wrap; gap: 24px; margin: 24px 0; }
+  .galleryItem { width: 190px; }
+  .galleryCard { position: relative; width: 120px; height: 180px; margin: 0 auto 10px; }
+  .galleryCard img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  .galleryCard .power {
+    position: absolute; left: 0; right: 0; bottom: 13%;
+    text-align: center;
+    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-size: 1.5rem; color: #f5f5f5;
+    text-shadow: 1px 1px 0 #000; letter-spacing: 1px;
+  }
+  .galleryCard .mockBadge { font-size: 13px; top: 4px; left: 4px; }
+  .galleryName { text-align: center; color: #f5f5ff; font-size: 14px; }
+  .galleryDesc { color: #8a8a99; font-size: 12px; line-height: 1.7; }
+
+  /* ===== 想定解の手札ストリップ ===== */
+  .handStrip {
+    display: flex; flex-wrap: wrap; gap: 20px;
+    background: #15151c;
+    border: 1px solid #2a2a35; border-radius: 8px;
+    padding: 16px 20px; margin: 16px 0;
+  }
+  .handItem { text-align: center; }
+  .handItem .cardNode { margin: 0 auto; }
+  .handItem .dest { color: #ffd54a; font-size: 13px; margin-top: 6px; }
+
+  .lesson {
+    border: 1px solid #2a2a35; border-left: 6px solid #4a8ef0;
+    border-radius: 6px;
+    background: #12121a;
+    padding: 12px 16px; margin: 16px 0;
+    font-size: 14px;
+  }
+  .trap {
+    border: 1px solid #2a2a35; border-left: 6px solid #c62828;
+    border-radius: 6px;
+    background: #12121a;
+    padding: 12px 16px; margin: 16px 0;
+    font-size: 14px;
+  }
+  .statChips { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+  .chip {
+    background: #1c1c26; border: 1px solid #2a2a35; border-radius: 16px;
+    padding: 2px 14px; font-size: 13px; color: #f5f5ff;
+  }
+  .chip b { color: #ffd54a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>ステージ 5 モデルフローチャート（敵防御・敵カウンター・敵回復）</h1>
+<p>
+  ワールド 5（5-1〜5-4）の設計案。敵が <strong>防御・カウンター・回復</strong> の 3 種のカードを
+  使ってくるようになり、プレイヤーは「敵の作戦が書かれたフローチャート」を読んで対抗する。
+  図は実アプリのノード CSS（<code>SlotNode</code> / <code>ConditionNode</code> /
+  <code>ForNode</code> / <code>Card</code>）を写して描画している。
+</p>
+<p class="note">
+  ※ 4 ステージの数値は、提案ルールを足した <code>simulateBattle</code> で全配置を総当たりして
+  「意図した置き方だけが勝つ」ことを確認済み（§4 の表）。ただし体感難易度はプレイテストで調整する前提。<br />
+  ※ 新カード 3 種の絵柄は未制作のため、既存カードに紫の「てき」バッジを重ねた仮表示。<br />
+  ※ 図のレイアウトは手描きのモデル。実機では <code>stagesLoader</code> の自動レイアウトになるので、座標は一致しない。
+</p>
+
+<!-- ================================================================ -->
+<h2>0. 前提と未決事項</h2>
+<table>
+  <tr><th>項目</th><th>内容</th></tr>
+  <tr><td>ワールド 5 の位置づけ</td><td>4-4 のドラゴン撃破でエンディングが流れるので、ワールド 5 は <strong>クリア後の裏ワールド</strong> として扱う想定。マップ画像 <code>map_5.png</code> と <code>maps.json</code> のランドマーク定義は未作成。</td></tr>
+  <tr><td>既存の 5-1</td><td><code>stages.json</code> には既にコブラの 5-1（新カード未使用の総復習ステージ、<code>demoStageIds</code> から呼べる）が入っている。本案を採用する場合は、あれを <strong>5-0 的な復習枠に退避するか、上書きするか</strong> を決める必要がある。</td></tr>
+  <tr><td>敵スプライト</td><td>新規作画なしで進められるよう、既存の 16 体から流用する前提で仮に割り当てた（ナイト・ウルフ・ヒトデ・青龍）。差し替え自由。</td></tr>
+  <tr><td>プレイヤー HP</td><td><code>player.json</code> の 100 固定。敵の攻撃力はこれに合わせて「無対策だと死ぬ」水準にしている。</td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2>1. 新カードとルール</h2>
+<p>
+  敵の行動は今まで通り <code>lockedCard</code> としてフローチャートに埋め込む。
+  プレイヤー側の 防御／カウンター／回復 と <strong>完全対称</strong> のルールにすることで、
+  プレイヤーは自分のカードで学んだ知識をそのまま敵の読みに使える。
+</p>
+
+<div class="gallery">
+  <div class="galleryItem">
+    <div class="galleryCard"><img src="../frontend/public/cards/guard.png" alt="monster_guard" /><span class="power">20</span><span class="mockBadge">てき</span></div>
+    <div class="galleryName"><ruby>敵<rt>てき</rt></ruby><ruby>防御<rt>ぼうぎょ</rt></ruby>カード</div>
+    <div class="galleryDesc"><code>monster_guard</code>。敵にシールド。<strong>次の 1 マスだけ</strong>、こちらの攻撃を数字のぶん吸収する。</div>
+  </div>
+  <div class="galleryItem">
+    <div class="galleryCard"><img src="../frontend/public/cards/reflect.png" alt="monster_reflect" /><span class="mockBadge">てき</span></div>
+    <div class="galleryName"><ruby>敵<rt>てき</rt></ruby>カウンターカード</div>
+    <div class="galleryDesc"><code>monster_reflect</code>。<strong>次の 1 マスだけ</strong>、こちらの攻撃をはねかえす。ダメージはそのまま自分に返ってくる。</div>
+  </div>
+  <div class="galleryItem">
+    <div class="galleryCard"><img src="../frontend/public/cards/heal.png" alt="monster_heal" /><span class="power">15</span><span class="mockBadge">てき</span></div>
+    <div class="galleryName"><ruby>敵<rt>てき</rt></ruby><ruby>回復<rt>かいふく</rt></ruby>カード</div>
+    <div class="galleryDesc"><code>monster_heal</code>。敵の HP が数字のぶん回復する。<strong>上限は <code>maxEnemyHp</code></strong>（満タンなら回復はムダ）。</div>
+  </div>
+</div>
+
+<h3>ルール一覧</h3>
+<table>
+  <tr><th>#</th><th>ルール</th><th>理由・補足</th></tr>
+  <tr><td>R1</td><td>敵のシールド／構えは <strong>直後の 1 マスにだけ</strong> 効く</td><td>プレイヤーの guard / reflect と同じ寿命（<code>clearTransientBuffs</code> の対称拡張）。条件マス・合流点・for の端をはさむと消えるので、<strong>敵防御／敵カウンターは必ずスロットの直前に置く</strong>。</td></tr>
+  <tr><td>R2</td><td>攻撃の判定順は <strong>構え → シールド → 本体</strong></td><td>下の図 1。構え中なら全ダメージが自分へ。シールドがあれば吸収して残りだけ通る。</td></tr>
+  <tr><td>R3</td><td>はねかえったダメージは <strong>防げない</strong></td><td>自分の防御／カウンターも「直後 1 マス」しか持たないので、敵カウンターの直後のマスで同時に有効になることは構造上ない。ルールを足さずに済む。</td></tr>
+  <tr><td>R4</td><td>敵のカードは <strong>倍率マスの影響を受けない</strong></td><td>既存の <code>monster</code> と同じ（<code>applyNodeEffect</code> で mult を掛けない）。「敵防御 30 を ×3 マスに置いて 90」のような設計はしない。</td></tr>
+  <tr><td>R5</td><td>敵回復は <code>maxEnemyHp</code> で頭打ち</td><td>プレイヤーの heal と同じクランプ。「満タンのときに回復させる＝回復をムダにする」が戦術になる（§2 G4）。</td></tr>
+  <tr><td>R6</td><td>構えとシールドは排他</td><td>片方を出すともう片方は消える。プレイヤー側の <code>applyGuard</code> / <code>applyReflect</code> と同じ。</td></tr>
+</table>
+
+<h3>図 1：攻撃カードの解決フロー</h3>
+<div class="canvasWrap"><div class="canvas" id="d-resolve"></div></div>
+
+<h3>新しい状態変数</h3>
+<table>
+  <tr><th>変数</th><th>意味</th><th>条件マスでの参照例</th></tr>
+  <tr><td><code>enemyGuardShield</code></td><td>敵のシールド残量</td><td><code>enemyGuardShield &gt; 0</code></td></tr>
+  <tr><td><code>enemyReflectActive</code></td><td>敵がカウンターの構え中か</td><td><code>enemyReflectActive === true</code></td></tr>
+</table>
+
+<!-- ================================================================ -->
+<h2>2. ギミック集</h2>
+<p>
+  新カード 3 種と既存のマス（倍率・種類指定・パワーアップ・条件・くりかえし）を組み合わせて作れる
+  「面白い置き方の問題」を列挙する。G1〜G3・G5・G9 を 4 ステージに採用し、残りは今後のステージの種として残す。
+</p>
+
+<table>
+  <tr><th>#</th><th>ギミック</th><th>プレイヤーが学ぶこと</th><th>採用</th></tr>
+  <tr><td>G1</td><td><strong>盾の直後は殴らない</strong></td><td>敵防御の次のマスに攻撃を置くと吸収される。そのマスは「空けるか、防御／回復を置く」場所。</td><td>5-1</td></tr>
+  <tr><td>G2</td><td><strong>盾割り</strong></td><td>シールドより大きい攻撃は残りが通る。倍率マスで攻撃を育てて盾を貫く。</td><td>5-4 盾フェーズ</td></tr>
+  <tr><td>G3</td><td><strong>構えの直後は殴らない</strong>＋<strong>攻撃専用マスの罠</strong></td><td>敵カウンターの次のマスに攻撃を置くと自分がくらう。直後に「攻撃しか置けないマス」があっても、置かない自由がある。</td><td>5-2</td></tr>
+  <tr><td>G4</td><td><strong>満タン回復はムダ</strong></td><td>敵回復の <em>前</em> に殴ると回復で戻される。回復の <em>後</em> にまとめて殴れば回復は空振り。</td><td>5-3（副次的に体験）</td></tr>
+  <tr><td>G5</td><td><strong>毎周回復に、育つ攻撃で追いつく</strong></td><td>パワーアップマス（0 倍 → 1 倍 → 2 倍…）の攻撃は、一定の回復をいつか必ず追い越す。長期戦なので自分の回復も要る。</td><td>5-3</td></tr>
+  <tr><td>G6</td><td><strong>しきい値回復をまたぐ</strong></td><td>「HP が 40 以下なら 40 回復」する敵には、40 以下に <em>とどまらない</em> 削り方（1 周の火力 ≥ 41）が要る。</td><td>種</td></tr>
+  <tr><td>G7</td><td><strong>周回パターンを見切る</strong></td><td>for ループの奇数周は構え、偶数周は攻撃。同じマスが周ごとに違う意味を持つ。</td><td>種</td></tr>
+  <tr><td>G8</td><td><strong>手を読む敵</strong></td><td><code>slot('slot-1') === 'attack'</code> で敵が作戦を変える。配置そのものが敵の行動を変えるメタ読み。</td><td>種</td></tr>
+  <tr><td>G9</td><td><strong>フェーズ制ボス</strong></td><td>HP のしきい値で作戦が切り替わる状態機械。フェーズごとに正解が違う。</td><td>5-4</td></tr>
+</table>
+
+<h3>G2：盾割り</h3>
+<div class="canvasWrap"><div class="canvas" id="d-g2"></div></div>
+<div class="lesson">攻撃 15 を ×3 マスに置くと 45。敵防御 30 を引いて <strong>15 だけ通る</strong>。攻撃 10 なら 30 − 30 = 0 で完封される。「倍率マスは盾を割るために使う」という新しい用途が生まれる。</div>
+
+<h3>G4：満タン回復はムダ</h3>
+<div class="canvasWrap"><div class="canvas" id="d-g4"></div></div>
+<div class="lesson">敵 HP 50（上限 50）。マス 1 に攻撃を置くと、直後の敵回復 30 で戻される。マス 1 は空けて、<strong>回復のあとのマス 2（×2）・マス 3 にまとめて</strong> 攻撃 20 と 10 を置けば 40 + 10 = 50 で倒せる。回復をムダ撃ちさせる気持ちよさ。</div>
+
+<h3>G6：しきい値回復をまたぐ</h3>
+<div class="canvasWrap"><div class="canvas" id="d-g6"></div></div>
+<div class="lesson">
+  敵 HP 90（上限 90）。周の先頭で「HP が 40 以下なら 40 回復」。手札 攻撃 20 / 15 / 10 / 5、マス 1 とマス 2（×2）。<br />
+  1 周の火力が 40 以下だと、HP 1〜40 の窓に落ちた瞬間に回復されて永遠に抜け出せない（<code>runaway</code> で負け）。
+  <strong>攻撃 5 + 攻撃 20 × 2 = 45</strong> なら 90 → 45 → 0 の 2 周で、窓を一度も踏まずに倒せる。
+  「一番弱いカードと一番強いカードの組み合わせが最速」という意外性がある。
+</div>
+
+<h3>G7：周回パターンを見切る</h3>
+<div class="canvasWrap"><div class="canvas" id="d-g7"></div></div>
+<div class="lesson">くりかえし 4 回。のこり回数が 4 か 2（1・3 周目）は構え、それ以外（2・4 周目）は攻撃。マス 1 は構えの周にしか実行されないので攻撃厳禁、マス 2 は 2 回実行されるので攻撃 20 で 40 ダメージ。4-2 の <code>forCounter</code> 条件の応用。</div>
+
+<h3>G8：手を読む敵</h3>
+<div class="canvasWrap"><div class="canvas" id="d-g8"></div></div>
+<div class="lesson">「マス 1 が攻撃カードなら敵はカウンターの道へ、そうでなければ盾の道へ」。3-2 の <code>slot()</code> 条件の発展形。マス 1 に回復を置いて <em>わざと</em> 盾の道へ誘導し、マス 3 で盾を割る……のように、配置が敵の行動を決める。</div>
+
+<!-- ================================================================ -->
+<h2>3. ステージ案（5-1 〜 5-4）</h2>
+<p>学ばせたい概念が 1 ステージ 1 つになるよう、易 → 難の順に並べる。ボス 5-4 で 3 つを全部回収する。</p>
+
+<!-- ---------------------------------------------------------------- -->
+<h3>5-1 「てっぺきナイト」 — 敵防御の入門（G1）</h3>
+<div class="statChips">
+  <span class="chip">敵 <b>ナイト</b>（仮）</span>
+  <span class="chip">敵 HP <b>40</b></span>
+  <span class="chip">手札 攻撃 20 ×2 ／ 防御 30 ／ 回復 50</span>
+  <span class="chip">勝ち筋 <b>2</b> / 114 通り</span>
+</div>
+<div class="canvasWrap"><div class="canvas" id="d-stage1"></div></div>
+<p><strong>学べること</strong>：敵防御 20 の直後のマス 2 に攻撃を置くと丸ごと吸収されて 0 ダメージ。攻撃 2 枚の合計がちょうど 40 なので、1 枚でもムダにすると倒せない。</p>
+<div class="handStrip">
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">20</span></div><div class="dest">→ マス 1</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/guard.png" alt="" /><span class="power">30</span></div><div class="dest">→ マス 2（空でも可）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/heal.png" alt="" /><span class="power">50</span></div><div class="dest">→ マス 3</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">20</span></div><div class="dest">→ マス 4</div></div>
+</div>
+<p>敵の攻撃 70 が 2 回来るので無対策だと 100 − 140 で死ぬ。回復 50 は「1 発目をくらった後」のマス 3 でないと満タン上限でムダになる。防御 30 はマス 2 に置けば 1 発目を 30 軽減するが、置かなくても勝てる（解は 2 通り）。</p>
+<div class="trap"><strong>ハマりポイント</strong>：欲張ってマス 2 に攻撃 → 20 + 0 = 火力不足で敗北。マス 2 に回復 → 満タンでムダになり 2 発目で死亡。「守られている間は殴らない」「回復は減ってから」を 1 本道で体験させる。</div>
+
+<!-- ---------------------------------------------------------------- -->
+<h3>5-2 「みきりウルフ」 — 敵カウンターの入門（G3）</h3>
+<div class="statChips">
+  <span class="chip">敵 <b>ウルフ</b>（仮）</span>
+  <span class="chip">敵 HP <b>40</b></span>
+  <span class="chip">手札 攻撃 20 ×2 ／ 攻撃 5 ／ 防御 30 ／ 回復 20</span>
+  <span class="chip">勝ち筋 <b>15</b> / 610 通り</span>
+</div>
+<div class="canvasWrap"><div class="canvas" id="d-stage2"></div></div>
+<p><strong>学べること</strong>：敵カウンターの直後のマス 2・マス 4 に攻撃を置くと、そのダメージが自分に返ってくる。マス 4 は「攻撃しか置けないマス」だが、<em>置かなくてもよい</em>。</p>
+<div class="handStrip">
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">20</span></div><div class="dest">→ マス 1</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/guard.png" alt="" /><span class="power">30</span></div><div class="dest">→ マス 2（必須）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">20</span></div><div class="dest">→ マス 3 か 5</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">5</span></div><div class="dest">→ マス 4（捨てても空でも可）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/heal.png" alt="" /><span class="power">20</span></div><div class="dest">→ 余り</div></div>
+</div>
+<p>
+  敵の攻撃 60 ×2 = 120 なので、何か軽減しないと死ぬ。回復 20 だけでは足りず（100 − 60 + 20 − 60 = 0）、
+  <strong>マス 2 の防御 30</strong> が「カウンターに攻撃を出さない」と「直後の敵攻撃 60 を 30 軽減する」を兼ねるのが肝。
+  15 通りの勝ち筋すべてで防御 30 はマス 2 にある。攻撃 5 はマス 4 に置いて 5 ダメージだけ受けてもよいし、置かなくてもよい（種類指定マス＝必須マスではない、を教える）。
+</p>
+<div class="trap"><strong>ハマりポイント</strong>：攻撃 20 をマス 2 へ → 20 はねかえり + 敵攻撃 60 で瀕死、火力も足りず敗北。マス 4 に攻撃 20 → 20 はねかえり、残り火力 25 で敗北。「攻撃専用マスがあるから攻撃を置く」という思い込みを裏切る。</div>
+
+<!-- ---------------------------------------------------------------- -->
+<h3>5-3 「リジェネヒトデ」 — 敵回復ループと「追いつく攻撃」（G5・G4）</h3>
+<div class="statChips">
+  <span class="chip">敵 <b>ヒトデ</b>（仮）</span>
+  <span class="chip">敵 HP <b>60</b></span>
+  <span class="chip">手札 攻撃 10 ／ 攻撃 5 ／ 回復 30</span>
+  <span class="chip">勝ち筋 <b>2</b> / 12 通り</span>
+</div>
+<div class="canvasWrap"><div class="canvas" id="d-stage3"></div></div>
+<p><strong>学べること</strong>：毎周 15 回復する敵には、パワーアップマス（通るたび倍率 +1）で <strong>育つ攻撃</strong> を置けばいつか追いつく。ただし敵の攻撃 25 を毎周くらうので、長期戦に耐える自分の回復が要る。</p>
+<div class="handStrip">
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">10</span></div><div class="dest">→ マス 1（倍率 ×c1）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/heal.png" alt="" /><span class="power">30</span></div><div class="dest">→ マス 2（必須）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">5</span></div><div class="dest">→ 余り（マス 1 でも勝てる）</div></div>
+</div>
+<table>
+  <tr><th>周</th><th>敵の攻撃</th><th>敵回復 +15</th><th>マス 1（攻撃 10 × 周）</th><th>周終了時の敵 HP</th><th>自分 HP（回復 30 後）</th></tr>
+  <tr><td>1</td><td>−25</td><td>60（満タンでムダ）</td><td>−10</td><td>50</td><td>100</td></tr>
+  <tr><td>2</td><td>−25</td><td>60（上限で +10 だけ）</td><td>−20</td><td>40</td><td>100</td></tr>
+  <tr><td>3</td><td>−25</td><td>55</td><td>−30</td><td>25</td><td>100</td></tr>
+  <tr><td>4</td><td>−25</td><td>40</td><td>−40</td><td><strong>0 勝利</strong></td><td>100</td></tr>
+</table>
+<div class="lesson">最初の 2 周は上限 60 に張りついて「何も減っていない」ように見える（G4 の満タン回復を敵側が勝手にやってしまう）。3 周目から一気に崩れるのが見どころ。攻撃 5 でも 7 周で勝てる（自分の回復 30 ＞ 敵攻撃 25 なので持久できる）。</div>
+<div class="trap"><strong>ハマりポイント</strong>：マス 2 に攻撃 5 を置いて火力を足そうとする（欲張り）→ 回復なしで 4 周目の敵攻撃で HP 0。マス 1 に回復を置く → 回復が 30・60・90… と育つだけで敵は減らず <code>runaway</code>。「倍率マスに何を置くか」で結果が真逆になる。</div>
+
+<!-- ---------------------------------------------------------------- -->
+<h3>5-4 ボス「三態の青龍（さんたいのせいりゅう）」 — 防御・回復・カウンターの全部盛り（G9・G2）</h3>
+<div class="statChips">
+  <span class="chip">敵 <b>青龍</b>（仮）</span>
+  <span class="chip">敵 HP <b>90</b></span>
+  <span class="chip">手札 攻撃 15 ／ 攻撃 10 ×2 ／ 防御 40 ／ 回復 20</span>
+  <span class="chip">勝ち筋 <b>4</b> / 840 通り（うち 262 通りが無限ループ）</span>
+</div>
+<div class="canvasWrap"><div class="canvas" id="d-stage4"></div></div>
+<p>
+  敵 HP のしきい値で作戦が切り替わる。ループの先頭に条件を 2 段重ねるだけで「フェーズ制ボス」がフローチャートとして表現できる
+  （<code>loop.body</code> の中に <code>condition</code> を入れ子にする既存構文のみで書ける。§4 参照）。
+</p>
+<table>
+  <tr><th>フェーズ</th><th>敵の作戦</th><th>正解の考え方</th></tr>
+  <tr>
+    <td><strong>盾</strong>（HP &gt; 60）</td>
+    <td>敵防御 30 で受け止めてから攻撃 20</td>
+    <td>盾割り（G2）。マス 1（×3）に攻撃 15 → 45 − 30 = <strong>毎周 15 通る</strong>。攻撃 10 だと 30 − 30 = 0 で永遠に削れず <code>runaway</code>。</td>
+  </tr>
+  <tr>
+    <td><strong>癒</strong>（60 ≧ HP &gt; 30）</td>
+    <td>毎周 5 回復して粘る</td>
+    <td>回復量を上回る攻撃でじわじわ削る。マス 2 か 3 に攻撃 10（毎周 −5 ずつ前進、6 周）。余ったマスに回復 20 を置くと HP が満タンに戻る。</td>
+  </tr>
+  <tr>
+    <td><strong>牙</strong>（HP ≦ 30）</td>
+    <td>カウンターの構え → 大技 40</td>
+    <td>マス 4 は攻撃厳禁。<strong>防御 40</strong> を置けば「カウンター回避」と「大技 40 の完封」の一石二鳥。とどめはマス 5 の攻撃 10（3 周）。</td>
+  </tr>
+</table>
+<div class="handStrip">
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">15</span></div><div class="dest">→ マス 1（×3）必須</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">10</span></div><div class="dest">→ マス 2 か 3</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/heal.png" alt="" /><span class="power">20</span></div><div class="dest">→ マス 3 か 2（空でも可）</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/guard.png" alt="" /><span class="power">40</span></div><div class="dest">→ マス 4 必須</div></div>
+  <div class="handItem"><div class="cardNode"><img src="../frontend/public/cards/attack.png" alt="" /><span class="power">10</span></div><div class="dest">→ マス 5 必須</div></div>
+</div>
+<p>
+  3 つのフェーズで 5-1〜5-3 の教訓をすべて回収する集大成。1 枚のカードがフェーズをまたいで何度も実行されるので、
+  「この 5 枚をどこに置くか」だけで戦略パズルとして成立する。840 通り中 262 通りが無限ループになるのは、
+  「盾を割れない」「癒フェーズで火力が回復に負ける」「牙フェーズに攻撃がない」の 3 つの停滞パターンがあるため。
+</p>
+<div class="trap"><strong>ハマりポイント</strong>：攻撃 10 ×2 をマス 2・3 に置くと癒フェーズは速いが、牙フェーズに攻撃が残らず無限ループ。マス 4 に攻撃 → カウンターで被弾し火力も出ない。マス 4 を空にすると大技 40 ×3 = 120 で死亡。</div>
+
+<!-- ================================================================ -->
+<h2>4. stages.json 下書き（検証済み）</h2>
+<p>
+  既存の flow DSL だけで書けている（新構文なし）。<code>lockedCard.id</code> に新 ID を書くだけ。
+  下表は提案ルールを足した <code>simulateBattle</code> で「空きマスへの手札の全配置」を総当たりした結果。
+</p>
+<table>
+  <tr><th>ステージ</th><th>空きマス</th><th>配置パターン</th><th>勝ち</th><th>負け</th><th>無限ループ</th><th>勝ち筋の共通点</th></tr>
+  <tr><td>5-1</td><td>4</td><td>114</td><td>2</td><td>112</td><td>0</td><td>攻撃はマス 1・4、回復はマス 3</td></tr>
+  <tr><td>5-2</td><td>5</td><td>610</td><td>15</td><td>595</td><td>0</td><td>防御 30 がマス 2</td></tr>
+  <tr><td>5-3</td><td>2</td><td>12</td><td>2</td><td>6</td><td>4</td><td>回復 30 がマス 2</td></tr>
+  <tr><td>5-4</td><td>5</td><td>840</td><td>4</td><td>574</td><td>262</td><td>攻撃 15 がマス 1、防御 40 がマス 4、攻撃 10 がマス 5</td></tr>
+</table>
+<details>
+<summary>stages.json に追加する 4 ステージ分（クリックで展開）</summary>
+<pre><code>"5-1": {
+  "enemyId": "knight",
+  "maxEnemyHp": 40,
+  "cards": [
+    { "id": "attack", "power": 20 },
+    { "id": "attack", "power": 20 },
+    { "id": "guard", "power": 30 },
+    { "id": "heal", "power": 50 }
+  ],
+  "flow": [
+    {},
+    { "lockedCard": { "id": "monster_guard", "power": 20 } },
+    {},
+    { "lockedCard": { "id": "monster", "power": 70 } },
+    {},
+    { "lockedCard": { "id": "monster", "power": 70 } },
+    {}
+  ]
+},
+"5-2": {
+  "enemyId": "wolf",
+  "maxEnemyHp": 40,
+  "cards": [
+    { "id": "attack", "power": 20 },
+    { "id": "attack", "power": 20 },
+    { "id": "attack", "power": 5 },
+    { "id": "guard", "power": 30 },
+    { "id": "heal", "power": 20 }
+  ],
+  "flow": [
+    {},
+    { "lockedCard": { "id": "monster_reflect" } },
+    {},
+    { "lockedCard": { "id": "monster", "power": 60 } },
+    {},
+    { "lockedCard": { "id": "monster_reflect" } },
+    { "acceptOnly": "attack" },
+    { "turn": {} },
+    { "lockedCard": { "id": "monster", "power": 60 } },
+    {}
+  ]
+},
+"5-3": {
+  "enemyId": "starfish",
+  "maxEnemyHp": 60,
+  "cards": [
+    { "id": "attack", "power": 10 },
+    { "id": "attack", "power": 5 },
+    { "id": "heal", "power": 30 }
+  ],
+  "flow": [
+    {
+      "loop": {
+        "mode": "pre",
+        "condition": "enemyHp &lt;= 0",
+        "label": "敵《てき》のHPが0?",
+        "trueDir": "down",
+        "falseDir": "right",
+        "body": [
+          { "lockedCard": { "id": "monster", "power": 25 } },
+          { "lockedCard": { "id": "monster_heal", "power": 15 } },
+          { "lockedCard": { "id": "counter", "counterId": "c1" } },
+          { "multiplier": { "counterRef": "c1" } },
+          {}
+        ]
+      }
+    }
+  ]
+},
+"5-4": {
+  "enemyId": "lagiacrus",
+  "maxEnemyHp": 90,
+  "cards": [
+    { "id": "attack", "power": 15 },
+    { "id": "attack", "power": 10 },
+    { "id": "attack", "power": 10 },
+    { "id": "guard", "power": 40 },
+    { "id": "heal", "power": 20 }
+  ],
+  "flow": [
+    {
+      "loop": {
+        "mode": "pre",
+        "condition": "enemyHp &lt;= 0",
+        "label": "敵《てき》のHPが0?",
+        "trueDir": "down",
+        "falseDir": "right",
+        "body": [
+          {
+            "condition": "enemyHp &gt; 60",
+            "label": "敵《てき》のHPが60より大《おお》きい?",
+            "true": [
+              { "lockedCard": { "id": "monster_guard", "power": 30 } },
+              { "multiplier": 3 },
+              { "lockedCard": { "id": "monster", "power": 20 } }
+            ],
+            "false": [
+              {
+                "condition": "enemyHp &gt; 30",
+                "label": "敵《てき》のHPが30より大《おお》きい?",
+                "true": [
+                  { "lockedCard": { "id": "monster_heal", "power": 5 } },
+                  {},
+                  {}
+                ],
+                "false": [
+                  { "lockedCard": { "id": "monster_reflect" } },
+                  {},
+                  { "lockedCard": { "id": "monster", "power": 40 } },
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}</code></pre>
+</details>
+
+<!-- ================================================================ -->
+<h2>5. 実装メモ</h2>
+<p>対称設計なので、既存のプレイヤー側ロジックの鏡写しで済む。ロジックの中核は下の差分だけ。</p>
+<pre><code>// engine/simulateBattle.js  applyNodeEffect の attack 分岐（提案）
+if ((card.id === 'attack' || card.id === 'finisher') &amp;&amp; card.power &gt; 0) {
+  const dmg = card.power * mult;
+  if (enemyReflectActive) {                       // R2: 構え → 全部自分へ（R3: 防げない）
+    playerHp = Math.max(0, playerHp - dmg);
+  } else if (enemyGuardShield &gt; 0) {              // R2: シールド → 吸収して残りだけ
+    const absorbed = Math.min(enemyGuardShield, dmg);
+    enemyGuardShield -= absorbed;
+    enemyHp = Math.max(0, enemyHp - (dmg - absorbed));
+  } else {
+    enemyHp = Math.max(0, enemyHp - dmg);
+  }
+} else if (card.id === 'monster_guard' &amp;&amp; card.power &gt; 0) {   // R4: mult を掛けない
+  enemyGuardShield = card.power; enemyReflectActive = false;    // R6: 排他
+} else if (card.id === 'monster_reflect') {
+  enemyReflectActive = true; enemyGuardShield = 0;
+} else if (card.id === 'monster_heal' &amp;&amp; card.power &gt; 0) {
+  enemyHp = Math.min(maxEnemyHp, enemyHp + card.power);         // R5: 上限クランプ
+}
+
+// clearTransientBuffs（R1: 直後 1 マスだけ）
+enemyGuardShield:   prevCard?.id === 'monster_guard'   ? state.enemyGuardShield   : 0,
+enemyReflectActive: prevCard?.id === 'monster_reflect' ? state.enemyReflectActive : false,</code></pre>
+<table>
+  <tr><th>触る場所</th><th>内容</th></tr>
+  <tr><td><code>engine/simulateBattle.js</code></td><td>上の差分。<code>initialState</code> と <code>buildEvalContext</code> に <code>enemyGuardShield: 0</code> / <code>enemyReflectActive: false</code> を追加。</td></tr>
+  <tr><td><code>engine/evaluateCondition.js</code></td><td>変更不要（変数はコンテキスト経由で増やせる）。</td></tr>
+  <tr><td><code>stores/battleStore.js</code></td><td>live 実行（<code>scheduleNodePhase</code> ほか）に同じ効果分岐を追加。<code>applyEnemyGuard</code> / <code>applyEnemyReflect</code> / <code>clearEnemyGuard</code> / <code>clearEnemyReflect</code> / <code>healEnemy</code> と、演出キュー（敵シールド付与・敵回復数字・はねかえりで自分が受けるダメージ）。sim/live の整合チェックは既存の仕組みに乗る。</td></tr>
+  <tr><td>敵側 UI</td><td>敵 HP バーの下に <code>GuardBar</code> を流用して敵シールド残量を表示。構え中は <code>EnemySprite</code> にオレンジ枠などの「構え」表示。はねかえりダメージは <code>PlayerDamageFloater</code> をそのまま使えばよい（自分がダメージを受けるだけ）。敵回復は <code>DamageFloater</code> の緑版。</td></tr>
+  <tr><td><code>data/card_help.json</code></td><td>新カード 3 種の説明を追加（ふりがな付き）。ヘルプウィンドウは <code>card_help.json</code> を全件表示するので、文言を足すだけで出る。</td></tr>
+  <tr><td><code>data/stagesLoader.js</code></td><td>変更不要。<code>lockedCard</code> は id をそのまま運ぶ（本書の 4 ステージはローダーをそのまま通して検証した）。</td></tr>
+  <tr><td><code>data/stages.json</code></td><td>§4 の 4 ステージを追加。既存のコブラ 5-1 の扱いを決める。</td></tr>
+  <tr><td>カード画像</td><td><code>public/cards/monster_guard.png</code> / <code>monster_heal.png</code> / <code>monster_reflect.png</code>。<code>preloadBattleAssets</code> は <code>lockedCard.id</code> から自動で拾う。追加時は pngquant で最適化。</td></tr>
+  <tr><td>マップ</td><td><code>public/maps/map_5.png</code> と <code>maps.json</code> のランドマーク 4 つ＋道。<code>isBossStage</code> は number === 4 判定なので 5-4 は自動でボス扱いになる（4-4 固有のエンディング遷移だけ分岐を確認）。</td></tr>
+</table>
+
+<h3>想定ヘルプ文言（ふりがな付き）</h3>
+<table>
+  <tr><th>id</th><th>name</th><th>description</th></tr>
+  <tr><td><code>monster_guard</code></td><td>敵《てき》防御《ぼうぎょ》カード</td><td>敵《てき》が バリアを はる カードだよ。つぎの マスの こうげきは、数字《すうじ》の ぶんだけ 敵《てき》に きかなくなるよ。</td></tr>
+  <tr><td><code>monster_reflect</code></td><td>敵《てき》カウンターカード</td><td>敵《てき》が かまえる カードだよ。つぎの マスで こうげきすると、その ダメージが じぶんに はねかえってくるよ。</td></tr>
+  <tr><td><code>monster_heal</code></td><td>敵《てき》回復《かいふく》カード</td><td>敵《てき》の たいりょくが 数字《すうじ》の ぶんだけ もどる カードだよ。たいりょくが まんたんの ときは、もどらないよ。</td></tr>
+</table>
+
+</div>
+<script>
+/* ============================================================
+ * ミニ描画エンジン
+ * アプリの FlowchartArea + React Flow の見た目（ノード寸法・
+ * エッジ色 #6a6a78・矢印・はい/いいえラベル）を静的 HTML で再現する。
+ * ============================================================ */
+const IMG = '../frontend/public/cards/';
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+const START_ICON = '<svg viewBox="0 0 80 80"><path d="M14 40 H58 M44 26 L60 40 L44 54" stroke="#e5e5ff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const GOAL_ICON  = '<svg viewBox="0 0 80 80"><line x1="22" y1="14" x2="22" y2="66" stroke="#e5e5ff" stroke-width="5" stroke-linecap="round"/><path d="M22 18 L60 22 L50 32 L60 42 L22 38 Z" fill="#e5e5ff"/></svg>';
+
+const DIMS = { slot: [80,120], card: [80,120], cond: [140,120], marker: [80,120], forstart: [80,120], forend: [80,120], merge: [16,16], box: [150,64] };
+
+function nodeDims(n) {
+  if (n.type === 'box') return [n.w ?? 150, n.h ?? 64];
+  return DIMS[n.type === 'start' || n.type === 'goal' ? 'marker' : n.type] ?? [80,120];
+}
+
+function anchor(n, side) {
+  const [w, h] = nodeDims(n);
+  const cx = n.x + w / 2, cy = n.y + h / 2;
+  if (side === 'l') return [n.x, cy];
+  if (side === 'r') return [n.x + w, cy];
+  if (side === 't') return [cx, n.y];
+  if (side === 'b') return [cx, n.y + h];
+  // 't@200' のような「上辺の x=200 の位置」指定（複数エッジが同じ辺に入るとき用）
+  const m = side.match(/^([tb])@(\d+)$/);
+  if (m) return [Number(m[2]), m[1] === 't' ? n.y : n.y + h];
+  return [cx, cy];
+}
+
+/* 直交ポリラインを角丸 (r=6) の SVG パス文字列にする */
+function roundedPath(pts) {
+  const r = 6;
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1], [cx, cy] = pts[i], [nx, ny] = pts[i + 1];
+    const inLen = Math.hypot(cx - px, cy - py), outLen = Math.hypot(nx - cx, ny - cy);
+    const ri = Math.min(r, inLen / 2, outLen / 2);
+    const inx = cx - Math.sign(cx - px) * ri, iny = cy - Math.sign(cy - py) * ri;
+    const outx = cx + Math.sign(nx - cx) * ri, outy = cy + Math.sign(ny - cy) * ri;
+    d += ` L ${inx} ${iny} Q ${cx} ${cy} ${outx} ${outy}`;
+  }
+  d += ` L ${pts[pts.length - 1][0]} ${pts[pts.length - 1][1]}`;
+  return d;
+}
+
+function buildNode(n) {
+  const div = document.createElement('div');
+  div.className = 'node';
+  div.style.left = n.x + 'px';
+  div.style.top = n.y + 'px';
+
+  if (n.type === 'start' || n.type === 'goal') {
+    div.innerHTML = `<div class="marker">${n.type === 'start' ? START_ICON : GOAL_ICON}</div>`;
+  } else if (n.type === 'slot') {
+    div.innerHTML = `<div class="slot${n.paired ? ' counterPaired' : ''}"><span class="slotNumber">${n.num ?? ''}</span>${n.mult ? `<span class="mult">${n.mult}</span>` : ''}</div>`;
+    if (n.mult) div.querySelector('.slot').style.position = 'relative';
+  } else if (n.type === 'card') {
+    div.innerHTML = `<div class="cardNode${n.paired ? ' counterPaired' : ''}">`
+      + `<img src="${IMG}${n.img}.png" alt="${n.img}" />`
+      + (n.power !== undefined ? `<span class="power">${n.power}</span>` : '')
+      + (n.mult ? `<span class="mult">${n.mult}</span>` : '')
+      + (n.mock ? `<span class="mockBadge">てき</span>` : '')
+      + `</div>`;
+  } else if (n.type === 'cond') {
+    div.innerHTML = `<div class="condRoot"><div class="diamond"><div class="expression">${n.label}</div></div></div>`;
+    // ConditionNode.jsx と同じ動的フォントサイズ：clamp(8, 14, 50 / sqrt(len))
+    const expr = div.querySelector('.expression');
+    const clone = expr.cloneNode(true);
+    clone.querySelectorAll('rt').forEach((rt) => rt.remove());
+    const len = clone.textContent.replace(/\s/g, '').length || 1;
+    expr.style.fontSize = Math.max(8, Math.min(14, 50 / Math.sqrt(len))) + 'px';
+  } else if (n.type === 'forstart') {
+    div.innerHTML = `<div class="forNode start"><span class="forCount">${n.count ?? ''}</span></div>`;
+  } else if (n.type === 'forend') {
+    div.innerHTML = `<div class="forNode end"></div>`;
+  } else if (n.type === 'merge') {
+    div.innerHTML = `<div class="mergeCircle"></div>`;
+  } else if (n.type === 'box') {
+    div.innerHTML = `<div class="resultBox ${n.variant ?? ''}" style="width:${n.w ?? 150}px;min-height:${n.h ?? 64}px">${n.label}</div>`;
+  }
+  return div;
+}
+
+function render(id, spec) {
+  const root = document.getElementById(id);
+  root.style.width = spec.w + 'px';
+  root.style.height = spec.h + 'px';
+
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('class', 'edges');
+  svg.setAttribute('width', spec.w);
+  svg.setAttribute('height', spec.h);
+  const markerId = id + '-arrow';
+  svg.innerHTML = `<defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6a78"/></marker></defs>`;
+  root.appendChild(svg);
+
+  const byId = {};
+  spec.nodes.forEach((n) => { byId[n.id] = n; root.appendChild(buildNode(n)); });
+
+  spec.edges.forEach((e) => {
+    const [fid, fside] = e.f.split('.');
+    const [tid, tside] = e.t.split('.');
+    const pts = [anchor(byId[fid], fside), ...(e.via ?? []), anchor(byId[tid], tside)];
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', roundedPath(pts));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#6a6a78');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('marker-end', `url(#${markerId})`);
+    svg.appendChild(path);
+    if (e.lab) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('class', 'handleLabel');
+      t.setAttribute('x', e.labAt[0]);
+      t.setAttribute('y', e.labAt[1]);
+      t.setAttribute('text-anchor', 'middle');
+      t.textContent = e.lab;
+      svg.appendChild(t);
+    }
+  });
+
+  (spec.annots ?? []).forEach((a) => {
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('class', 'annot');
+    t.setAttribute('x', a.x);
+    t.setAttribute('y', a.y);
+    t.textContent = a.text;
+    svg.appendChild(t);
+  });
+}
+
+const RUBY = {
+  teki: '<ruby>敵<rt>てき</rt></ruby>',
+  jibun: '<ruby>自分<rt>じぶん</rt></ruby>',
+  kougeki: '<ruby>攻撃<rt>こうげき</rt></ruby>',
+};
+
+/* ---------- 図 1：攻撃カードの解決フロー ---------- */
+render('d-resolve', {
+  w: 800, h: 420,
+  nodes: [
+    { id: 'atk', type: 'card', img: 'attack', power: 10, x: 30, y: 90 },
+    { id: 'c1', type: 'cond', x: 170, y: 90, label: `${RUBY.teki}がカウンター<ruby>中<rt>ちゅう</rt></ruby>?` },
+    { id: 'c2', type: 'cond', x: 400, y: 90, label: `${RUBY.teki}にシールド?` },
+    { id: 'b1', type: 'box', variant: 'bad', x: 165, y: 300, w: 150, h: 70, label: `ダメージが${RUBY.jibun}に<ruby>返<rt>かえ</rt></ruby>ってくる（<ruby>防<rt>ふせ</rt></ruby>げない）` },
+    { id: 'b2', type: 'box', variant: 'mid', x: 395, y: 300, w: 150, h: 70, label: `シールドが<ruby>吸収<rt>きゅうしゅう</rt></ruby>、<ruby>残<rt>のこ</rt></ruby>りだけ<ruby>通<rt>とお</rt></ruby>る` },
+    { id: 'b3', type: 'box', variant: 'good', x: 620, y: 115, w: 150, h: 70, label: `<ruby>全部<rt>ぜんぶ</rt></ruby>のダメージが${RUBY.teki}に<ruby>通<rt>とお</rt></ruby>る` },
+  ],
+  edges: [
+    { f: 'atk.r', t: 'c1.l' },
+    { f: 'c1.b', t: 'b1.t', lab: 'はい', labAt: [258, 250] },
+    { f: 'c1.r', t: 'c2.l', lab: 'いいえ', labAt: [355, 138] },
+    { f: 'c2.b', t: 'b2.t', lab: 'はい', labAt: [488, 250] },
+    { f: 'c2.r', t: 'b3.l', lab: 'いいえ', labAt: [582, 138] },
+  ],
+});
+
+/* ---------- G2：盾割り ---------- */
+render('d-g2', {
+  w: 520, h: 190,
+  nodes: [
+    { id: 'g', type: 'card', img: 'guard', power: 30, mock: true, x: 30, y: 30 },
+    { id: 's', type: 'slot', num: 1, mult: 'x3', x: 150, y: 30 },
+    { id: 'm', type: 'card', img: 'monster', power: 20, x: 270, y: 30 },
+  ],
+  edges: [{ f: 'g.r', t: 's.l' }, { f: 's.r', t: 'm.l' }],
+  annots: [{ x: 30, y: 178, text: 'マス1に 攻撃15 → 15×3 = 45、盾30 を引いて 15 が通る（攻撃10 なら 0）' }],
+});
+
+/* ---------- G4：満タン回復はムダ ---------- */
+render('d-g4', {
+  w: 560, h: 190,
+  nodes: [
+    { id: 's1', type: 'slot', num: 1, x: 30, y: 30 },
+    { id: 'h', type: 'card', img: 'heal', power: 30, mock: true, x: 150, y: 30 },
+    { id: 's2', type: 'slot', num: 2, mult: 'x2', x: 270, y: 30 },
+    { id: 's3', type: 'slot', num: 3, x: 390, y: 30 },
+  ],
+  edges: [{ f: 's1.r', t: 'h.l' }, { f: 'h.r', t: 's2.l' }, { f: 's2.r', t: 's3.l' }],
+  annots: [{ x: 30, y: 178, text: '敵HP 50（上限50）。マス1は空けて回復を空振りさせ、マス2に攻撃20（×2）・マス3に攻撃10' }],
+});
+
+/* ---------- G6：しきい値回復をまたぐ ---------- */
+render('d-g6', {
+  w: 800, h: 270,
+  nodes: [
+    { id: 'c', type: 'cond', x: 30, y: 60, label: `${RUBY.teki}のHPが40<ruby>以下<rt>いか</rt></ruby>?` },
+    { id: 'h', type: 'card', img: 'heal', power: 40, mock: true, x: 230, y: 60 },
+    { id: 'mg', type: 'merge', x: 375, y: 112 },
+    { id: 's1', type: 'slot', num: 1, x: 430, y: 60 },
+    { id: 's2', type: 'slot', num: 2, mult: 'x2', x: 550, y: 60 },
+    { id: 'm', type: 'card', img: 'monster', power: 30, x: 670, y: 60 },
+  ],
+  edges: [
+    { f: 'c.r', t: 'h.l', lab: 'はい', labAt: [200, 108] },
+    { f: 'h.r', t: 'mg.l' },
+    { f: 'c.b', t: 'mg.b', via: [[100, 230], [383, 230]], lab: 'いいえ', labAt: [122, 210] },
+    { f: 'mg.r', t: 's1.l' },
+    { f: 's1.r', t: 's2.l' },
+    { f: 's2.r', t: 'm.l' },
+    { f: 'm.t', t: 'c.t', via: [[710, 20], [100, 20]] },
+  ],
+  annots: [{ x: 430, y: 205, text: '1周の火力 ≥ 41 が必要：攻撃5 + 攻撃20×2 = 45 → 90 → 45 → 0' }],
+});
+
+/* ---------- G7：周回パターンを見切る（for ループ + 分岐） ---------- */
+render('d-g7', {
+  w: 1050, h: 440,
+  nodes: [
+    { id: 'st', type: 'start', x: 30, y: 150 },
+    { id: 'fs', type: 'forstart', count: 4, x: 150, y: 150 },
+    { id: 'c', type: 'cond', x: 270, y: 150, label: `のこり<ruby>回数<rt>かいすう</rt></ruby>が4か2?` },
+    { id: 'r', type: 'card', img: 'reflect', mock: true, x: 460, y: 40 },
+    { id: 's1', type: 'slot', num: 1, x: 580, y: 40 },
+    { id: 's2', type: 'slot', num: 2, x: 460, y: 280 },
+    { id: 'm', type: 'card', img: 'monster', power: 15, x: 580, y: 280 },
+    { id: 'mg', type: 'merge', x: 730, y: 202 },
+    { id: 'fe', type: 'forend', x: 790, y: 150 },
+    { id: 'gl', type: 'goal', x: 930, y: 150 },
+  ],
+  edges: [
+    { f: 'st.r', t: 'fs.l' }, { f: 'fs.r', t: 'c.l' },
+    { f: 'c.r', t: 'r.l', via: [[430, 210], [430, 100]], lab: 'はい', labAt: [432, 168] },
+    { f: 'r.r', t: 's1.l' },
+    { f: 's1.r', t: 'mg.t', via: [[738, 100]] },
+    { f: 'c.b', t: 's2.l', via: [[340, 340]], lab: 'いいえ', labAt: [352, 300] },
+    { f: 's2.r', t: 'm.l' },
+    { f: 'm.r', t: 'mg.b', via: [[738, 340]] },
+    { f: 'mg.r', t: 'fe.l' },
+    { f: 'fe.t', t: 'fs.t', via: [[830, 15], [190, 15]] },
+    { f: 'fe.r', t: 'gl.l' },
+  ],
+  annots: [
+    { x: 460, y: 28, text: '1・3周目（構えの周）：マス1は攻撃厳禁' },
+    { x: 460, y: 425, text: '2・4周目（攻撃の周）：マス2は2回実行' },
+  ],
+});
+
+/* ---------- G8：手を読む敵 ---------- */
+render('d-g8', {
+  w: 800, h: 440,
+  nodes: [
+    { id: 's1', type: 'slot', num: 1, x: 30, y: 150 },
+    { id: 'c', type: 'cond', x: 150, y: 150, label: `(1)が${RUBY.kougeki}カード?` },
+    { id: 'r', type: 'card', img: 'reflect', mock: true, x: 340, y: 40 },
+    { id: 's2', type: 'slot', num: 2, x: 460, y: 40 },
+    { id: 'g', type: 'card', img: 'guard', power: 20, mock: true, x: 340, y: 280 },
+    { id: 's3', type: 'slot', num: 3, x: 460, y: 280 },
+    { id: 'mg', type: 'merge', x: 610, y: 202 },
+    { id: 'gl', type: 'goal', x: 670, y: 150 },
+  ],
+  edges: [
+    { f: 's1.r', t: 'c.l' },
+    { f: 'c.r', t: 'r.l', via: [[310, 210], [310, 100]], lab: 'はい', labAt: [312, 168] },
+    { f: 'r.r', t: 's2.l' },
+    { f: 's2.r', t: 'mg.t', via: [[618, 100]] },
+    { f: 'c.b', t: 'g.l', via: [[220, 340]], lab: 'いいえ', labAt: [232, 300] },
+    { f: 'g.r', t: 's3.l' },
+    { f: 's3.r', t: 'mg.b', via: [[618, 340]] },
+    { f: 'mg.r', t: 'gl.l' },
+  ],
+  annots: [
+    { x: 340, y: 28, text: 'マス1が攻撃 → カウンターの道' },
+    { x: 340, y: 425, text: 'マス1が攻撃以外 → 盾の道' },
+  ],
+});
+
+/* ---------- 5-1：てっぺきナイト ---------- */
+render('d-stage1', {
+  w: 1110, h: 200,
+  nodes: [
+    { id: 'st', type: 'start', x: 30, y: 40 },
+    { id: 's1', type: 'slot', num: 1, x: 150, y: 40 },
+    { id: 'g',  type: 'card', img: 'guard', power: 20, mock: true, x: 270, y: 40 },
+    { id: 's2', type: 'slot', num: 2, x: 390, y: 40 },
+    { id: 'm1', type: 'card', img: 'monster', power: 70, x: 510, y: 40 },
+    { id: 's3', type: 'slot', num: 3, x: 630, y: 40 },
+    { id: 'm2', type: 'card', img: 'monster', power: 70, x: 750, y: 40 },
+    { id: 's4', type: 'slot', num: 4, x: 870, y: 40 },
+    { id: 'gl', type: 'goal', x: 990, y: 40 },
+  ],
+  edges: [
+    { f: 'st.r', t: 's1.l' }, { f: 's1.r', t: 'g.l' }, { f: 'g.r', t: 's2.l' },
+    { f: 's2.r', t: 'm1.l' }, { f: 'm1.r', t: 's3.l' }, { f: 's3.r', t: 'm2.l' },
+    { f: 'm2.r', t: 's4.l' }, { f: 's4.r', t: 'gl.l' },
+  ],
+  annots: [
+    { x: 370, y: 185, text: '盾の直後（殴らない）' },
+    { x: 600, y: 185, text: '1発くらった後（回復はここ）' },
+  ],
+});
+
+/* ---------- 5-2：みきりウルフ（折り返しレイアウト） ---------- */
+render('d-stage2', {
+  w: 980, h: 380,
+  nodes: [
+    { id: 'st', type: 'start', x: 30, y: 30 },
+    { id: 's1', type: 'slot', num: 1, x: 150, y: 30 },
+    { id: 'r1', type: 'card', img: 'reflect', mock: true, x: 270, y: 30 },
+    { id: 's2', type: 'slot', num: 2, x: 390, y: 30 },
+    { id: 'm1', type: 'card', img: 'monster', power: 60, x: 510, y: 30 },
+    { id: 's3', type: 'slot', num: 3, x: 630, y: 30 },
+    { id: 'r2', type: 'card', img: 'reflect', mock: true, x: 750, y: 30 },
+    { id: 's4', type: 'slot', num: 4, x: 870, y: 30 },
+    { id: 'm2', type: 'card', img: 'monster', power: 60, x: 870, y: 220 },
+    { id: 's5', type: 'slot', num: 5, x: 750, y: 220 },
+    { id: 'gl', type: 'goal', x: 630, y: 220 },
+  ],
+  edges: [
+    { f: 'st.r', t: 's1.l' }, { f: 's1.r', t: 'r1.l' }, { f: 'r1.r', t: 's2.l' },
+    { f: 's2.r', t: 'm1.l' }, { f: 'm1.r', t: 's3.l' }, { f: 's3.r', t: 'r2.l' },
+    { f: 'r2.r', t: 's4.l' },
+    { f: 's4.b', t: 'm2.t' },
+    { f: 'm2.l', t: 's5.r' }, { f: 's5.l', t: 'gl.r' },
+  ],
+  annots: [
+    { x: 866, y: 22, text: '攻撃のみ' },
+    { x: 360, y: 172, text: '構えの直後（防御30）' },
+    { x: 300, y: 290, text: 'マス4：置かなくてよい（攻撃5 を捨てても可）' },
+  ],
+});
+
+/* ---------- 5-3：リジェネヒトデ（前判定ループ） ---------- */
+render('d-stage3', {
+  w: 930, h: 460,
+  nodes: [
+    { id: 'st', type: 'start', x: 30, y: 60 },
+    { id: 'c',  type: 'cond', x: 150, y: 60, label: `${RUBY.teki}のHPが0?` },
+    { id: 'm',  type: 'card', img: 'monster', power: 25, x: 330, y: 60 },
+    { id: 'h',  type: 'card', img: 'heal', power: 15, mock: true, x: 450, y: 60 },
+    { id: 'ct', type: 'card', img: 'counter', x: 570, y: 60, paired: true },
+    { id: 's1', type: 'slot', num: 1, x: 690, y: 60, mult: 'x0', paired: true },
+    { id: 's2', type: 'slot', num: 2, x: 810, y: 60 },
+    { id: 'gl', type: 'goal', x: 180, y: 310 },
+  ],
+  edges: [
+    { f: 'st.r', t: 'c.l' },
+    { f: 'c.r', t: 'm.l', lab: 'いいえ', labAt: [310, 108] },
+    { f: 'm.r', t: 'h.l' }, { f: 'h.r', t: 'ct.l' }, { f: 'ct.r', t: 's1.l' }, { f: 's1.r', t: 's2.l' },
+    { f: 's2.t', t: 'c.t', via: [[850, 20], [220, 20]] },
+    { f: 'c.b', t: 'gl.t', lab: 'はい', labAt: [242, 250] },
+  ],
+  annots: [
+    { x: 560, y: 205, text: 'パワーアップマス c1（通るたび +1）' },
+    { x: 690, y: 225, text: 'マス1は倍率 ×c1（10→20→30→40）' },
+    { x: 800, y: 245, text: 'マス2：回復30（必須）' },
+  ],
+});
+
+/* ---------- 5-4：三態の青龍（フェーズ制ボス） ---------- */
+render('d-stage4', {
+  w: 1120, h: 660,
+  nodes: [
+    { id: 'st', type: 'start', x: 30, y: 170 },
+    { id: 'L',  type: 'cond', x: 150, y: 170, label: `${RUBY.teki}のHPが0?` },
+    { id: 'gl', type: 'goal', x: 180, y: 390 },
+    { id: 'p1', type: 'cond', x: 350, y: 170, label: `${RUBY.teki}のHPが60より<ruby>大<rt>おお</rt></ruby>きい?` },
+    { id: 'g',  type: 'card', img: 'guard', power: 30, mock: true, x: 570, y: 40 },
+    { id: 's1', type: 'slot', num: 1, mult: 'x3', x: 690, y: 40 },
+    { id: 'm1', type: 'card', img: 'monster', power: 20, x: 810, y: 40 },
+    { id: 'p2', type: 'cond', x: 350, y: 330, label: `${RUBY.teki}のHPが30より<ruby>大<rt>おお</rt></ruby>きい?` },
+    { id: 'h',  type: 'card', img: 'heal', power: 5, mock: true, x: 570, y: 330 },
+    { id: 's2', type: 'slot', num: 2, x: 690, y: 330 },
+    { id: 's3', type: 'slot', num: 3, x: 810, y: 330 },
+    { id: 'r',  type: 'card', img: 'reflect', mock: true, x: 570, y: 500 },
+    { id: 's4', type: 'slot', num: 4, x: 690, y: 500 },
+    { id: 'm2', type: 'card', img: 'monster', power: 40, x: 810, y: 500 },
+    { id: 's5', type: 'slot', num: 5, x: 930, y: 500 },
+  ],
+  edges: [
+    { f: 'st.r', t: 'L.l' },
+    { f: 'L.b', t: 'gl.t', lab: 'はい', labAt: [242, 330] },
+    { f: 'L.r', t: 'p1.l', lab: 'いいえ', labAt: [320, 218] },
+    { f: 'p1.r', t: 'g.l', via: [[530, 230], [530, 100]], lab: 'はい', labAt: [532, 168] },
+    { f: 'g.r', t: 's1.l' }, { f: 's1.r', t: 'm1.l' },
+    { f: 'm1.r', t: 'L.t@200', via: [[980, 100], [980, 12], [200, 12]] },
+    { f: 'p1.b', t: 'p2.t', lab: 'いいえ', labAt: [444, 310] },
+    { f: 'p2.r', t: 'h.l', lab: 'はい', labAt: [515, 378] },
+    { f: 'h.r', t: 's2.l' }, { f: 's2.r', t: 's3.l' },
+    { f: 's3.r', t: 'L.t@220', via: [[1010, 390], [1010, 24], [220, 24]] },
+    { f: 'p2.b', t: 'r.l', via: [[420, 560]], lab: 'いいえ', labAt: [444, 480] },
+    { f: 'r.r', t: 's4.l' }, { f: 's4.r', t: 'm2.l' }, { f: 'm2.r', t: 's5.l' },
+    { f: 's5.r', t: 'L.t@240', via: [[1040, 560], [1040, 36], [240, 36]] },
+  ],
+  annots: [
+    { x: 570, y: 180, text: '【盾フェーズ】敵防御30 → マス1（×3）に攻撃15で盾割り' },
+    { x: 570, y: 318, text: '【癒フェーズ】毎周 5 回復 → 攻撃10 でじわじわ' },
+    { x: 570, y: 488, text: '【牙フェーズ】構え → 大技40 → マス4は防御40、マス5でとどめ' },
+  ],
+});
+</script>
+</body>
+</html>

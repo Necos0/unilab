@@ -37,3 +37,28 @@
   height: 100%;
   display: block;
 }
+
+/*
+ * 「ドラゴンの叫び声」演出（3-4 クリア後、`DragonRoarOverlay`）の間だけ
+ * マップ全体をゆらす。声のピーク（序盤）で大きく、だんだん小さくなる。
+ * 長さは DragonRoarOverlay の叫び（2000ms）に合わせる。
+ */
+.roarShake {
+  animation: mapRoarShake 2000ms linear;
+}
+
+@keyframes mapRoarShake {
+  0%, 100% { transform: translate(0, 0); }
+  5% { transform: translate(-10px, 6px); }
+  10% { transform: translate(10px, -6px); }
+  15% { transform: translate(-12px, -4px); }
+  20% { transform: translate(12px, 5px); }
+  25% { transform: translate(-10px, 6px); }
+  30% { transform: translate(9px, -5px); }
+  40% { transform: translate(-7px, 4px); }
+  50% { transform: translate(6px, -3px); }
+  60% { transform: translate(-4px, 3px); }
+  70% { transform: translate(3px, -2px); }
+  80% { transform: translate(-2px, 1px); }
+  90% { transform: translate(1px, -1px); }
+}
