@@ -310,7 +310,7 @@
       "id": "dark_hero",
       "displayName": "勇者《ゆうしゃ》",
       "maxHp": 100,
-      "sizeRatio": 0.8,
+      "sizeRatio": 0.95,
       "animations": {
         "idle": {
           "frameCount": 6,
@@ -318,9 +318,11 @@
           "loop": true
         },
         "dead": {
-          "frameCount": 8,
+          "frameCount": 7,
           "frameDurationMs": 250,
-          "loop": false
+          "loop": false,
+          "holdMs": 2000,
+          "keepVisible": true
         }
       }
     },

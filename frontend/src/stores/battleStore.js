@@ -1678,7 +1678,9 @@ const useBattleStore = create((set, get) => ({
     * 存在すれば `'dead' → 'fading' → 'cleared'` の 3 段、未定義なら
     * `'fading' → 'cleared'` の 2 段で `victoryPhase` を `setTimeout`
     * チェーンで遷移させる。`'dead'` 段の長さは
-    * `frameCount × frameDurationMs`、`'fading'` 段の長さは
+    * `frameCount × frameDurationMs`（＋任意の `holdMs`：最後のコマで止めて
+    * 見せる時間。5-4 の勇者の「元に戻った姿」のように、やられアニメの
+    * 最後をしばらく見せたい敵に使う）、`'fading'` 段の長さは
     * `VICTORY_FADE_DURATION_MS` に固定。dead 未実装の敵（slime 等）に
     * 対する暫定スキップ分岐は、将来全敵に dead アニメが用意された時点で
     * 撤去できる（`victory-clear` 要件 2 備考）。
@@ -1689,7 +1691,9 @@ const useBattleStore = create((set, get) => ({
    startVictorySequence: (enemyId) => {
     const enemy = enemiesData.enemies.find((e) => e.id === enemyId);
     const deadAnim = enemy?.animations?.dead;
-    const deadDurationMs = deadAnim ? deadAnim.frameCount * deadAnim.frameDurationMs : 0;
+    const deadDurationMs = deadAnim
+      ? deadAnim.frameCount * deadAnim.frameDurationMs + (deadAnim.holdMs ?? 0)
+      : 0;
     if (deadAnim) {
       set({ victoryPhase: 'dead', speedMultiplier: 1 });
       setTimeout(() => set({ victoryPhase: 'fading' }), deadDurationMs);
