@@ -297,7 +297,9 @@ function SlotNode({ id, data }) {
         isConnectable={false}
       />
       {acceptOnly && <RestrictedSlotIcon type={acceptOnly} />}
-      {displayMultiplier !== undefined && <MultiplierIndicator value={displayMultiplier} />}
+      {displayMultiplier !== undefined && (
+        <MultiplierIndicator value={displayMultiplier} floating={isCounterLinkedMultiplier} />
+      )}
       {isLockedCard && (
         <div className={styles.chainFrame} aria-hidden="true">
           <span className={styles.chainBadge}>🔒</span>

@@ -17,3 +17,24 @@
   z-index: 2;
   user-select: none;
 }
+
+/* カウントマス通過時に倍率テキストの残像を右上へ「ふわっ」と浮かせて消す
+   フローター。見た目（色・輪郭・フォント）は `.indicator` と揃え、位置も
+   同じ右上から始めて framer-motion の transform で右へ流す。純装飾なので
+   操作は奪わない。 */
+.floater {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #000;
+  -webkit-text-stroke: 5px #fff;
+  paint-order: stroke fill;
+  font-family: 'Press Start 2P', monospace;
+  /* 静止インジケータ（11px）より一回り大きく、浮かせた瞬間から読めるサイズに */
+  font-size: 55px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+  user-select: none;
+}
