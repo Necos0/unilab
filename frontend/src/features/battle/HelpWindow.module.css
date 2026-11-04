@@ -24,8 +24,8 @@
 .window {
   --accent: #f0c040;
   position: relative;
-  width: min(96%, 800px);
-  max-height: 92%;
+  width: min(96%, 1060px);
+  max-height: 94%;
   display: flex;
   flex-direction: column;
   color: #f7e9c0;
@@ -149,10 +149,10 @@
   min-height: 0;
 }
 
-/* 上部タブ列（1 列固定）。選択中は項目のテーマ色で発光する。 */
+/* 上部タブ列（項目数が多いと折り返す）。選択中は項目のテーマ色で発光する。 */
 .tabBar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.3rem;
   padding: 0.7rem 0.6rem 0;
   background: rgba(0, 0, 0, 0.25);
@@ -160,19 +160,20 @@
 }
 
 /*
- * タブ幅は flex-basis をラベルの内容幅（auto）にして、長い名前
- * （「パワーアップマス」等）にも必要な幅が配分されるようにする。
- * 均等割り（flex-basis: 0）だと nowrap の長いラベルがタブ枠から
- * はみ出す。行全体が収まらない狭い画面では overflow: hidden ＋
- * ellipsis で枠内に収める。
+ * タブ幅はラベルの内容幅（flex-basis: auto・伸長なし）にし、各タブが
+ * 名前（「敵《てき》パワーアップ」等）を潰さず表示できる幅を取る。項目数が
+ * タブ列に収まらないときは `flex-wrap: wrap` で次の行へ折り返す（均等割りで
+ * 1 行に詰め込んで全タブを潰すのを避ける）。それでも 1 タブが行幅を超える
+ * 極端なケースだけ overflow: hidden ＋ ellipsis で枠内に収める。
  */
 .tab {
   --accent: #f0c040;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0.6rem 0.3rem;
+  padding: 0.6rem 0.7rem;
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 700;

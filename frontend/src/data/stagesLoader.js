@@ -715,18 +715,27 @@ function processSubFlow(items, {
         ...ctx.forStarts.map((f) => f.position.y),
         ...ctx.forEnds.map((f) => f.position.y),
       );
-      // 改行先の行は「既存行＋スロット高＋1行ぶん」下げ、2本の下回りエッジ
-      // （ループ脱出の laneY と改行の laneY）が重ならない余白を確保する。
+      const laneY = maxY + SLOT_HEIGHT + 60;
+      // 改行の「始点 merge」を直前行の現在位置に置く。source（for-end の右出し等）
+      // からは通常エッジでこの merge に入り、下回りはこの merge から降ろす。これで
+      // 「右に出てすぐ下へ折れる」違和感を無くし、始点・終点を merge で対称にする。
+      ctx.mergeCounter += 1;
+      const startMergeId = `merge-${ctx.mergeCounter}`;
+      ctx.mergeNodes.push({
+        id: startMergeId,
+        position: {
+          x: SLOT_X_START + column * SLOT_X_STEP + SLOT_WIDTH / 2 - MERGE_SIZE / 2,
+          y: currentYLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
+        },
+      });
+      for (const e of endings) {
+        ctx.edges.push(buildEdge(e, startMergeId)); // 通常エッジ（source → 始点 merge）
+      }
+      // 行ジャンプ：既存行の下へ。方向は right のまま（turn のような左反転はしない）。
       currentYLevel = maxY + SLOT_HEIGHT + LOOP_ROW_GAP;
       column = 0; // 左端（START 列）へ戻す
-      // 方向は right のまま（turn のような左反転はしない）。
-      // 直後要素への接続は「下回りエッジ」：source は down-out、潜る深さ laneY は
-      // 既存行の下・改行先の content より上に取り、重ならず左端へ走る。ループ脱出の
-      // laneY（既存行のすぐ下）より少し深くして 2 本を分離する。
-      const laneY = maxY + SLOT_HEIGHT + 60;
-      // 着地点に merge ノードを置き、下回りエッジをそこへ（上から＝top で）繋ぐ。
-      // 次要素は merge の右隣から通常エッジで出すことで、折り返しの到達点が 1 つの
-      // ノードに集約され、slot へ直接潜り込むより見やすくなる。
+      // 着地 merge（左端・新しい行）。始点 merge の下（down-out）から着地 merge の上
+      // （top）へ下回りで降ろし、次要素は着地 merge の右隣から通常エッジで出す。
       ctx.mergeCounter += 1;
       const landId = `merge-${ctx.mergeCounter}`;
       ctx.mergeNodes.push({
@@ -736,11 +745,9 @@ function processSubFlow(items, {
           y: currentYLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
         },
       });
-      for (const e of endings) {
-        ctx.edges.push(buildEdge({ ...e, sourceHandle: e.sourceHandle ?? 'down-out', targetHandle: 'top', route: 'under', laneY }, landId));
-      }
+      ctx.edges.push(buildEdge({ nodeId: startMergeId, sourceHandle: 'down-out', targetHandle: 'top', route: 'under', laneY }, landId));
       endings = [{ nodeId: landId }];
-      column += 1; // 次要素は merge の右隣から
+      column += 1; // 次要素は着地 merge の右隣から
       continue;
     } else if (isLoop(item)) {
       const loopResult = expandLoop(item.loop, { column, yLevel: currentYLevel, endings, ctx, nestDepth });
@@ -1426,6 +1433,11 @@ function expandConditions(conditions) {
  *      を出す。`slot.multiplier === undefined` となるため、後段の
  *      `buildSlotMetadataFromStage` が「倍率未指定 = 1 倍」と扱い、既存の未指定
  *      スロットと同じ後方互換パスで実行される。
+ *   3. **`monster_counter`（敵パワーアップ）の counterId 登録**：`counter` と異なり
+ *      重複縮退はせず、counterId を `seenCounterIds` に登録するだけに留める。同一
+ *      counterId を複数ノード（ループ前シード＋ループ内加算）に積むのが正当な仕様
+ *      （★＝×(ループ回数+1)）であり、かつ ★ 側の `multiplier: {counterRef}` が
+ *      第 2 ループの浮遊参照判定で誤って剥がされないようにするため。
  *
  * **二段ループの順序が必須**：第 1 ループで「有効な counterId 集合」を確定してから、
  * 第 2 ループで multiplier 側の参照を照合する。1 ループで同時にやると、後に出現する
@@ -1459,6 +1471,17 @@ function validateCounterPairs(stage, stageId) {
       } else {
         seenCounterIds.add(cid);
       }
+    } else if (
+      slot.lockedCard?.id === 'monster_counter' &&
+      typeof slot.lockedCard.counterId === 'string'
+    ) {
+      // `monster_counter`（敵パワーアップ）は `counter` と違い、同一 counterId を
+      // 複数ノードに置くこと自体が正当な仕様（ループ前シード 1 回＋ループ内加算 N 回
+      // ＝合計 N+1 を 1 つのカウンタに積む「★＝×(ループ回数+1)」パターン）。
+      // したがって縮退はせず、counterRef の解決先として counterId を登録するだけに
+      // とどめる。これにより後段の浮遊 counterRef 判定で ★ の
+      // `multiplier: { counterRef }` が誤って剥がされない。
+      seenCounterIds.add(slot.lockedCard.counterId);
     }
   }
   for (const slot of stage.slots) {
@@ -1489,9 +1512,13 @@ function validateCounterPairs(stage, stageId) {
  *   - `loop`       : ループ要素（`{loop: {...}}`）。body 内も再帰する
  *   - `multiplier` : 数値リテラルの倍率スロット（`multiplier: 2` 等）
  *   - `acceptOnly` : カード種別制限スロット（`acceptOnly: 'attack'` 等）
- *   - `counter`    : パワーアップ（カウンタ）マス。カウンタ本体
- *     （`lockedCard.id === 'counter'`）と、カウンタ連動倍率
- *     （`multiplier: {counterRef}`）はペアで同じ仕組みなので同一種別に寄せる
+ *   - `counter`    : 味方パワーアップ（カウンタ）マス。カウンタ本体
+ *     （`lockedCard.id === 'counter'`）を検出する。ペアのカウンタ連動倍率
+ *     （`multiplier: {counterRef}`）自体は種別を足さない（連動元ロックカードで
+ *     味方 / 敵が判別されるため）
+ *   - `monster_counter` : 敵パワーアップマス。敵カウンタ本体
+ *     （`lockedCard.id === 'monster_counter'`）を検出する。`counter` と対で、
+ *     敵専用ステージ（5-3）では味方 `counter` を解禁しないよう別種別にする
  * `turn`（折り返し）はマスではなく配置の折り返し指示なので収集しない。
  *
  * Args:
@@ -1508,15 +1535,20 @@ function collectSlotTypeIds(raw) {
     if (item.lockedCard?.id === 'counter') {
       ids.add('counter');
     }
+    if (item.lockedCard?.id === 'monster_counter') {
+      ids.add('monster_counter');
+    }
     if (item.acceptOnly) {
       ids.add('acceptOnly');
     }
     if (Number.isInteger(item.multiplier)) {
       ids.add('multiplier');
     }
-    if (typeof item.multiplier === 'object' && item.multiplier !== null) {
-      ids.add('counter');
-    }
+    // カウンタ連動倍率（`multiplier: {counterRef}`）そのものは種別を足さない。
+    // 連動元が味方（`counter`）か敵（`monster_counter`）かは同ステージの
+    // 対応するカウンタ加算ロックカードが上の 2 分岐で収集するため、ここで
+    // 一律 `counter` に寄せると敵専用ステージ（5-3）で味方パワーアップマスの
+    // ヘルプまで誤って解禁されてしまう。
   };
   const visitFlow = (items) => {
     if (!Array.isArray(items)) {

@@ -48,9 +48,13 @@ const LOCKED_DESCRIPTIONS = {
  *
  * 攻撃=赤・防御=青・回復=緑・反射=橙と、戦闘画面のフロート演出（ダメージ赤／
  * ガード青／回復緑／反射橙）と同じ色割りに揃えることで、ヘルプ画面と実戦の
- * 演出が同じ「意味の色」で結びつくようにする。敵攻撃（monster）だけは
+ * 演出が同じ「意味の色」で結びつくようにする。敵カード（monster およびその
+ * 亜種 monster_guard / monster_heal / monster_reflect）は
  * フロート演出との対応ではなく、カード画像（`monster.png`）の紫の枠色に
- * 合わせて「敵のカード」であることを示す。ひっさつ（finisher。最終ボス
+ * 合わせて一律で紫にし、「敵のカード」であることを示す（味方カードの
+ * 意味色と混同させない）。敵パワーアップ（monster_counter）は
+ * カードではなくマス（`slot_help.json` の `monster_counter`）として扱うため
+ * `SLOT_ACCENTS` 側に置く。ひっさつ（finisher。最終ボス
  * 第二形態の専用カード）は「特別な一枚」を示す金色で、カウンタペアスロット
  * の金色アウトライン（`SlotNode` の #ffd54a）と揃える。各カードの枠・名前・
  * タブの強調色として CSS 変数（`--accent`）経由で使う。
@@ -61,6 +65,9 @@ const CARD_ACCENTS = {
   heal: '#3ad430',
   reflect: '#f0a040',
   monster: '#a86ae0',
+  monster_guard: '#a86ae0',
+  monster_heal: '#a86ae0',
+  monster_reflect: '#a86ae0',
   finisher: '#ffd54a',
 };
 
@@ -71,7 +78,9 @@ const CARD_ACCENTS = {
  * の金色アウトライン（`SlotNode` の `.counterPaired` #ffd54a）、カウント（for）
  * は for-start / for-end ノードの金色枠（`ForNode` の #ffd54a）、条件分岐は
  * 実行ハイライトの白（#e5e5ff）。倍率・種類指定は戦闘画面に固有色が無いため、
- * カテゴリ内で識別しやすい互いに離れた色を割り当てる。
+ * カテゴリ内で識別しやすい互いに離れた色を割り当てる。敵パワーアップ
+ * （monster_counter）はプレイヤーの counter と対になる敵版なので、敵カードと
+ * 同じ紫（#a86ae0）で「敵のマス」であることを示す。
  */
 const SLOT_ACCENTS = {
   condition: '#e5e5ff',
@@ -79,6 +88,7 @@ const SLOT_ACCENTS = {
   multiplier: '#c792ea',
   acceptOnly: '#ff6a6a',
   counter: '#ffd54a',
+  monster_counter: '#a86ae0',
 };
 
 /**

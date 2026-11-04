@@ -637,21 +637,70 @@
     },
     "5-3": {
       "enemyId": "dragon",
-      "maxEnemyHp": 60,
+      "maxEnemyHp": 345,
       "cards": [
+        { "id": "attack", "power": 35 },
+        { "id": "attack", "power": 30 },
         { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 15 },
+        { "id": "attack", "power": 10 },
         { "id": "guard", "power": 40 },
-        { "id": "heal", "power": 30 }
+        { "id": "guard", "power": 20 },
+        { "id": "guard", "power": 10 },
+        { "id": "guard", "power": 5 },
+        { "id": "heal", "power": 30 },
+        { "id": "reflect" },
+        { "id": "reflect" }
       ],
       "flow": [
-        {},
-        { "lockedCard": { "id": "monster", "power": 60 } },
-        {},
-        { "multiplier": 2 },
-        {},
-        { "lockedCard": { "id": "monster", "power": 60 } },
-        {}
+        { "id": "p1", "acceptOnly": "guard" },
+        { "lockedCard": { "id": "monster", "power": 45 } },
+        { "lockedCard": { "id": "monster_reflect" } },
+        { "id": "p2" },
+        { "lockedCard": { "id": "monster", "power": 40 } },
+        { "lockedCard": { "id": "monster_counter", "counterId": "cUp" } },
+        {
+          "loop": {
+            "mode": "pre",
+            "condition": "playerHp >= 70",
+            "label": "自分《じぶん》の HPが 70いじょう？",
+            "trueDir": "down",
+            "falseDir": "right",
+            "exitRoute": "under",
+            "body": [
+              { "lockedCard": { "id": "monster_counter", "counterId": "cUp" } },
+              { "id": "p3", "acceptOnly": "guard" },
+              { "lockedCard": { "id": "monster", "power": 20 } },
+              { "id": "p4" }
+            ]
+          }
+        },
+        { "id": "p5" },
+        {
+          "lockedCard": { "id": "monster", "power": 25 },
+          "multiplier": { "counterRef": "cUp" }
+        },
+        {
+          "condition": "playerHp <= 20",
+          "label": "自分《じぶん》の HPが 20いか？",
+          "true": [],
+          "false": [{ "lockedCard": { "id": "monster_reflect" } }]
+        },
+        { "id": "p6", "acceptOnly": "attack", "multiplier": 3 },
+        { "newline": {} },
+        { "id": "p7" },
+        { "lockedCard": { "id": "monster", "power": 15 } },
+        { "id": "p8", "multiplier": 2 },
+        { "lockedCard": { "id": "monster", "power": 15 } },
+        { "id": "p9", "acceptOnly": "attack" },
+        { "lockedCard": { "id": "monster", "power": 5 } },
+        {
+          "condition": "playerHp <= 25",
+          "label": "自分《じぶん》の HPが 25いか？",
+          "true": [],
+          "false": [{ "lockedCard": { "id": "monster_reflect" } }]
+        },
+        { "id": "p10", "acceptOnly": "attack", "multiplier": 4 }
       ]
     },
     "5-4": {

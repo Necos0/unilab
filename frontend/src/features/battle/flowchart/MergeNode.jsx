@@ -16,7 +16,8 @@ import styles from './MergeNode.module.css';
  * （`battleStore.scheduleNodePhase` で `slotAssignments[mergeId]` が
  * undefined のため、既存の効果分岐ガードで自動的にスキップされる）。
  *
- * Handle 構成（6 つ）：
+ * Handle 構成（7 つ。末尾に改行の始点 merge から下回りを出す Bottom source
+ * `id="down-out"` を追加）：
  *   - Left（target、デフォルト id）：rightward 文脈で True 経路の終端ノードから
  *     水平直線で入ってくる。ループ構文では start（または直前の終端）からの入力も
  *     ここで受ける
@@ -114,6 +115,13 @@ function MergeNode({ id }) {
         type="source"
         position={Position.Left}
         id="left-out"
+        className={styles.handle}
+        isConnectable={false}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="down-out"
         className={styles.handle}
         isConnectable={false}
       />
