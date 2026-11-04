@@ -51,14 +51,16 @@ export function applyNodeEffect(state, card, multiplier) {
       enemyHp = Math.max(0, enemyHp - dmg);
     }
   } else if (card.id === 'monster' && card.power > 0) {
+    // 敵攻撃。倍率（`{counterRef}` 連動を含む）を尊重する（★＝パワーアップ用）。
+    const mdmg = card.power * mult;
     if (reflectActive) {
-      enemyHp = Math.max(0, enemyHp - card.power);
+      enemyHp = Math.max(0, enemyHp - mdmg);
     } else if (guardShield > 0) {
-      const absorbed = Math.min(guardShield, card.power);
+      const absorbed = Math.min(guardShield, mdmg);
       guardShield -= absorbed;
-      playerHp = Math.max(0, playerHp - (card.power - absorbed));
+      playerHp = Math.max(0, playerHp - (mdmg - absorbed));
     } else {
-      playerHp = Math.max(0, playerHp - card.power);
+      playerHp = Math.max(0, playerHp - mdmg);
     }
   } else if (card.id === 'monster_guard' && card.power > 0) {
     enemyGuardShield = card.power; // 敵シールドをセット（上書き）。guard と reflect は排他
@@ -235,7 +237,7 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
       return 'runaway';
     }
     const card = slotAssignments[nodeId];
-    if (card?.id === 'counter' && card.counterId && counterValues[card.counterId] !== undefined) {
+    if ((card?.id === 'counter' || card?.id === 'monster_counter') && card.counterId && counterValues[card.counterId] !== undefined) {
       counterValues = { ...counterValues, [card.counterId]: counterValues[card.counterId] + 1 };
     }
     const meta = slotMetadata[nodeId];

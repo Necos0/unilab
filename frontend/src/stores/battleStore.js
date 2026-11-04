@@ -667,7 +667,7 @@ const useBattleStore = create((set, get) => ({
     const maxEnemyHp = stage.maxEnemyHp ?? enemy?.maxHp ?? 0;
     const maxPlayerHp = playerData.maxHp ?? 0;
     const counterIds = (stage.slots ?? [])
-      .filter((s) => s.lockedCard?.id === 'counter' && typeof s.lockedCard.counterId === 'string')
+      .filter((s) => (s.lockedCard?.id === 'counter' || s.lockedCard?.id === 'monster_counter') && typeof s.lockedCard.counterId === 'string')
       .map((s) => s.lockedCard.counterId);
     const counterValues = Object.fromEntries(counterIds.map((id) => [id, 0]));
     const forLoopIterations = Object.fromEntries(
@@ -1112,7 +1112,7 @@ const useBattleStore = create((set, get) => ({
           const multiplier =
             typeof meta?.multiplier === 'number' ? meta.multiplier :
             typeof meta?.counterRef === 'string' ? (get().counterValues[meta.counterRef] ?? 0) : 1;
-          if (card && card.id === 'counter' && card.counterId) {
+          if (card && (card.id === 'counter' || card.id === 'monster_counter') && card.counterId) {
             get().incrementCounter(card.counterId);
             set({ activeCounterId: card.counterId });
           }
@@ -1139,10 +1139,11 @@ const useBattleStore = create((set, get) => ({
             get().applyEnemyHeal(card.power);
           }
           if (card && card.id === 'monster' && card.power > 0) {
+            const mdmg = card.power * multiplier; // 倍率（counterRef 連動）を尊重（★＝パワーアップ用）
             if (get().reflectActive) {
-              get().applyReflectDamage(card.power);
+              get().applyReflectDamage(mdmg);
             } else {
-              get().consumeShieldOnDamage(card.power);
+              get().consumeShieldOnDamage(mdmg);
             }
           }
           if (card && card.id === 'heal' && card.power > 0) {

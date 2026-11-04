@@ -20,12 +20,15 @@ import styles from './SlotHelpVisual.module.css';
  *     （`RestrictedSlotIcon` の attack と同形・同色・同配置）
  *   - `counter`    : カウンタカード入りスロットと、ペアの倍率マス
  *     （どちらも `.counterPaired` と同じ金色アウトライン）の 2 マス構成
+ *   - `monster_counter` : 敵パワーアップ。`counter` と同じ 2 マス構成を、
+ *     カウンタカードの代わりに敵パワーアップカード（`monster_counter.png`）で
+ *     描いた敵版（プレイヤーの `counter` と対になるマス）
  *
  * Args:
  *     props (object): React プロパティ。
  *         typeId (string): 図解するマス種別 ID。`slot_help.json` の `id`
  *             （`condition` / `loop` / `multiplier` / `acceptOnly` /
- *             `counter`）。未知の ID は空のスロット枠を描く。
+ *             `counter` / `monster_counter`）。未知の ID は空のスロット枠を描く。
  *
  * Returns:
  *     JSX.Element: 額縁（`HelpWindow` の `.cardFrame`）に収まる図解要素。
@@ -43,6 +46,8 @@ function SlotHelpVisual({ typeId }) {
         <AcceptOnlyVisual />
       ) : typeId === 'counter' ? (
         <CounterVisual />
+      ) : typeId === 'monster_counter' ? (
+        <MonsterCounterVisual />
       ) : (
         <div className={styles.slot} />
       )}
@@ -147,6 +152,33 @@ function CounterVisual() {
         <img
           className={styles.counterCard}
           src="/cards/counter.png"
+          alt=""
+          draggable={false}
+        />
+      </div>
+      <div className={`${styles.slotSmall} ${styles.slotCounter}`}>
+        <span className={styles.multiplierBadge}>x2</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 敵パワーアップマスの図解。プレイヤーの `counter`（`CounterVisual`）と対になる
+ * 敵版で、カウンタカードの代わりに敵パワーアップカード（`monster_counter.png`）を
+ * 入れた 2 マス構成（本体＋ペアの倍率マス）を描く。ペアの金色アウトラインは
+ * 共通の「カウンタ連動」の仕組みを示し、カード画像で敵側であることを示す。
+ *
+ * Returns:
+ *     JSX.Element: 敵パワーアップマスの図解要素。
+ */
+function MonsterCounterVisual() {
+  return (
+    <div className={styles.counterRow}>
+      <div className={`${styles.slotSmall} ${styles.slotCounter} ${styles.slotFilled}`}>
+        <img
+          className={styles.counterCard}
+          src="/cards/monster_counter.png"
           alt=""
           draggable={false}
         />
