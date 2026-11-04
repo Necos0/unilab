@@ -175,7 +175,7 @@ function CounterVisual() {
 function MonsterCounterVisual() {
   return (
     <div className={styles.counterRow}>
-      <div className={`${styles.slotSmall} ${styles.slotCounter} ${styles.slotFilled}`}>
+      <div className={`${styles.slotSmall} ${styles.slotCounter} ${styles.slotCounterEnemy} ${styles.slotFilled}`}>
         <img
           className={styles.counterCard}
           src="/cards/monster_counter.png"
@@ -183,7 +183,7 @@ function MonsterCounterVisual() {
           draggable={false}
         />
       </div>
-      <div className={`${styles.slotSmall} ${styles.slotCounter}`}>
+      <div className={`${styles.slotSmall} ${styles.slotCounter} ${styles.slotCounterEnemy}`}>
         <span className={styles.multiplierBadge}>x2</span>
       </div>
     </div>

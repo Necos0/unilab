@@ -232,10 +232,16 @@
   flex-shrink: 0;
 }
 
-/* パワーアップ：SlotNode の .counterPaired と同じ金アウトライン。 */
+/* パワーアップ：SlotNode の .counterPaired と同じ金アウトライン（味方カウンタ）。 */
 .slotCounter {
   outline: 2px solid #ffd54a;
   outline-offset: 2px;
+}
+
+/* 敵パワーアップ：SlotNode の敵連動枠（.counterEnemy）と同じ紫アウトライン。
+   `.slotCounter` と詳細度が同じなので、色の上書きは後に置く。 */
+.slotCounterEnemy {
+  outline-color: #a86ae0;
 }
 
 /* カードが入っているスロット（SlotNode の .filled と同じく点線を消す）。 */
