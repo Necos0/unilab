@@ -1221,11 +1221,13 @@ const useBattleStore = create((set, get) => ({
           const prevCard = get().slotAssignments[prevNodeId];
           const isPrevGuard = prevCard && prevCard.id === 'guard';
           const isPrevReflect = prevCard && prevCard.id === 'reflect';
-          // merge（合流）はカードを持たない構造ノードで「直後の1マス」に数えない
-          // ため、通過してもバフ（シールド・反射）を消費せず次のマスへ通す
-          // （sim 側 `clearTransientBuffs` の merge 透過と対称）。
-          const isPrevMerge = nodeMap[prevNodeId]?.type === 'merge';
-          if (!isPrevMerge) {
+          // merge（合流）・condition（条件分岐）はカードを持たない構造ノードで
+          // 「直後の1マス」に数えないため、通過してもバフ（シールド・反射）を消費
+          // せず次のマスへ通す（sim 側 `clearTransientBuffs` の透過と対称）。これで
+          // カウンターを張った直後に分岐があり分岐先の敵攻撃を反射する構成が成立する。
+          const prevType = nodeMap[prevNodeId]?.type;
+          const isPrevTransparent = prevType === 'merge' || prevType === 'condition';
+          if (!isPrevTransparent) {
             if (!isPrevGuard && get().guardShield > 0) {
               get().clearGuard();
             }

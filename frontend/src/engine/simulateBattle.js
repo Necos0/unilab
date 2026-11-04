@@ -97,10 +97,12 @@ export function applyNodeEffect(state, card, multiplier) {
  *     object: バフ解除後の新しい状態。
  */
 export function clearTransientBuffs(state, prevCard, prevNodeType) {
-  // merge（合流）ノードはカードを持たない純粋な構造ノードで「1 マス」に数えない
-  // ため、通過してもバフ（シールド・反射）を消費せずそのまま次へ通す。これにより
-  // 条件分岐の各経路の末尾でシールドを張り、合流後の攻撃に効かせられる。
-  if (prevNodeType === 'merge') {
+  // merge（合流）・condition（条件分岐）はカードを持たない純粋な構造ノードで
+  // 「1 マス」に数えないため，通過してもバフ（シールド・反射）を消費せずそのまま
+  // 次へ通す。これにより「各経路の末尾でシールドを張り合流後の攻撃に効かせる」
+  // （merge）や「カウンターを張った直後に分岐があり，分岐先の敵攻撃を反射する」
+  // （condition）といった構成が成立する。
+  if (prevNodeType === 'merge' || prevNodeType === 'condition') {
     return state;
   }
   const isPrevGuard = prevCard?.id === 'guard';
