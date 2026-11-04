@@ -354,7 +354,16 @@ function isValidAcceptOnly(value) {
 function isValidMultiplier(value) {
   if (Number.isInteger(value) && value >= 2) return true;
   if (typeof value === 'object' && value !== null) {
-    return typeof value.counterRef === 'string' && value.counterRef.length > 0;
+    if (typeof value.counterRef !== 'string' || value.counterRef.length === 0) {
+      return false;
+    }
+    // offset（任意）：倍率をカウンタ値 + offset で解決するためのオフセット。
+    // `×(1+count)`（＝カウンタ値 + 1）のような「ループ回数 + N」倍率を，ループ前の
+    // 種まきノードを足さずに表すために使う。省略時は 0。非負整数のみ許可。
+    if (value.offset !== undefined && !(Number.isInteger(value.offset) && value.offset >= 0)) {
+      return false;
+    }
+    return true;
   }
   return false;
 }

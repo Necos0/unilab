@@ -200,9 +200,12 @@ function SlotNode({ id, data }) {
   const isCounterFlashing = (myCounterId !== null && activeCounterId === myCounterId) || (myCounterRef !== null && activeCounterId === myCounterRef);
 
   const counterValue = useBattleStore((s) => isCounterLinkedMultiplier ? (s.counterValues[data.multiplier.counterRef] ?? 0) : undefined);
+  // カウンタ連動倍率は `counterValues[counterRef] + offset`（offset 省略時 0）で
+  // 表示する。sim / live の倍率解決（`counterValues[ref] + (offset ?? 0)`）と一致させ、
+  // offset: 1 のパワーアップマスは入場時（カウンタ 0）に ×0 ではなく ×1 と表示する。
   const displayMultiplier =
     typeof data?.multiplier === 'number' ? data.multiplier :
-    isCounterLinkedMultiplier ? counterValue :
+    isCounterLinkedMultiplier ? counterValue + (data.multiplier.offset ?? 0) :
     undefined;
 
   const displayNumber = data?.displayNumber;

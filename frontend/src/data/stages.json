@@ -658,7 +658,6 @@
         { "lockedCard": { "id": "monster_reflect" } },
         { "id": "p2" },
         { "lockedCard": { "id": "monster", "power": 40 } },
-        { "lockedCard": { "id": "monster_counter", "counterId": "cUp" } },
         {
           "loop": {
             "mode": "pre",
@@ -678,7 +677,7 @@
         { "id": "p5" },
         {
           "lockedCard": { "id": "monster", "power": 25 },
-          "multiplier": { "counterRef": "cUp" }
+          "multiplier": { "counterRef": "cUp", "offset": 1 }
         },
         {
           "condition": "playerHp <= 20",
@@ -705,23 +704,124 @@
     },
     "5-4": {
       "enemyId": "dark_hero",
-      "maxEnemyHp": 100,
+      "maxEnemyHp": 415,
       "cards": [
+        { "id": "attack", "power": 40 },
         { "id": "attack", "power": 30 },
-        { "id": "attack", "power": 30 },
-        { "id": "guard", "power": 50 },
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 5 },
+        { "id": "guard", "power": 35 },
+        { "id": "guard", "power": 35 },
+        { "id": "guard", "power": 30 },
+        { "id": "guard", "power": 20 },
         { "id": "heal", "power": 40 },
+        { "id": "heal", "power": 35 },
+        { "id": "heal", "power": 20 },
+        { "id": "reflect" },
         { "id": "reflect" }
       ],
       "flow": [
-        {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        { "multiplier": 2 },
-        {},
-        {},
-        { "lockedCard": { "id": "monster", "power": 70 } },
-        {},
-        {}
+        {
+          "condition": "slot('p1') === 'attack'",
+          "label": "(1)が 攻撃《こうげき》カード？",
+          "true": [{ "lockedCard": { "id": "monster_guard", "power": 15 } }],
+          "false": [{ "lockedCard": { "id": "monster", "power": 45 } }]
+        },
+        { "id": "p1" },
+        { "lockedCard": { "id": "monster", "power": 35 } },
+        {
+          "condition": "slot('p2') === 'heal'",
+          "label": "(2)が 回復《かいふく》カード？",
+          "true": [{ "lockedCard": { "id": "monster_heal", "power": 10 } }],
+          "false": [{ "lockedCard": { "id": "monster", "power": 45 } }]
+        },
+        { "lockedCard": { "id": "monster_reflect" } },
+        { "id": "p2" },
+        { "lockedCard": { "id": "monster", "power": 25 } },
+        {
+          "loop": {
+            "mode": "pre",
+            "condition": "playerHp >= 80",
+            "label": "自分《じぶん》の HPが 80いじょう？",
+            "trueDir": "down",
+            "falseDir": "right",
+            "exitRoute": "under",
+            "body": [
+              { "lockedCard": { "id": "counter", "counterId": "cP" } },
+              { "lockedCard": { "id": "monster_counter", "counterId": "cE" } },
+              { "id": "p3" },
+              {
+                "lockedCard": { "id": "monster", "power": 5 },
+                "multiplier": { "counterRef": "cE", "offset": 1 }
+              },
+              { "id": "p4" },
+              { "lockedCard": { "id": "monster_heal", "power": 5 } }
+            ]
+          }
+        },
+        { "id": "p5" },
+        {
+          "lockedCard": { "id": "monster", "power": 15 },
+          "multiplier": { "counterRef": "cE", "offset": 1 }
+        },
+        { "newline": {} },
+        {
+          "condition": "playerHp <= 10",
+          "label": "自分《じぶん》の HPが 10いか？",
+          "true": [],
+          "false": [{ "lockedCard": { "id": "monster_reflect" } }]
+        },
+        { "id": "p6", "acceptOnly": "attack", "multiplier": 2 },
+        {
+          "lockedCard": { "id": "monster", "power": 10 },
+          "multiplier": { "counterRef": "cE", "offset": 1 }
+        },
+        {
+          "for": {
+            "iterations": 2,
+            "body": [
+              {
+                "condition": "slot('p7') === 'attack'",
+                "label": "(7)が 攻撃《こうげき》カード？",
+                "true": [{ "lockedCard": { "id": "monster_guard", "power": 10 } }],
+                "false": [{ "lockedCard": { "id": "monster_heal", "power": 20 } }]
+              },
+              { "id": "p7" },
+              {
+                "lockedCard": { "id": "monster", "power": 5 },
+                "multiplier": { "counterRef": "cE", "offset": 1 }
+              }
+            ]
+          }
+        },
+        { "id": "p8" },
+        {
+          "lockedCard": { "id": "monster", "power": 10 },
+          "multiplier": { "counterRef": "cE", "offset": 1 }
+        },
+        {
+          "condition": "slot('p9') === 'attack'",
+          "label": "(9)が 攻撃《こうげき》カード？",
+          "true": [{ "lockedCard": { "id": "monster_guard", "power": 15 } }],
+          "false": [
+            {
+              "lockedCard": { "id": "monster", "power": 20 },
+              "multiplier": { "counterRef": "cE", "offset": 1 }
+            }
+          ]
+        },
+        { "id": "p9", "multiplier": 2 },
+        {
+          "lockedCard": { "id": "monster", "power": 10 },
+          "multiplier": { "counterRef": "cE", "offset": 1 }
+        },
+        {
+          "id": "p10",
+          "acceptOnly": "attack",
+          "multiplier": { "counterRef": "cP", "offset": 1 }
+        }
       ]
     }
   }
