@@ -35,11 +35,21 @@ import evaluateCondition from './evaluateCondition';
  */
 export function applyNodeEffect(state, card, multiplier) {
   if (!card) return state;
-  let { enemyHp, playerHp, guardShield, reflectActive } = state;
-  const { maxPlayerHp } = state;
+  let { enemyHp, playerHp, guardShield, reflectActive, enemyGuardShield = 0, enemyReflectActive = false } = state;
+  const { maxPlayerHp, maxEnemyHp } = state;
   const mult = multiplier ?? 1;
   if ((card.id === 'attack' || card.id === 'finisher') && card.power > 0) {
-    enemyHp = Math.max(0, enemyHp - card.power * mult);
+    // プレイヤーの攻撃解決（敵の reflect / guard を monster の鏡写しで処理）。
+    const dmg = card.power * mult;
+    if (enemyReflectActive) {
+      playerHp = Math.max(0, playerHp - dmg); // 敵が反射 → 自分が受ける
+    } else if (enemyGuardShield > 0) {
+      const absorbed = Math.min(enemyGuardShield, dmg); // 敵シールドで吸収
+      enemyGuardShield -= absorbed;
+      enemyHp = Math.max(0, enemyHp - (dmg - absorbed));
+    } else {
+      enemyHp = Math.max(0, enemyHp - dmg);
+    }
   } else if (card.id === 'monster' && card.power > 0) {
     if (reflectActive) {
       enemyHp = Math.max(0, enemyHp - card.power);
@@ -50,6 +60,14 @@ export function applyNodeEffect(state, card, multiplier) {
     } else {
       playerHp = Math.max(0, playerHp - card.power);
     }
+  } else if (card.id === 'monster_guard' && card.power > 0) {
+    enemyGuardShield = card.power; // 敵シールドをセット（上書き）。guard と reflect は排他
+    enemyReflectActive = false;
+  } else if (card.id === 'monster_reflect') {
+    enemyReflectActive = true;
+    enemyGuardShield = 0;
+  } else if (card.id === 'monster_heal' && card.power > 0) {
+    enemyHp = Math.min(maxEnemyHp, enemyHp + card.power); // 敵回復（倍率なし）
   } else if (card.id === 'heal' && card.power > 0) {
     playerHp = Math.min(maxPlayerHp, playerHp + card.power * mult);
   } else if (card.id === 'guard' && card.power > 0) {
@@ -59,7 +77,7 @@ export function applyNodeEffect(state, card, multiplier) {
     reflectActive = true;
     guardShield = 0;
   }
-  return { ...state, enemyHp, playerHp, guardShield, reflectActive };
+  return { ...state, enemyHp, playerHp, guardShield, reflectActive, enemyGuardShield, enemyReflectActive };
 }
 
 /**
@@ -85,10 +103,14 @@ export function clearTransientBuffs(state, prevCard, prevNodeType) {
   }
   const isPrevGuard = prevCard?.id === 'guard';
   const isPrevReflect = prevCard?.id === 'reflect';
+  const isPrevEnemyGuard = prevCard?.id === 'monster_guard';
+  const isPrevEnemyReflect = prevCard?.id === 'monster_reflect';
   return {
     ...state,
     guardShield: isPrevGuard ? state.guardShield : 0,
     reflectActive: isPrevReflect ? state.reflectActive : false,
+    enemyGuardShield: isPrevEnemyGuard ? (state.enemyGuardShield ?? 0) : 0,
+    enemyReflectActive: isPrevEnemyReflect ? (state.enemyReflectActive ?? false) : false,
   };
 }
 
@@ -115,6 +137,8 @@ function buildEvalContext(state, slotAssignments, forLoopCounters) {
       maxEnemyHp: state.maxEnemyHp,
       guardShield: state.guardShield,
       reflectActive: state.reflectActive,
+      enemyGuardShield: state.enemyGuardShield ?? 0,
+      enemyReflectActive: state.enemyReflectActive ?? false,
     },
     slot: (slotId) => slotAssignments[slotId]?.id ?? null,
     forCounter: (forLoopId) => forLoopCounters?.[forLoopId] ?? 0,

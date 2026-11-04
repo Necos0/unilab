@@ -25,6 +25,9 @@ import ReflectDamageFloater from './enemy/ReflectDamageFloater';
 import PlayerDamageFloater from './player/PlayerDamageFloater';
 import PlayerHealFloater from './player/PlayerHealFloater';
 import PlayerGuardFloater from './player/PlayerGuardFloater';
+import EnemyGuardFloater from './enemy/EnemyGuardFloater';
+import EnemyHealFloater from './enemy/EnemyHealFloater';
+import parseStageId from '../map/parseStageId';
 import useBattleStore from '../../stores/battleStore';
 import useCutsceneStore from '../../stores/cutsceneStore';
 import useProgressStore from '../../stores/progressStore';
@@ -394,6 +397,12 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   const maxPlayerHp = useBattleStore((s) => s.maxPlayerHp);
   const guardShield = useBattleStore((s) => s.guardShield);
   const reflectActive = useBattleStore((s) => s.reflectActive);
+  const enemyGuardShield = useBattleStore((s) => s.enemyGuardShield);
+  const enemyReflectActive = useBattleStore((s) => s.enemyReflectActive);
+  // ワールド5以降は敵も防御/回復/カウンターを使うため、敵 HP バーをシールド付き
+  // （プレイヤーの鏡）で表示する。ワールド1〜4は従来どおり HP バー単体。
+  const parsedStage = parseStageId(resolvedStageId);
+  const showEnemyShield = parsedStage != null && Number(parsedStage.world) >= 5;
   const victoryPhase = useBattleStore((s) => s.victoryPhase);
   const failPhase = useBattleStore((s) => s.failPhase);
   const revivePhase = useBattleStore((s) => s.revivePhase);
@@ -904,10 +913,27 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               setConsumedEnemyReflectId(lastEnemyReflectId);
             }}
           >
-            <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
+            {showEnemyShield ? (
+              <div className={styles.playerStatusBars}>
+                <GuardBar current={enemyGuardShield} max={maxEnemyHp} />
+                <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} reflectActive={enemyReflectActive} />
+              </div>
+            ) : (
+              <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
+            )}
             <span className={styles.hpText}>
-              {currentEnemyHp}/{maxEnemyHp}
+              <span
+                className={enemyGuardShield > 0
+                  ? styles.hpNumeratorShielded
+                  : enemyReflectActive
+                    ? styles.hpNumeratorReflect
+                    : undefined}>
+                {currentEnemyHp + (showEnemyShield ? enemyGuardShield : 0)}
+              </span>
+              /{maxEnemyHp}
             </span>
+            <EnemyGuardFloater />
+            <EnemyHealFloater />
           </div>
           <div
             data-cutscene-point="playerHpBar"

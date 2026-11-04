@@ -4,7 +4,9 @@
 
 ワールド5で、敵が「攻撃（`monster`）するだけ」から卒業し、**防御・回復・カウンター**をフローチャート上の `lockedCard` として使ってくる。プレイヤー側の `guardShield` / `reflectActive` と**完全対称**な敵側ロジックを追加する（設計資料：`docs/enemy-action-cards.html`）。対称だから、プレイヤーは自分のカードで学んだ知識をそのまま敵の読みに使える。
 
-現状これら3カードは**エンジン未実装（no-op）**で、5-1 など stage5 のステージが成立しない。本機能で `simulateBattle`（ヘッドレス）と `battleStore`（live）の両方に効果を実装し、`evaluateCondition` の評価コンテキストに敵バフ変数を足す。カード画像（`public/cards/monster_guard.png` 等）とスロット埋め込み（`stages.json` の `lockedCard`）は既存の仕組みをそのまま使う。
+現状これら3カードは**エンジン未実装（no-op）**。本機能で `simulateBattle`（ヘッドレス）と `battleStore`（live）の両方に効果を実装し、`evaluateCondition` の評価コンテキストに敵バフ変数を足す。カード画像（`public/cards/monster_guard.png` 等）とスロット埋め込み（`stages.json` の `lockedCard`）は既存の仕組みをそのまま使う。
+
+**初登場ステージ**：`monster_guard` / `monster_heal` は **5-2**、`monster_reflect` は **5-3**（検証はこの2ステージ＋単体ケースで行う）。
 
 ## 要件
 
@@ -30,7 +32,7 @@
 1. IF `enemyReflectActive` が true WHEN プレイヤーの `attack`/`finisher`（power×倍率 = D）が解決する THEN the system SHALL 敵HPを変えず、プレイヤーHPを D 減らす（反射）
 2. IF `enemyReflectActive` が false かつ `enemyGuardShield > 0` WHEN `attack`/`finisher`（D）が解決する THEN the system SHALL `min(enemyGuardShield, D)` を吸収して `enemyGuardShield` を減らし、残り `D - 吸収` だけ敵HPを減らす
 3. IF 敵バフが無い WHEN `attack`/`finisher`（D）が解決する THEN the system SHALL 敵HPを D 減らす（従来どおり）
-4. WHERE `finisher`（ひっさつ）の貫通可否 the system SHALL 設計で1つに決める（貫通する＝シールド/反射を無視、または対称に処理）。→ **設計で確定**
+4. WHEN `finisher`（ひっさつ）が解決する THEN the system SHALL `attack` と同じ解決順（反射→吸収→全部）で処理する（**貫通の特例は設けない＝(B)対称**）。※ `finisher` は 4-4 第二形態だけの例外カードで、その相手は敵バフを持たないため挙動に影響なし
 
 ### 要件4: 条件式での敵バフ参照
 **ユーザーストーリー：** ステージ作者として、条件ノードで敵の構え（`enemyReflectActive === true`）やシールド（`enemyGuardShield > 0`）を読ませたい。なぜなら「状態変数を読む」上級ステージを作れるから。
