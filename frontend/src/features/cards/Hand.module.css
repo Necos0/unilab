@@ -1,8 +1,22 @@
+/* 手札エリア（playerArea の中身）。右寄せで、行が入りきらない時は行全体を
+   縮小表示するため overflow を隠す。 */
 .root {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* カードを横並びにする行。原寸（flex-shrink: 0）で並べ、幅が足りない時だけ
+   `Hand` が transform: scale（transform-origin: 右中央）で比率を保って縮める。 */
+.row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   height: 100%;
-  min-height: 0;
-  min-width: 0;
+  flex-shrink: 0;
 }

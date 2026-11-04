@@ -187,9 +187,14 @@ function SlotNode({ id, data }) {
    */
   const showReject = rejectMismatch;
 
-  const isCounterSlot = assignedCard?.id === 'counter' && assignedCard?.locked;
-  const isCounterLinkedMultiplier = 
-    typeof data?.multiplier === 'object' && 
+  // カウントマス本体（味方 `counter` / 敵 `monster_counter` のロックカード）と、
+  // それに連動するパワーアップマス（`counterRef` 倍率スロット）を「ペア」として
+  // 枠線で囲む。色は連動元のカウンタ種別で分ける（味方＝金 / 敵＝紫）。
+  const isCounterSlot =
+    (assignedCard?.id === 'counter' || assignedCard?.id === 'monster_counter') &&
+    assignedCard?.locked;
+  const isCounterLinkedMultiplier =
+    typeof data?.multiplier === 'object' &&
     data.multiplier !== null &&
     typeof data.multiplier.counterRef === 'string';
   const isCounterPaired = isCounterSlot || isCounterLinkedMultiplier;
@@ -198,6 +203,14 @@ function SlotNode({ id, data }) {
   const myCounterId = isCounterSlot ? assignedCard?.counterId : null;
   const myCounterRef = isCounterLinkedMultiplier ? data.multiplier.counterRef : null;
   const isCounterFlashing = (myCounterId !== null && activeCounterId === myCounterId) || (myCounterRef !== null && activeCounterId === myCounterRef);
+
+  // パワーアップマスの枠色を連動元カウンタの種別から決める。カウントマス本体は
+  // 自分のカードの id、パワーアップマスは `counterKinds[counterRef]` を引く。
+  const counterKindOfRef = useBattleStore((s) =>
+    myCounterRef !== null ? s.counterKinds[myCounterRef] : undefined,
+  );
+  const counterKind = isCounterSlot ? assignedCard?.id : counterKindOfRef;
+  const isEnemyCounter = counterKind === 'monster_counter';
 
   const counterValue = useBattleStore((s) => isCounterLinkedMultiplier ? (s.counterValues[data.multiplier.counterRef] ?? 0) : undefined);
   // カウンタ連動倍率は `counterValues[counterRef] + offset`（offset 省略時 0）で
@@ -222,6 +235,7 @@ function SlotNode({ id, data }) {
     isTraversed && styles.traversed,
     isLockedCard && styles.lockedCard,
     isCounterPaired && styles.counterPaired,
+    isCounterPaired && isEnemyCounter && styles.counterEnemy,
     isCounterFlashing && styles.counterFlash,
   ]
     .filter(Boolean)

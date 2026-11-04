@@ -1,4 +1,13 @@
+/* ボタン＋倍速バッジの入れ物。バッジを絶対配置でボタン直下に出すための
+   位置基準（relative）。親 `.flowchartControls` の align-items: stretch で
+   横幅いっぱいに伸びるので、中のボタンも width: 100% で従来の見た目を保つ。 */
+.wrap {
+  position: relative;
+}
+
 .button {
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.35rem 0.6rem;
   font-family: system-ui, sans-serif;
   font-size: 0.9rem;
@@ -8,7 +17,7 @@
   border: 1px solid #3a3a45;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s, box-shadow 0.15s;
   /* 実行中は親 `.root.executing` が `pointer-events: none` を付与する
      （旧 play-button 仕様 3-1, 3-2 の名残）。倍速トグルは実行中こそ押したい
      ので、`pointer-events: auto` で親の block を明示的に打ち消す */
@@ -29,6 +38,47 @@
   cursor: not-allowed;
 }
 
+/* 倍速 ON：暗くするのではなく「点灯」させて、押している状態がはっきり分かる
+   ようにする（黄緑系＝速さの色）。 */
 .button.active {
-  opacity: 0.5;
+  opacity: 1;
+  color: #dcf4a0;
+  background: #1e2a0e;
+  border-color: #a8e05a;
+  box-shadow: 0 0 6px rgba(168, 224, 90, 0.5);
+}
+
+/* ボタン直下の「×2」バッジ。倍速中だけ表示し、ゆっくり明滅させて目に留まる
+   ようにする。クリック操作は奪わない（pointer-events: none）。フォントは
+   倍率マスの「x2」（`MultiplierIndicator`）や HP バーと同じドットフォント
+   `Press Start 2P` に揃えて世界観を統一する。 */
+.badge {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.45rem;
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 0.6rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #1a2e05;
+  background: #a8e05a;
+  border: 1px solid #c8f286;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(168, 224, 90, 0.55);
+  pointer-events: none;
+  animation: speedBadgePulse 0.9s ease-in-out infinite;
+}
+
+@keyframes speedBadgePulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(168, 224, 90, 0.45);
+  }
+  50% {
+    opacity: 0.78;
+    box-shadow: 0 0 12px rgba(168, 224, 90, 0.85);
+  }
 }

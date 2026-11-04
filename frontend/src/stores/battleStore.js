@@ -600,6 +600,7 @@ const useBattleStore = create((set, get) => ({
   enemyHealEvents: [],
   _enemyHealCounter: 0,
   counterValues: {},
+  counterKinds: {},
   activeCounterId: null,
   forLoopCounters: {},
   forLoopIterations: {},
@@ -669,10 +670,14 @@ const useBattleStore = create((set, get) => ({
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
     const maxEnemyHp = stage.maxEnemyHp ?? enemy?.maxHp ?? 0;
     const maxPlayerHp = playerData.maxHp ?? 0;
-    const counterIds = (stage.slots ?? [])
+    const counterLocks = (stage.slots ?? [])
       .filter((s) => (s.lockedCard?.id === 'counter' || s.lockedCard?.id === 'monster_counter') && typeof s.lockedCard.counterId === 'string')
-      .map((s) => s.lockedCard.counterId);
-    const counterValues = Object.fromEntries(counterIds.map((id) => [id, 0]));
+      .map((s) => s.lockedCard);
+    const counterValues = Object.fromEntries(counterLocks.map((lc) => [lc.counterId, 0]));
+    // counterId → カウンタ種別（'counter'＝味方 / 'monster_counter'＝敵）。パワーアップ
+    // マス（counterRef 倍率スロット）が、どちらのカウントマスに連動するかを色分け
+    // （味方＝金 / 敵＝紫）で示すために `SlotNode` が参照する。
+    const counterKinds = Object.fromEntries(counterLocks.map((lc) => [lc.counterId, lc.id]));
     const forLoopIterations = Object.fromEntries(
       (stage.forStarts ?? []).map((f) => [f.id, f.iterations])
     );
@@ -707,6 +712,7 @@ const useBattleStore = create((set, get) => ({
       enemyGuardEvents: [],
       enemyHealEvents: [],
       counterValues,
+      counterKinds,
       activeCounterId: null,
       speedMultiplier: 1,
       forLoopIterations,

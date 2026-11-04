@@ -567,7 +567,7 @@
       ]
     },
     "5-2": {
-      "enemyId": "lagiacrus",
+      "enemyId": "flying_sapphire_dragon",
       "maxEnemyHp": 285,
       "cards": [
         { "id": "attack", "power": 40 },

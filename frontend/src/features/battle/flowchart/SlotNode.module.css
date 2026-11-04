@@ -146,30 +146,43 @@
   user-select: none;
 }
 
+/* カウントマス本体とパワーアップマスを「ペア」として、スロットより一回り大きい
+   枠線で囲む。枠色は連動元カウンタの種別で分ける：味方（counter）＝金 `--counter-color`
+   既定、敵（monster_counter）＝紫（`.counterEnemy` が変数を上書き）。 */
 .slot.counterPaired {
-  outline: 2px solid #ffd54a;
-  outline-offset: 2px;
+  --counter-color: #ffd54a;
+  outline: 2px solid var(--counter-color);
+  outline-offset: 10px;
   border-radius: 6px;
+}
+
+/* 敵カウンタ連動は紫。`.counterPaired` と詳細度が同じなので、変数上書きは後に置く。 */
+.slot.counterEnemy {
+  --counter-color: #a86ae0;
 }
 
 .slot.filled.counterPaired.dropTarget,
 .slot.filled.counterPaired.isOver,
 .slot.filled.lockedCard.counterPaired.dropTarget,
 .slot.filled.lockedCard.counterPaired.isOver {
-  outline: 2px solid #ffd54a;
-  outline-offset: 2px;
+  outline: 2px solid var(--counter-color);
+  outline-offset: 7px;
 }
 
+/* カウントマス通過時：ペア（カウントマス＋パワーアップマスとその枠）を、スロット
+   通過と同じ要領で 3 回点滅させる。色は `--counter-color`（味方＝金 / 敵＝紫）。 */
 .slot.counterFlash {
-  animation: counterFlash calc(0.36s / var(--speed-mult, 1)) ease-out 1;
+  animation: counterFlash calc(0.66s / var(--speed-mult, 1)) ease-out 1;
 }
 
 @keyframes counterFlash {
-  from {
-    filter: brightness(1.5) drop-shadow(0 0 6px rgba(255, 213, 74, 0.6));
+  0%, 30%, 60%, 100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
   }
-  to {
-    filter: brightness(1) drop-shadow(0 0 4px rgba(255, 213, 74, 0.15));
+  15%, 45%, 75% {
+    filter: brightness(1.6) drop-shadow(0 0 6px var(--counter-color));
+    box-shadow: 0 0 12px 2px var(--counter-color);
   }
 }
 /* ロックカード（monster / counter など、ステージ固定で動かせないカード）が

@@ -328,7 +328,7 @@
     },
     {
       "id": "black_wing_dragon",
-      "displayName": "紅眼黒魔鳥《レッドアイズブラックバード》",
+      "displayName": "紅眼黒魔鳥《レッドアイズ・ブラックバード》",
       "maxHp": 100,
       "sizeRatio": 1.0,
       "animations": {
@@ -339,6 +339,24 @@
         },
         "dead": {
           "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
+      "id": "flying_sapphire_dragon",
+      "displayName": "天空青白竜《フライング・サファイアドラゴン》",
+      "maxHp": 285,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 4,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 5,
           "frameDurationMs": 250,
           "loop": false
         }
