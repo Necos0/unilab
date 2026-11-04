@@ -555,22 +555,84 @@
     },
     "5-2": {
       "enemyId": "lagiacrus",
-      "maxEnemyHp": 60,
+      "maxEnemyHp": 285,
       "cards": [
-        { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 20 },
+        { "id": "attack", "power": 40 },
+        { "id": "attack", "power": 40 },
+        { "id": "attack", "power": 10 },
+        { "id": "attack", "power": 5 },
         { "id": "guard", "power": 30 },
-        { "id": "heal", "power": 20 }
+        { "id": "guard", "power": 15 },
+        { "id": "guard", "power": 5 },
+        { "id": "guard", "power": 5 },
+        { "id": "heal", "power": 30 },
+        { "id": "heal", "power": 20 },
+        { "id": "reflect" },
+        { "id": "reflect" }
       ],
       "flow": [
-        {},
-        {},
-        { "lockedCard": { "id": "monster", "power": 40 } },
-        {},
-        {},
+        { "id": "p1" },
         { "lockedCard": { "id": "monster", "power": 50 } },
-        {}
+        {
+          "condition": "slot('p2') === 'attack'",
+          "label": "[2]は こうげき？",
+          "true": [ { "lockedCard": { "id": "monster_guard", "power": 20 } } ],
+          "false": [ { "lockedCard": { "id": "monster_heal", "power": 25 } } ]
+        },
+        { "id": "p2" },
+        { "lockedCard": { "id": "monster", "power": 15 } },
+        {
+          "condition": "slot('p3') === 'heal'",
+          "label": "[3]は かいふく？",
+          "true": [ { "lockedCard": { "id": "monster", "power": 35 } } ],
+          "false": [ { "lockedCard": { "id": "monster_guard", "power": 15 } } ]
+        },
+        { "id": "p3" },
+        { "lockedCard": { "id": "monster", "power": 25 } },
+        {
+          "for": {
+            "iterations": 3,
+            "body": [
+              {
+                "condition": "slot('p4') === 'attack'",
+                "label": "[4]は こうげき？",
+                "true": [ { "lockedCard": { "id": "monster_guard", "power": 10 } } ],
+                "false": [ { "lockedCard": { "id": "monster_heal", "power": 20 } } ]
+              },
+              { "id": "p4" },
+              { "lockedCard": { "id": "monster", "power": 15 } }
+            ]
+          }
+        },
+        { "newline": {} },
+        {
+          "condition": "slot('p5') === 'attack'",
+          "label": "[5]は こうげき？",
+          "true": [ { "lockedCard": { "id": "monster_guard", "power": 15 } } ],
+          "false": [ { "lockedCard": { "id": "monster", "power": 30 } } ]
+        },
+        { "id": "p5" },
+        { "lockedCard": { "id": "monster", "power": 40 } },
+        { "id": "p6", "multiplier": 2 },
+        { "lockedCard": { "id": "monster", "power": 20 } },
+        {
+          "condition": "slot('p7') === 'heal'",
+          "label": "[7]は かいふく？",
+          "true": [ { "lockedCard": { "id": "monster", "power": 15 } } ],
+          "false": [ { "lockedCard": { "id": "monster_guard", "power": 20 } } ]
+        },
+        { "id": "p7" },
+        { "lockedCard": { "id": "monster", "power": 40 } },
+        { "id": "p8" },
+        {
+          "condition": "slot('p9') === 'attack'",
+          "label": "[9]は こうげき？",
+          "true": [ { "lockedCard": { "id": "monster_guard", "power": 10 } } ],
+          "false": [ { "lockedCard": { "id": "monster_heal", "power": 10 } } ]
+        },
+        { "id": "p9", "multiplier": 2 },
+        { "lockedCard": { "id": "monster", "power": 25 } },
+        { "id": "p10", "acceptOnly": "attack", "multiplier": 3 }
       ]
     },
     "5-3": {

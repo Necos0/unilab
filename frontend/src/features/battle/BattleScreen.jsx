@@ -916,7 +916,12 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             {showEnemyShield ? (
               <div className={styles.playerStatusBars}>
                 <GuardBar current={enemyGuardShield} max={maxEnemyHp} />
-                <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} reflectActive={enemyReflectActive} />
+                <HpBar
+                  currentHp={currentEnemyHp}
+                  maxHp={maxEnemyHp}
+                  reflectActive={enemyReflectActive}
+                  icon={<CrossIcon />}
+                />
               </div>
             ) : (
               <HpBar currentHp={currentEnemyHp} maxHp={maxEnemyHp} />
