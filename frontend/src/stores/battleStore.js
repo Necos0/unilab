@@ -588,8 +588,14 @@ const useBattleStore = create((set, get) => ({
   _playerShakeCounter: 0,
   guardShield: 0,
   reflectActive: false,
+  enemyGuardShield: 0,
+  enemyReflectActive: false,
   enemyReflectEvents: [],
   _enemyReflectCounter: 0,
+  enemyGuardEvents: [],
+  _enemyGuardCounter: 0,
+  enemyHealEvents: [],
+  _enemyHealCounter: 0,
   counterValues: {},
   activeCounterId: null,
   forLoopCounters: {},
@@ -692,7 +698,11 @@ const useBattleStore = create((set, get) => ({
       traversedNodeIds: [],
       guardShield: 0,
       reflectActive: false,
+      enemyGuardShield: 0,
+      enemyReflectActive: false,
       enemyReflectEvents: [],
+      enemyGuardEvents: [],
+      enemyHealEvents: [],
       counterValues,
       activeCounterId: null,
       speedMultiplier: 1,
@@ -999,7 +1009,11 @@ const useBattleStore = create((set, get) => ({
         failReason: null,
         guardShield: 0,
         reflectActive: false,
+        enemyGuardShield: 0,
+        enemyReflectActive: false,
         enemyReflectEvents: [],
+        enemyGuardEvents: [],
+        enemyHealEvents: [],
       }));
 
       const simOutcome = simulateBattle({
@@ -1012,6 +1026,8 @@ const useBattleStore = create((set, get) => ({
           playerHp: get().maxPlayerHp,
           guardShield: 0,
           reflectActive: false,
+          enemyGuardShield: 0,
+          enemyReflectActive: false,
           maxPlayerHp: get().maxPlayerHp,
           maxEnemyHp: get().maxEnemyHp,
           counterValues: get().counterValues,
@@ -1039,6 +1055,8 @@ const useBattleStore = create((set, get) => ({
           maxEnemyHp: state.maxEnemyHp,
           guardShield: state.guardShield,
           reflectActive: state.reflectActive,
+          enemyGuardShield: state.enemyGuardShield,
+          enemyReflectActive: state.enemyReflectActive,
         },
         slot: (slotId) => {
           const card = state.slotAssignments[slotId];
@@ -1098,9 +1116,27 @@ const useBattleStore = create((set, get) => ({
             get().incrementCounter(card.counterId);
             set({ activeCounterId: card.counterId });
           }
-          /* finisher（ひっさつカード）は attack と同じ「敵にダメージ」効果 */
+          /* finisher（ひっさつカード）は attack と同じ「敵にダメージ」効果。
+             敵の reflect / guard を monster の鏡写しで処理する。 */
           if (card && (card.id === 'attack' || card.id === 'finisher') && card.power > 0) {
-            get().applyEnemyDamage(card.power * multiplier);
+            const dmg = card.power * multiplier;
+            if (get().enemyReflectActive) {
+              get().applyEnemyReflectDamage(dmg); // 敵が反射 → 自分が受ける
+            } else if (get().enemyGuardShield > 0) {
+              get().consumeEnemyShieldOnDamage(dmg); // 敵シールドで吸収
+            } else {
+              get().applyEnemyDamage(dmg);
+            }
+          }
+          /* 敵アクションカード（倍率は適用しない。monster と対称） */
+          if (card && card.id === 'monster_guard' && card.power > 0) {
+            get().applyEnemyGuard(card.power);
+          }
+          if (card && card.id === 'monster_reflect') {
+            get().applyEnemyReflect();
+          }
+          if (card && card.id === 'monster_heal' && card.power > 0) {
+            get().applyEnemyHeal(card.power);
           }
           if (card && card.id === 'monster' && card.power > 0) {
             if (get().reflectActive) {
@@ -1191,6 +1227,13 @@ const useBattleStore = create((set, get) => ({
             }
             if (!isPrevReflect && get().reflectActive) {
               get().clearReflect();
+            }
+            // 敵バフも対称に「直後1マスのみ」で解除する
+            if (prevCard?.id !== 'monster_guard' && get().enemyGuardShield > 0) {
+              get().clearEnemyGuard();
+            }
+            if (prevCard?.id !== 'monster_reflect' && get().enemyReflectActive) {
+              get().clearEnemyReflect();
             }
           }
 
@@ -1316,6 +1359,8 @@ const useBattleStore = create((set, get) => ({
       result.currentPhaseMs = null;
       result.guardShield = 0;
       result.reflectActive = false;
+      result.enemyGuardShield = 0;
+      result.enemyReflectActive = false;
       result.playerShakeEvents = [];
       result.speedMultiplier = 1;
     }
@@ -1618,6 +1663,109 @@ const useBattleStore = create((set, get) => ({
    clearReflect: () => set({ reflectActive: false }),
 
    /**
+    * 敵のシールドをセットする（プレイヤー側 `applyGuard` の鏡写し）。
+    *
+    * `enemyGuardShield` に `amount` を上書きセット（累積しない）し、同時に
+    * `enemyReflectActive` を false にクリアする（guard と reflect は排他）。直後
+    * 1 マスのみ有効で、次のエッジフェーズで `clearEnemyGuard` が呼ばれて 0 に戻る。
+    * `monster_guard` カードのノード通過時に `startExecution` から呼ばれる。
+    *
+    * Args:
+    *     amount (number): シールド量（`monster_guard` の power）。
+    */
+   applyEnemyGuard: (amount) => set((state) => ({
+     enemyGuardShield: Math.min(amount, state.maxEnemyHp),
+     enemyReflectActive: false,
+     enemyGuardEvents: [...state.enemyGuardEvents, { id: `eg-${state._enemyGuardCounter}`, amount }],
+     _enemyGuardCounter: state._enemyGuardCounter + 1,
+   })),
+
+   /** 敵のシールドを 0 にクリアする（`clearGuard` の鏡写し）。 */
+   clearEnemyGuard: () => set({ enemyGuardShield: 0 }),
+
+   /** 指定 id の敵ガードフロートを削除する（`dismissPlayerGuardEvent` の鏡写し）。 */
+   dismissEnemyGuardEvent: (id) => set((state) => ({
+     enemyGuardEvents: state.enemyGuardEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
+    * 敵のカウンター（反射）状態を有効化する（`applyReflect` の鏡写し）。
+    *
+    * `enemyReflectActive` を true にし、同時に `enemyGuardShield` を 0 にクリア
+    * する（排他）。`monster_reflect` カードは power を持たないため引数を取らない。
+    * 直後 1 マスのみ有効で、次のエッジフェーズで `clearEnemyReflect` が呼ばれる。
+    */
+   applyEnemyReflect: () => set({ enemyReflectActive: true, enemyGuardShield: 0 }),
+
+   /** 敵のカウンター状態を解除する（`clearReflect` の鏡写し）。 */
+   clearEnemyReflect: () => set({ enemyReflectActive: false }),
+
+   /**
+    * 敵の HP を回復する（プレイヤー側 `applyPlayerHeal` の鏡写し）。
+    *
+    * `currentEnemyHp` に `amount` を加算し `maxEnemyHp` でクランプする。
+    * `monster_heal` カードのノード通過時に呼ばれる。倍率は適用しない。
+    *
+    * Args:
+    *     amount (number): 回復量（`monster_heal` の power）。
+    */
+   applyEnemyHeal: (amount) => set((state) => ({
+     currentEnemyHp: Math.min(state.maxEnemyHp, state.currentEnemyHp + amount),
+     enemyHealEvents: [...state.enemyHealEvents, { id: `eh-${state._enemyHealCounter}`, amount }],
+     _enemyHealCounter: state._enemyHealCounter + 1,
+   })),
+
+   /** 指定 id の敵ヒールフロートを削除する（`dismissPlayerHealEvent` の鏡写し）。 */
+   dismissEnemyHealEvent: (id) => set((state) => ({
+     enemyHealEvents: state.enemyHealEvents.filter((e) => e.id !== id),
+   })),
+
+   /**
+    * 敵シールドの吸収を考慮してプレイヤー攻撃を敵へ適用する
+    * （`consumeShieldOnDamage` の鏡写し）。
+    *
+    * `enemyGuardShield` が正なら `min(shield, amount)` を吸収してシールドから減算し、
+    * 残り（`amount - absorbed`）が正なら `GUARD_TO_HP_DELAY_MS` 待ってから
+    * `applyEnemyDamage(remaining)` を呼ぶ（段階アニメ）。シールド 0 のときは
+    * `applyEnemyDamage(amount)` を直接呼ぶ。
+    *
+    * Args:
+    *     amount (number): 攻撃値（power×倍率）。シールド吸収前の生ダメージ。
+    */
+   consumeEnemyShieldOnDamage: (amount) => {
+     const shield = get().enemyGuardShield;
+     if (shield > 0) {
+       const absorbed = Math.min(shield, amount);
+       const remaining = amount - absorbed;
+       set({ enemyGuardShield: shield - absorbed });
+       if (remaining > 0) {
+         const tid = setTimeout(() => {
+           if (get().failPhase !== null) return;
+           get().applyEnemyDamage(remaining);
+         }, GUARD_TO_HP_DELAY_MS);
+         executionTimers.push(tid);
+       }
+     } else {
+       get().applyEnemyDamage(amount);
+     }
+   },
+
+   /**
+    * 敵のカウンター成立時、プレイヤー攻撃をはねかえしてプレイヤーに与える
+    * （プレイヤー側 `applyReflectDamage` の鏡写し＝向きが逆）。
+    *
+    * `applyPlayerDamage(amount)` に委譲し、プレイヤー HP 減算と死亡時中断
+    * （`failPhase`）を既存ロジックで正しく処理する。反射専用の視覚演出
+    * （敵→自分フロート）は後段の演出タスクで足す。
+    *
+    * Args:
+    *     amount (number): はねかえすダメージ量（power×倍率）。
+    */
+   applyEnemyReflectDamage: (amount) => {
+     get().applyPlayerDamage(amount);
+   },
+
+   /**
     * 指定 id の反射ダメージイベントを `enemyReflectEvents` から削除する。
     *
     * `ReflectDamageFloater` の各浮き数字要素が `onAnimationEnd` で呼び出し、
@@ -1837,6 +1985,8 @@ const useBattleStore = create((set, get) => ({
         currentEnemyHp: revivedHp,
         enemyDamageEvents: [],
         enemyReflectEvents: [],
+        enemyGuardEvents: [],
+        enemyHealEvents: [],
         overrideEnemyId: secondPhaseStage.enemyId,
         revivePhase: 'risen',
       });
@@ -1913,7 +2063,11 @@ const useBattleStore = create((set, get) => ({
       traversedNodeIds: [],
       guardShield: 0,
       reflectActive: false,
+      enemyGuardShield: 0,
+      enemyReflectActive: false,
       enemyReflectEvents: [],
+      enemyGuardEvents: [],
+      enemyHealEvents: [],
       counterValues: Object.fromEntries(
         Object.keys(state.counterValues).map((id) => [id, 0])
       ),

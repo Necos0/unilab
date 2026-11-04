@@ -430,7 +430,10 @@ function buildEdge(ending, targetId) {
  */
 function buildBodySlot(ctx, raw, position) {
   ctx.slotCounter += 1;
-  const slotId = `slot-${ctx.slotCounter}`;
+  // 明示 id（`raw.id`）があれば尊重する（線形 `expandSlots` と一貫）。条件が
+  // 途中スロットを型参照するステージ（5-2 等）で安定した id を付けるため。
+  // 採番カウンタは常に加算するので auto id の連番は不変（非破壊）。
+  const slotId = raw.id ?? `slot-${ctx.slotCounter}`;
   const slot = { id: slotId, position };
   if (raw.lockedCard) {
     if (raw.lockedCard.id === 'counter') {
