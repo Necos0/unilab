@@ -399,6 +399,9 @@ function buildSlotMetadataFromStage(stage) {
       entry.multiplier = slot.multiplier;
     } else if (typeof slot.multiplier === 'object' && slot.multiplier !== null) {
       entry.counterRef = slot.multiplier.counterRef;
+      if (Number.isInteger(slot.multiplier.offset)) {
+        entry.offset = slot.multiplier.offset;
+      }
     }
     if (Object.keys(entry).length > 0) {
       metadata[slot.id] = entry;
@@ -1111,7 +1114,7 @@ const useBattleStore = create((set, get) => ({
           const meta = get().slotMetadata[nodeId];
           const multiplier =
             typeof meta?.multiplier === 'number' ? meta.multiplier :
-            typeof meta?.counterRef === 'string' ? (get().counterValues[meta.counterRef] ?? 0) : 1;
+            typeof meta?.counterRef === 'string' ? (get().counterValues[meta.counterRef] ?? 0) + (meta.offset ?? 0) : 1;
           if (card && (card.id === 'counter' || card.id === 'monster_counter') && card.counterId) {
             get().incrementCounter(card.counterId);
             set({ activeCounterId: card.counterId });

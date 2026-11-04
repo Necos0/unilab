@@ -243,7 +243,7 @@ export function simulateBattle({ edgesBySource, nodeMap, slotAssignments, slotMe
     const meta = slotMetadata[nodeId];
     const multiplier =
       typeof meta?.multiplier === 'number' ? meta.multiplier :
-      typeof meta?.counterRef === 'string' ? (counterValues[meta.counterRef] ?? 0) : 1;
+      typeof meta?.counterRef === 'string' ? (counterValues[meta.counterRef] ?? 0) + (meta.offset ?? 0) : 1;
     state = applyNodeEffect(state, card, multiplier);
     if (nodeMap[nodeId]?.type === 'for-end') {
       const forLoopId = nodeMap[nodeId].forLoopId;
