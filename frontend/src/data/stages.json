@@ -232,53 +232,66 @@
     },
     "3-4": {
       "enemyId": "lagiacrus",
-      "maxEnemyHp": 50,
-      "cards":[
-        { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 20 },
-        { "id": "attack", "power": 10 },
-        { "id": "guard", "power": 30 },
+      "maxEnemyHp": 95,
+      "cards": [
+        { "id": "attack", "power": 4 },
+        { "id": "attack", "power": 4 },
+        { "id": "attack", "power": 7 },
+        { "id": "attack", "power": 7 },
+        { "id": "attack", "power": 25 },
         { "id": "guard", "power": 10 },
-        { "id": "heal", "power": 20 },
-        { "id": "heal", "power": 10 }
+        { "id": "guard", "power": 11 },
+        { "id": "guard", "power": 11 },
+        { "id": "reflect" },
+        { "id": "reflect" }
       ],
-      "flow":[
-        {},
-        { "lockedCard": { "id": "monster", "power": 90 } },
-        {},
-        {
-          "condition": "playerHp === 40 && enemyHp === 30",
-          "label": "自分《じぶん》のHPが40で敵《てき》のHPも30",
-          "true":[],
-          "false":[
-            { "lockedCard": { "id": "monster", "power": 100} }
-          ]
-        },
-        {},
-        { "lockedCard": { "id": "monster", "power": 50 } },
-        {},
-        {
-          "condition": "enemyHp === 20",
-          "label": "敵《てき》のHPが20",
-          "true":[],
-          "false":[
-            { "lockedCard": { "id": "monster", "power": 100 } }
-          ]
-        },
-        {},
-        { "turn": {} },
+      "flow": [
+        { "id": "p1" },
         { "lockedCard": { "id": "monster", "power": 5 } },
         {
-          "condition": "playerHp === 10",
-          "label": "自分《じぶん》のHPが10",
-          "true": [],
+          "condition": "enemyHp <= 85",
+          "label": "敵《てき》の HPが 85いか？",
+          "true": [
+            { "id": "p2" },
+            { "lockedCard": { "id": "monster", "power": 11 } }
+          ],
           "false": [
-            { "lockedCard": { "id": "monster", "power": 100 } }
+            { "id": "p3" },
+            { "lockedCard": { "id": "monster", "power": 21 } },
+            { "lockedCard": { "id": "monster", "power": 25 } },
+            { "id": "p4" }
           ]
         },
-        {},
-        { "lockedCard": { "id": "monster", "power": 10 } },
-        {}
+        { "lockedCard": { "id": "monster", "power": 22 } },
+        { "id": "p5" },
+        {
+          "condition": "enemyHp > 75",
+          "label": "敵《てき》の HPが 75より うえ？",
+          "true": [
+            { "id": "p6" },
+            { "lockedCard": { "id": "monster", "power": 9 } }
+          ],
+          "false": [
+            { "lockedCard": { "id": "monster", "power": 12 } }
+          ]
+        },
+        { "lockedCard": { "id": "monster", "power": 31 } },
+        { "id": "p7" },
+        {
+          "condition": "enemyHp > 70",
+          "label": "敵《てき》の HPが 70より うえ？",
+          "true": [
+            { "lockedCard": { "id": "monster", "power": 28 } }
+          ],
+          "false": [
+            { "lockedCard": { "id": "monster", "power": 18 } },
+            { "id": "p8" }
+          ]
+        },
+        { "lockedCard": { "id": "monster", "power": 12 } },
+        { "id": "p9" },
+        { "lockedCard": { "id": "monster", "power": 29 } },
+        { "id": "p10" }
       ]
     },
     "4-1": {
