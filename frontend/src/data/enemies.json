@@ -328,7 +328,7 @@
     },
     {
       "id": "revived_dragon",
-      "displayName": "ドラゴン",
+      "displayName": "グレン・ドラゴン",
       "maxHp": 100,
       "sizeRatio": 1.0,
       "animations": {
