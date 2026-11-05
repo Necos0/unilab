@@ -639,6 +639,7 @@
         { "id": "p7" },
         { "lockedCard": { "id": "monster", "power": 40 } },
         { "id": "p8" },
+        { "lockedCard": { "id": "monster", "power": 40 } },
         {
           "condition": "slot('p9') === 'attack'",
           "label": "[9]は こうげき？",
