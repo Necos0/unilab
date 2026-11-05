@@ -724,7 +724,10 @@ function processSubFlow(items, {
         ...ctx.forStarts.map((f) => f.position.y),
         ...ctx.forEnds.map((f) => f.position.y),
       );
-      const laneY = maxY + SLOT_HEIGHT + 60;
+      // 同じ row にループ exit 等の下回りレーンがあれば、その下を通す（改行の横線が
+      // ループ exit の縦線を横切るのを防ぐ）。無ければ従来どおり maxY の 1 行下。
+      const rowUnderMax = ctx.underLaneByRow?.[currentYLevel] ?? 0;
+      const laneY = Math.max(maxY + SLOT_HEIGHT + 60, rowUnderMax + 50);
       // 改行の「始点 merge」を直前行の現在位置に置く。source（for-end の右出し等）
       // からは通常エッジでこの merge に入り、下回りはこの merge から降ろす。これで
       // 「右に出てすぐ下へ折れる」違和感を無くし、始点・終点を merge で対称にする。
@@ -740,8 +743,10 @@ function processSubFlow(items, {
       for (const e of endings) {
         ctx.edges.push(buildEdge(e, startMergeId)); // 通常エッジ（source → 始点 merge）
       }
-      // 行ジャンプ：既存行の下へ。方向は right のまま（turn のような左反転はしない）。
-      currentYLevel = maxY + SLOT_HEIGHT + LOOP_ROW_GAP;
+      // 行ジャンプ：既存行の下へ（方向は right のまま、turn のような左反転はしない）。
+      // 改行レーンが深い（同じ row のループ exit を避けて下げた）場合は、行 2 の
+      // ノードがレーンに食い込まないよう laneY のさらに下へ置く。
+      currentYLevel = Math.max(maxY + SLOT_HEIGHT + LOOP_ROW_GAP, laneY + 60);
       column = 0; // 左端（START 列）へ戻す
       // 着地 merge（左端・新しい行）。始点 merge の下（down-out）から着地 merge の上
       // （top）へ下回りで降ろし、次要素は着地 merge の右隣から通常エッジで出す。
@@ -936,8 +941,14 @@ function expandLoop(loopDef, { column, yLevel, endings, ctx, nestDepth = 0 }) {
         y: yLevel + SLOT_HEIGHT / 2 - MERGE_SIZE / 2,
       },
     });
+    // この row に出した下回りレーンの最深 y を記録する。同じ row に改行があるとき、
+    // 改行の下回りエッジをこのレーンより下へ逃がし、改行の横線がループ exit の
+    // 縦線を横切るのを防ぐために使う（`processSubFlow` の newline 分岐が参照）。
+    const exitLaneY = yLevel + LOOP_ROW_GAP + SLOT_HEIGHT + 20;
+    ctx.underLaneByRow = ctx.underLaneByRow ?? {};
+    ctx.underLaneByRow[yLevel] = Math.max(ctx.underLaneByRow[yLevel] ?? 0, exitLaneY);
     ctx.edges.push(buildEdge(
-      { nodeId: condId, sourceHandle: 'true', targetHandle: 'bottom', route: 'under', laneY: yLevel + LOOP_ROW_GAP + SLOT_HEIGHT + 20 },
+      { nodeId: condId, sourceHandle: 'true', targetHandle: 'bottom', route: 'under', laneY: exitLaneY },
       landId,
     ));
     return { endings: [{ nodeId: landId }], column: endColumn + 1 };
@@ -1647,6 +1658,7 @@ function expandStage(raw, stageId) {
     const stage = {
       enemyId: raw.enemyId,
       maxEnemyHp: raw.maxEnemyHp,
+      maxPlayerHp: raw.maxPlayerHp,
       cards: raw.cards ?? [],
       slotTypeIds: collectSlotTypeIds(raw),
       ...expanded,
@@ -1658,6 +1670,7 @@ function expandStage(raw, stageId) {
   const stage = {
     enemyId: raw.enemyId,
     maxEnemyHp: raw.maxEnemyHp,
+    maxPlayerHp: raw.maxPlayerHp,
     cards: raw.cards ?? [],
     slotTypeIds: collectSlotTypeIds(raw),
     slots,
