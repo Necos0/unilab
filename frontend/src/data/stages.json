@@ -649,7 +649,7 @@
       ]
     },
     "5-3": {
-      "enemyId": "dragon",
+      "enemyId": "revived_dragon",
       "maxEnemyHp": 345,
       "cards": [
         { "id": "attack", "power": 35 },

@@ -327,13 +327,31 @@
       }
     },
     {
+      "id": "revived_dragon",
+      "displayName": "ドラゴン",
+      "maxHp": 100,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 6,
+          "frameDurationMs": 250,
+          "loop": false
+        }
+      }
+    },
+    {
       "id": "black_wing_dragon",
       "displayName": "紅眼黒魔鳥《レッドアイズ・ブラックバード》",
       "maxHp": 100,
       "sizeRatio": 1.0,
       "animations": {
         "idle": {
-          "frameCount": 3,
+          "frameCount": 6,
           "frameDurationMs": 250,
           "loop": true
         },
