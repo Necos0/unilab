@@ -669,7 +669,9 @@ const useBattleStore = create((set, get) => ({
     cancelExecutionTimers();
     const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
     const maxEnemyHp = stage.maxEnemyHp ?? enemy?.maxHp ?? 0;
-    const maxPlayerHp = playerData.maxHp ?? 0;
+    // プレイヤー HP はステージ個別指定（`maxPlayerHp`）があればそれを優先し、
+    // 無ければ `player.json` の共通値を使う（例: 3-4 は 95 に設定）。
+    const maxPlayerHp = stage.maxPlayerHp ?? playerData.maxHp ?? 0;
     const counterLocks = (stage.slots ?? [])
       .filter((s) => (s.lockedCard?.id === 'counter' || s.lockedCard?.id === 'monster_counter') && typeof s.lockedCard.counterId === 'string')
       .map((s) => s.lockedCard);

@@ -233,6 +233,7 @@
     "3-4": {
       "enemyId": "lagiacrus",
       "maxEnemyHp": 95,
+      "maxPlayerHp": 95,
       "cards": [
         { "id": "attack", "power": 4 },
         { "id": "attack", "power": 4 },
@@ -276,6 +277,7 @@
           ]
         },
         { "lockedCard": { "id": "monster", "power": 31 } },
+        { "newline": {} },
         { "id": "p7" },
         {
           "condition": "enemyHp > 70",
@@ -533,8 +535,8 @@
           }
         },
         { "lockedCard": { "id": "monster", "power": 60 } },
-        { "lockedCard": { "id": "heal", "power": 45 } },
         { "newline": {} },
+        { "lockedCard": { "id": "heal", "power": 45 } },
         {
           "for": {
             "iterations": 5,
@@ -692,6 +694,7 @@
           "lockedCard": { "id": "monster", "power": 25 },
           "multiplier": { "counterRef": "cUp", "offset": 1 }
         },
+        { "newline": {} },
         {
           "condition": "playerHp <= 20",
           "label": "自分《じぶん》の HPが 20いか？",
@@ -699,7 +702,6 @@
           "false": [{ "lockedCard": { "id": "monster_reflect" } }]
         },
         { "id": "p6", "acceptOnly": "attack", "multiplier": 3 },
-        { "newline": {} },
         { "id": "p7" },
         { "lockedCard": { "id": "monster", "power": 15 } },
         { "id": "p8", "multiplier": 2 },
