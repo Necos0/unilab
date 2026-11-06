@@ -3,6 +3,8 @@ import TitleScreen from './features/title/TitleScreen.jsx';
 import StoryScreen from './features/story/StoryScreen.jsx';
 import WakeUpOverlay from './features/story/WakeUpOverlay.jsx';
 import IslandVoyageOverlay from './features/cutscene/IslandVoyageOverlay.jsx';
+import ScreenFadeTransition from './components/ScreenFadeTransition.jsx';
+import CharacterGallery from './editer/CharacterGallery.jsx';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
@@ -46,7 +48,7 @@ const MAIN_START_MAP_ID = 'map_1';
 /**
  * アプリケーションのルートコンポーネント。
  *
- * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'cutsceneflow' | 'ending' | 'credits' | 'epilogue' | 'creditseditor'`）と `stageId` 状態（次に戦うステージ ID）
+ * `screen` 状態（`'title' | 'story' | 'map' | 'battle' | 'cutsceneflow' | 'ending' | 'credits' | 'epilogue' | 'creditseditor' | 'gallery'`）と `stageId` 状態（次に戦うステージ ID）
  * を `useState` で管理し、画面切替の起点として機能する。起動直後はタイトル
  * 画面（`TitleScreen`）を表示し、中央の「スタート」ボタン（`handleStartGame`）
  * でオープニング紙芝居（`StoryScreen`）へ遷移する。紙芝居はカットシーンと
@@ -115,6 +117,13 @@ function App() {
    * （`IslandVoyageOverlay`）を出しているか。
    */
   const [isVoyaging, setIsVoyaging] = useState(false);
+  /*
+   * タイトル ⇄ マップの切り替えに挟む黒フェード（`ScreenFadeTransition`）を
+   * 出しているか。暗転しきったときに実行する画面切替の処理は
+   * `screenFadeActionRef` に退避しておく（`returnToMapActionRef` と同じ方式）。
+   */
+  const [isScreenFading, setIsScreenFading] = useState(false);
+  const screenFadeActionRef = useRef(null);
 
   /*
    * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
@@ -263,6 +272,9 @@ function App() {
    *   - wqedit  : エンディング配置エディタ（`CreditsEditorScreen`、開発用）を
    *               開閉する。行の横位置とコインの配置を GUI で編集し、JSON を
    *               書き出して `data/ending_credits.json` を置き換える。
+   *   - wqchara : キャラクター一覧（`CharacterGallery`、開発用）を開閉する。
+   *               全キャラクターのスプライト（idle / attack / dead）を並べて
+   *               確認する。開く前の画面へ戻る。
    *   - wqfull  : ブラウザの全画面表示（Fullscreen API）を切り替える。展示や
    *               プレイ時にアドレスバー等を隠して大画面で遊ぶための切替。
    *               Esc（ブラウザ標準）でも解除できる。
@@ -299,13 +311,40 @@ function App() {
   }, []);
 
   /*
+   * 黒フェード（暗転 → 画面切替 → 明転）を挟んで画面を切り替える。
+   * `action` は暗転しきった時点（`handleScreenFadeMidpoint`）で実行する。
+   * フェード中に呼ばれた場合（ボタンの連打など）は無視する。
+   *
+   * 切替先のマップで会話がすぐ始まることがあるため、明転が終わるまでは
+   * 会話送りの入力をロックし、黒画面の下でセリフが送られてしまうのを防ぐ。
+   */
+  const startScreenFade = useCallback((action) => {
+    if (screenFadeActionRef.current) {
+      return;
+    }
+    screenFadeActionRef.current = action;
+    setIsScreenFading(true);
+  }, []);
+
+  const handleScreenFadeMidpoint = useCallback(() => {
+    useCutsceneStore.getState().setInputLocked(true);
+    screenFadeActionRef.current?.();
+  }, []);
+
+  const handleScreenFadeEnd = useCallback(() => {
+    screenFadeActionRef.current = null;
+    setIsScreenFading(false);
+    useCutsceneStore.getState().setInputLocked(false);
+  }, []);
+
+  /*
    * マップ画面左上の「タイトルに もどる」ボタン。進行状況・マップ上の
    * 現在位置は各ストアが localStorage へ常時保存しているため、単純な
    * 画面切替だけでよい（タイトルの「スタート」で同じ場所から再開できる）。
    */
   const handleBackToTitle = useCallback(() => {
-    setScreen('title');
-  }, []);
+    startScreenFade(() => setScreen('title'));
+  }, [startScreenFade]);
 
   const handleDebugCutsceneFlow = useCallback(() => {
     setScreen((prev) => {
@@ -348,6 +387,21 @@ function App() {
   }, []);
 
   const handleExitCreditsEditor = useCallback(() => {
+    setScreen(prevScreenRef.current);
+  }, []);
+
+  /* `wqchara`：キャラクター一覧の開閉（`wqedit` と同じく開く前の画面へ戻す）。 */
+  const handleDebugGallery = useCallback(() => {
+    setScreen((prev) => {
+      if (prev === 'gallery') {
+        return prevScreenRef.current;
+      }
+      prevScreenRef.current = prev === 'battle' ? 'map' : prev;
+      return 'gallery';
+    });
+  }, []);
+
+  const handleExitGallery = useCallback(() => {
     setScreen(prevScreenRef.current);
   }, []);
 
@@ -400,6 +454,7 @@ function App() {
     onCutsceneFlow: handleDebugCutsceneFlow,
     onEnding: handleDebugEnding,
     onCreditsEditor: handleDebugCreditsEditor,
+    onGallery: handleDebugGallery,
     onFullscreen: handleDebugFullscreen,
     onInstantWin: handleDebugInstantWin,
     onUnlock: handleDebugUnlock,
@@ -462,7 +517,7 @@ function App() {
     }
   }, []);
 
-  const handleStartGame = useCallback(() => {
+  const enterGameFromTitle = useCallback(() => {
     /*
      * オープニング紙芝居はカットシーンと同様に視聴履歴を持つ
      * （`progressStore.hasSeenOpeningStory`、localStorage 永続）。視聴済み
@@ -515,6 +570,11 @@ function App() {
     }
     setScreen('story');
   }, []);
+
+  /* タイトル画面の「スタート」。黒フェードを挟んでマップ（または紙芝居）へ進む。 */
+  const handleStartGame = useCallback(() => {
+    startScreenFade(enterGameFromTitle);
+  }, [startScreenFade, enterGameFromTitle]);
 
   const handleStoryFinish = useCallback(() => {
     useProgressStore.getState().markOpeningStorySeen();
@@ -613,7 +673,7 @@ function App() {
    * タイトル画面のステージ5入口ボタン。初めて入るとき（入場の会話
    * `map-stage5-enter` がまだ再生できる）は、マップをいきなり出さずに
    * 「島へ渡る」移動シーン（`IslandVoyageOverlay`）を挟む。2 回目以降は
-   * 直接マップへ入る。
+   * 黒フェード（`ScreenFadeTransition`）を挟んでマップへ入る。
    */
   const handlePlayWorld5 = useCallback(() => {
     const isFirstVisit =
@@ -625,8 +685,8 @@ function App() {
       setIsVoyaging(true);
       return;
     }
-    enterWorld5Map();
-  }, [enterWorld5Map]);
+    startScreenFade(enterWorld5Map);
+  }, [enterWorld5Map, startScreenFade]);
 
   /*
    * 移動シーンのナレーションが終わり画面が真っ黒になったところでマップへ切り替える。
@@ -782,6 +842,8 @@ function App() {
     currentScreen = <EpilogueScreen onFinish={handleEpilogueFinish} />;
   } else if (screen === 'creditseditor') {
     currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;
+  } else if (screen === 'gallery') {
+    currentScreen = <CharacterGallery onExit={handleExitGallery} />;
   } else {
     currentScreen = (
       <MapScreen
@@ -800,6 +862,12 @@ function App() {
         <IslandVoyageOverlay
           onMidpoint={handleVoyageMidpoint}
           onEnd={handleVoyageEnd}
+        />
+      )}
+      {isScreenFading && (
+        <ScreenFadeTransition
+          onMidpoint={handleScreenFadeMidpoint}
+          onEnd={handleScreenFadeEnd}
         />
       )}
       {pendingStageId !== null && (

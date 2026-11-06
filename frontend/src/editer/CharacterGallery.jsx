@@ -19,12 +19,13 @@ const VIEW_STATES = [
  * でアニメーションを再生表示する。ヘッダーの切り替えボタンで idle（通常）と
  * dead（やられ）を一括で切り替え、全カードが同じ状態を再生する。スプライトの
  * 差し替えや新キャラ追加の確認用ビューで、戦闘ステートには一切依存しない。
- * ヘッダーの「マップへ戻る」ボタン（`onExit`）でマップ画面へ戻る。本ツールは
+ * ヘッダーの「もどる」ボタン（`onExit`）で開く前の画面へ戻る（隠しコマンド
+ * `wqchara` で開閉する）。本ツールは
  * 開発者向けのため、ゲーム内テキストのふりがな規則は適用しない。
  *
  * Args:
  *     props (object): React プロパティ。
- *         onExit (function): 「マップへ戻る」押下時に呼ぶ関数。引数なし。
+ *         onExit (function): 「もどる」押下時に呼ぶ関数。引数なし。
  *
  * Returns:
  *     JSX.Element: キャラクター一覧画面全体を表す要素。
@@ -52,7 +53,7 @@ function CharacterGallery({ onExit }) {
           ))}
         </div>
         <button type="button" className={styles.backButton} onClick={onExit}>
-          マップへ戻る
+          もどる
         </button>
       </header>
       <div className={styles.grid}>

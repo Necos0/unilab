@@ -19,6 +19,7 @@ const SIMPLE_COMMANDS = [
   ['wqflow', 'onCutsceneFlow'],
   ['wqend', 'onEnding'],
   ['wqedit', 'onCreditsEditor'],
+  ['wqchara', 'onGallery'],
   ['wqfull', 'onFullscreen'],
   ['wqwin', 'onInstantWin'],
   ['wqstage5', 'onStage5Entry'],
@@ -37,6 +38,7 @@ const SIMPLE_COMMANDS = [
  *   - `wqflow`           : `onCutsceneFlow`（カットシーン・フロー画面の開閉）
  *   - `wqend`            : `onEnding`（エンディング紙芝居の再生。演出確認用）
  *   - `wqedit`           : `onCreditsEditor`（エンディング配置エディタの開閉）
+ *   - `wqchara`          : `onGallery`（キャラクター一覧の開閉）
  *   - `wqfull`           : `onFullscreen`（ブラウザ全画面表示の切り替え）
  *   - `wqwin`            : `onInstantWin`（バトル中なら即座に勝ちにする）
  *   - `wqstage5`         : `onStage5Entry`（ステージ5に初めて入る直前の状態に
@@ -65,6 +67,7 @@ const SIMPLE_COMMANDS = [
  *         onCutsceneFlow (function): `wqflow` 検出時に呼ぶ（引数なし）。
  *         onEnding (function): `wqend` 検出時に呼ぶ（引数なし）。
  *         onCreditsEditor (function): `wqedit` 検出時に呼ぶ（引数なし）。
+ *         onGallery (function): `wqchara` 検出時に呼ぶ（引数なし）。
  *         onFullscreen (function): `wqfull` 検出時に呼ぶ（引数なし）。
  *         onInstantWin (function): `wqwin` 検出時に呼ぶ（引数なし）。
  *         onStage5Entry (function): `wqstage5` 検出時に呼ぶ（引数なし）。

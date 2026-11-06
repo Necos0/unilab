@@ -39,6 +39,8 @@
   line-height: 2.3;
   letter-spacing: 0.06em;
   text-align: center;
+  /* 分かち書きの空白・句読点でだけ折り返し、単語の途中で改行しない。 */
+  word-break: keep-all;
   animation: voyageFadeIn 0.6s ease both;
 }
 

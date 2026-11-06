@@ -261,7 +261,7 @@ unilab/
         ├── engine/               ← UI 非依存のゲームロジック(純関数、将来 Python 移植の仕様書代わり)
         │   ├── evaluateCondition.js   ← 条件式(文字列)を実行時状態で評価する純関数
         │   └── simulateBattle.js      ← 実行前に勝敗/無限ループ(runaway)を数値だけで判定する純関数
-        ├── editer/               ← スプライトシート分割エディタ(開発用ツール、他コードから独立)
+        ├── editer/               ← スプライトシート分割エディタとキャラクター一覧(開発用ツール。一覧は隠しコマンド wqchara で開閉)
         │   ├── SpriteSheetEditor.jsx       ← エディタ画面ルート(状態集約・レイアウト)
         │   ├── SpriteSheetEditor.module.css
         │   ├── EditorEntryButton.jsx       ← マップ右下のエディタ起動ボタン
