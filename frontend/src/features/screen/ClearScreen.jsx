@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useTodayClears from '../../hooks/useTodayClears.js';
 import { isClearRecordEnabled } from '../../services/clearRecordApi.js';
+import FullscreenToggleButton from '../map/FullscreenToggleButton.jsx';
 import formatClearTime from './formatClearTime.js';
 import FlyingDragon from './FlyingDragon.jsx';
 import ShootingStar from './ShootingStar.jsx';
@@ -18,6 +19,13 @@ const WANDERING_ENEMIES = [
   { enemyId: 'knight', heightVh: 11, initialX: 84, speedVwPerSec: 3 },
 ];
 
+/*
+ * マウスやタッチの操作が止まってから、大画面ボタンとマウスカーソルを
+ * 隠すまでの時間（ミリ秒）。会場モニターに映しっぱなしにしても、
+ * ボタンやカーソルが表示の邪魔をしないようにする。
+ */
+const CONTROLS_HIDE_DELAY_MS = 3000;
+
 /* 1 行ぶんがスクロールで流れるのにかける秒数。 */
 const SECONDS_PER_ROW = 1.6;
 
@@ -34,6 +42,9 @@ const SECONDS_PER_ROW = 1.6;
  * （`WanderingEnemy`）がちょこちょこ歩き回り、夜空にはときどき
  * ドラゴン（`FlyingDragon`）が飛んでくる。15 分に 1 回は流れ星
  * （`ShootingStar`）も流れる。
+ * 右上の大画面ボタン（`FullscreenToggleButton`）でブラウザの全画面表示に
+ * 切り替えられる。ボタンとマウスカーソルは、操作が止まって
+ * `CONTROLS_HIDE_DELAY_MS` たつと隠れ、マウスを動かすとまた出る。
  *
  * Returns:
  *     JSX.Element: 集計スクリーン。
@@ -55,6 +66,27 @@ function ClearScreen() {
   const viewportRef = useRef(null);
   const listRef = useRef(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
+
+  /*
+   * マウスを動かす・画面にふれると大画面ボタンとカーソルを出し、
+   * `CONTROLS_HIDE_DELAY_MS` 操作がなければまた隠す。
+   */
+  useEffect(() => {
+    let timerId = setTimeout(() => setIsControlsVisible(false), CONTROLS_HIDE_DELAY_MS);
+    const handleActivity = () => {
+      setIsControlsVisible(true);
+      clearTimeout(timerId);
+      timerId = setTimeout(() => setIsControlsVisible(false), CONTROLS_HIDE_DELAY_MS);
+    };
+    window.addEventListener('pointermove', handleActivity);
+    window.addEventListener('pointerdown', handleActivity);
+    return () => {
+      clearTimeout(timerId);
+      window.removeEventListener('pointermove', handleActivity);
+      window.removeEventListener('pointerdown', handleActivity);
+    };
+  }, []);
 
   /*
    * 一覧（1 つぶん）が表示枠より高いかを測る。名前の増減と画面サイズの
@@ -102,7 +134,11 @@ function ClearScreen() {
   );
 
   return (
-    <div className={styles.screen}>
+    <div
+      className={
+        isControlsVisible ? styles.screen : `${styles.screen} ${styles.cursorHidden}`
+      }
+    >
       <ShootingStar />
       <FlyingDragon />
       {WANDERING_ENEMIES.map((enemy) => (
@@ -154,6 +190,16 @@ function ClearScreen() {
       </section>
 
       {hasError && <p className={styles.error}>つながりを たしかめています…</p>}
+
+      <div
+        className={
+          isControlsVisible
+            ? styles.fullscreenSlot
+            : `${styles.fullscreenSlot} ${styles.fullscreenSlotHidden}`
+        }
+      >
+        <FullscreenToggleButton className={styles.fullscreenButton} />
+      </div>
     </div>
   );
 }

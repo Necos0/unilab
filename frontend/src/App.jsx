@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import TitleScreen from './features/title/TitleScreen.jsx';
 import StoryScreen from './features/story/StoryScreen.jsx';
 import WakeUpOverlay from './features/story/WakeUpOverlay.jsx';
+import IslandVoyageOverlay from './features/cutscene/IslandVoyageOverlay.jsx';
 import MapScreen from './features/map/MapScreen.jsx';
 import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
@@ -33,6 +34,8 @@ const ENDING_STAGE_ID = '4-4';
  * エピローグ後にタイトルの入口ボタンからだけ入る。
  */
 const WORLD5_MAP_ID = 'map_5';
+/* ステージ5の入口ステージ。入場の会話（`enterMapArea`）の判定に使う。 */
+const WORLD5_ENTRY_STAGE_ID = '5-1';
 
 /*
  * 本編の最初のマップ ID（`MapScreen` の初期マップと同じ）。続きの位置が
@@ -107,6 +110,11 @@ function App() {
   const returnToMapActionRef = useRef(null);
   /* 紙芝居 → マップ到着時の「目覚め」演出（`WakeUpOverlay`）を出すか。 */
   const [isWakingUp, setIsWakingUp] = useState(false);
+  /*
+   * ステージ5に初めて入るときの「島へ渡る」移動シーン
+   * （`IslandVoyageOverlay`）を出しているか。
+   */
+  const [isVoyaging, setIsVoyaging] = useState(false);
 
   /*
    * クリア退出時の `exitStage` カットシーンは、次ステージの開放アニメーション
@@ -264,6 +272,12 @@ function App() {
    *               カットシーン（`defeatEnemy`）が流れる。「マップへ戻る」で
    *               クリア記録・帰還カットシーン（`returnToMap`）も本番どおり進む。
    *               4-4 は第一形態ならフェイクアウト〜復活へ、第二形態なら勝利へ。
+   *   - wqstage5 : ステージ5（5-1）に初めて入る直前の状態にして、タイトル
+   *               画面へ戻る。`wqgo5-1` の進捗（4-4 までクリア・5-1 以降の
+   *               カットシーンは未視聴）に加えて、エンディングロールを遊び
+   *               切った記録を立てて「つづきの ぼうけんへ」ボタンを出し、
+   *               ステージ5の途中位置も消す。ボタンを押すと島へ渡る移動
+   *               シーン → 入口からのステージ5を本番どおり確認できる。
    */
   const handleDebugReset = useCallback(() => {
     useCutsceneStore.getState().resetSeen();
@@ -368,6 +382,18 @@ function App() {
     useCutsceneStore.getState().markSeenBeforeStage(unlockStageId);
   }, []);
 
+  const handleDebugStage5Entry = useCallback(() => {
+    const progress = useProgressStore.getState();
+    progress.setProgressUpToStage(WORLD5_ENTRY_STAGE_ID);
+    progress.markOpeningStorySeen();
+    progress.markEndingGameFinished();
+    progress.clearStandalonePosition();
+    useCutsceneStore.getState().markSeenBeforeStage(WORLD5_ENTRY_STAGE_ID);
+    setIsWakingUp(false);
+    setIsVoyaging(false);
+    setScreen('title');
+  }, []);
+
   useDebugCommands({
     onReset: handleDebugReset,
     onTitle: handleDebugTitle,
@@ -377,6 +403,7 @@ function App() {
     onFullscreen: handleDebugFullscreen,
     onInstantWin: handleDebugInstantWin,
     onUnlock: handleDebugUnlock,
+    onStage5Entry: handleDebugStage5Entry,
   });
 
   const handleStartBattle = (id) => {
@@ -558,14 +585,13 @@ function App() {
   }, []);
 
   /*
-   * タイトル画面のステージ5入口ボタン。ステージ5のマップ（`map_5`）へ直行
-   * する。前回ステージ5の途中で終えていれば（`progressStore.
-   * lastStandalonePosition`）、その地点から再開し、そうで
-   * なければ入口（`startId`）に立たせる。MapScreen マウント前に `switchMap`
-   * しておくと、MapScreen の初期化 effect（最初のマップの入口）はスキップ
-   * される（`handleStartGame` の「続きから」と同じ仕組み）。
+   * ステージ5のマップ（`map_5`）へ切り替える。前回ステージ5の途中で終えて
+   * いれば（`progressStore.lastStandalonePosition`）、その地点から再開し、
+   * そうでなければ入口（`startId`）に立たせる。MapScreen マウント前に
+   * `switchMap` しておくと、MapScreen の初期化 effect（最初のマップの入口）
+   * はスキップされる（`handleStartGame` の「続きから」と同じ仕組み）。
    */
-  const handlePlayWorld5 = useCallback(() => {
+  const enterWorld5Map = useCallback(() => {
     const world5Def = mapsData.maps[WORLD5_MAP_ID];
     const last = useProgressStore.getState().lastStandalonePosition;
     const isResumable =
@@ -581,6 +607,40 @@ function App() {
         isResumable ? last.locationId : undefined,
       );
     setScreen('map');
+  }, []);
+
+  /*
+   * タイトル画面のステージ5入口ボタン。初めて入るとき（入場の会話
+   * `map-stage5-enter` がまだ再生できる）は、マップをいきなり出さずに
+   * 「島へ渡る」移動シーン（`IslandVoyageOverlay`）を挟む。2 回目以降は
+   * 直接マップへ入る。
+   */
+  const handlePlayWorld5 = useCallback(() => {
+    const isFirstVisit =
+      useCutsceneStore
+        .getState()
+        .peekCutsceneId({ type: 'enterMapArea', stageId: WORLD5_ENTRY_STAGE_ID }) !==
+      null;
+    if (isFirstVisit) {
+      setIsVoyaging(true);
+      return;
+    }
+    enterWorld5Map();
+  }, [enterWorld5Map]);
+
+  /*
+   * 移動シーンのナレーションが終わり画面が真っ黒になったところでマップへ切り替える。
+   * マップのマウントで入場の会話が始まるが、明転が終わるまでは会話送りの
+   * 入力をロックしておく（`WakeUpOverlay` と同じ扱い）。
+   */
+  const handleVoyageMidpoint = useCallback(() => {
+    useCutsceneStore.getState().setInputLocked(true);
+    enterWorld5Map();
+  }, [enterWorld5Map]);
+
+  const handleVoyageEnd = useCallback(() => {
+    setIsVoyaging(false);
+    useCutsceneStore.getState().setInputLocked(false);
   }, []);
 
   /*
@@ -736,6 +796,12 @@ function App() {
     <>
       {currentScreen}
       {isWakingUp && screen === 'map' && <WakeUpOverlay onEnd={handleWakeUpEnd} />}
+      {isVoyaging && (
+        <IslandVoyageOverlay
+          onMidpoint={handleVoyageMidpoint}
+          onEnd={handleVoyageEnd}
+        />
+      )}
       {pendingStageId !== null && (
         <BattleTransition
           targetStageId={pendingStageId}

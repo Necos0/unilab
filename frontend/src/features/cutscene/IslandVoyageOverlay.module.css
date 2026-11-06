@@ -1,0 +1,119 @@
+/*
+ * ステージ5に初めて入るときの「島へ渡る」演出オーバーレイ。
+ *   - viewport 全体を覆う（fixed + inset:0）。z-index は `WakeUpOverlay` と
+ *     同じ最上位（9999）に置き、演出中のクリックを下の画面へ通さない
+ *   - `.darkening` で透明 → 黒へ暗転、`.brightening` で黒 → 透明へ明転する。
+ *     長さは `IslandVoyageOverlay.jsx` の `DARKEN_MS` / `BRIGHTEN_MS` と合わせる
+ *   - 中央にナレーションを読み上げ表示する
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+}
+
+.darkening {
+  animation: voyageDarken 1200ms ease-in both;
+}
+
+.brightening {
+  animation: voyageBrighten 1800ms ease-out forwards;
+}
+
+/* ナレーション本文。行ごとに `key` で再マウントしてふわっと現す。 */
+.text {
+  margin: 0;
+  padding: 0 6vw;
+  max-width: 32em;
+  color: #f5f0e0;
+  font-size: clamp(1rem, 2.4vw, 1.5rem);
+  line-height: 2.3;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: voyageFadeIn 0.6s ease both;
+}
+
+.text rt {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+/* 最後の行を送ったあと、文字だけを消す。`TEXT_FADE_OUT_MS` と合わせる。 */
+.textLeaving {
+  animation: voyageFadeOut 800ms ease forwards;
+}
+
+/* 読み上げ前のトークン。場所は確保したまま透明にして折り返しを固定する。 */
+.hidden {
+  color: transparent;
+}
+
+/* 画面下の「つぎへ」案内。ゆっくり点滅する。 */
+.nextHint {
+  position: absolute;
+  left: 50%;
+  bottom: 4dvh;
+  transform: translateX(-50%);
+  color: #f0c040;
+  font-size: clamp(0.85rem, 1.8vw, 1.15rem);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  animation:
+    voyageFadeIn 0.4s ease both,
+    voyageHintBlink 1.4s ease-in-out 0.4s infinite;
+}
+
+@keyframes voyageDarken {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes voyageBrighten {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes voyageFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes voyageFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes voyageHintBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

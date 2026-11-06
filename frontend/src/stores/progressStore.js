@@ -167,6 +167,13 @@ const useProgressStore = create(
   markOpeningStorySeen: () => set({ hasSeenOpeningStory: true }),
 
   /**
+   * ステージ5などの独立マップで最後にいた位置（`lastStandalonePosition`）を
+   * 消す。開発用コマンド `wqstage5` が、ステージ5を入口から初めて入る状態に
+   * 戻すために使う。
+   */
+  clearStandalonePosition: () => set({ lastStandalonePosition: null }),
+
+  /**
    * エンディングロール（クレジットの上を歩くコイン集めゲーム）を最後まで
    * 遊び切ったことを記録する。`App` がエンディングロール完了時
    * （`handleCreditsFinish` / `handleCreditsBackToTitle`）に呼ぶ。
