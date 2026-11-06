@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import useDebugCommands from '../../hooks/useDebugCommands.js';
 import useTodayClears from '../../hooks/useTodayClears.js';
 import { isClearRecordEnabled } from '../../services/clearRecordApi.js';
 import FullscreenToggleButton from '../map/FullscreenToggleButton.jsx';
+import ClearCelebration from './ClearCelebration.jsx';
 import formatClearTime from './formatClearTime.js';
 import FlyingDragon from './FlyingDragon.jsx';
 import ShootingStar from './ShootingStar.jsx';
 import WalkingHero from './WalkingHero.jsx';
+import useClearCelebrationQueue from './useClearCelebrationQueue.js';
 import WanderingEnemy from './WanderingEnemy.jsx';
 import styles from './ClearScreen.module.css';
 
@@ -29,6 +32,9 @@ const CONTROLS_HIDE_DELAY_MS = 3000;
 /* 1 行ぶんがスクロールで流れるのにかける秒数。 */
 const SECONDS_PER_ROW = 1.6;
 
+/* テスト表示（`wqclear`）で使うクリアタイム（ミリ秒）。12 分 34 秒。 */
+const DEBUG_CLEAR_TIME_MS = (12 * 60 + 34) * 1000;
+
 /**
  * 会場モニター用の集計スクリーン（`/screen` で開く）。
  *
@@ -45,12 +51,34 @@ const SECONDS_PER_ROW = 1.6;
  * 右上の大画面ボタン（`FullscreenToggleButton`）でブラウザの全画面表示に
  * 切り替えられる。ボタンとマウスカーソルは、操作が止まって
  * `CONTROLS_HIDE_DELAY_MS` たつと隠れ、マウスを動かすとまた出る。
+ * 画面を開いたあとに新しくクリアした人が出ると、「クリア おめでとう！」
+ * の演出（`ClearCelebration`）を 1 人ずつ順番に出す。キーボードで
+ * `wqclear` とタイプすると、この演出をテスト表示できる。
  *
  * Returns:
  *     JSX.Element: 集計スクリーン。
  */
 function ClearScreen() {
-  const { clears, hasError } = useTodayClears();
+  const { clears, hasError, isLoaded } = useTodayClears();
+  const celebration = useClearCelebrationQueue(clears, isLoaded);
+  const { enqueue: enqueueCelebration } = celebration;
+
+  /* `wqclear` で、ダミーの人のお祝い演出をテスト表示する。 */
+  const debugHandlers = useMemo(
+    () => ({
+      onClearCelebration: () => {
+        const now = Date.now();
+        enqueueCelebration({
+          id: `debug-${now}`,
+          nickname: 'てすと',
+          started_at: new Date(now - DEBUG_CLEAR_TIME_MS).toISOString(),
+          cleared_at: new Date(now).toISOString(),
+        });
+      },
+    }),
+    [enqueueCelebration],
+  );
+  useDebugCommands(debugHandlers);
 
   /*
    * クリアタイム（開始〜クリアの経過時間）が短い順に並べる。同タイムなら
@@ -188,6 +216,14 @@ function ClearScreen() {
           </div>
         )}
       </section>
+
+      {celebration.current && (
+        <ClearCelebration
+          key={celebration.current.id}
+          clear={celebration.current}
+          onFinish={celebration.dequeue}
+        />
+      )}
 
       {hasError && <p className={styles.error}>つながりを たしかめています…</p>}
 

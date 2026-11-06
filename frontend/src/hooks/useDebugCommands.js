@@ -22,6 +22,7 @@ const SIMPLE_COMMANDS = [
   ['wqfull', 'onFullscreen'],
   ['wqwin', 'onInstantWin'],
   ['wqstage5', 'onStage5Entry'],
+  ['wqclear', 'onClearCelebration'],
 ];
 
 /**
@@ -40,6 +41,8 @@ const SIMPLE_COMMANDS = [
  *   - `wqwin`            : `onInstantWin`（バトル中なら即座に勝ちにする）
  *   - `wqstage5`         : `onStage5Entry`（ステージ5に初めて入る直前の状態に
  *                          してタイトルへ戻る）
+ *   - `wqclear`          : `onClearCelebration`（集計スクリーン `/screen` で
+ *                          「クリアおめでとう」演出をテスト表示する）
  *   - `wqgo<w>-<n>`      : `onUnlock('<w>-<n>')`（到達レベルの一括設定。
  *                          `wqgo2-3` のほかハイフン省略の `wqgo23` も可）
  *
@@ -65,6 +68,7 @@ const SIMPLE_COMMANDS = [
  *         onFullscreen (function): `wqfull` 検出時に呼ぶ（引数なし）。
  *         onInstantWin (function): `wqwin` 検出時に呼ぶ（引数なし）。
  *         onStage5Entry (function): `wqstage5` 検出時に呼ぶ（引数なし）。
+ *         onClearCelebration (function): `wqclear` 検出時に呼ぶ（引数なし）。
  *         onUnlock (function): `wqgo〜` 検出時にステージ ID（例 `'2-3'`）を
  *             渡して呼ぶ。ID の実在チェックは呼び出し側で行う。
  *

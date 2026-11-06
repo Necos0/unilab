@@ -21,11 +21,14 @@ const REFRESH_INTERVAL_MS = 60_000;
  * Returns:
  *     {clears: Array<{id: string, nickname: string, started_at: string,
  *         cleared_at: string}>,
- *      hasError: boolean}: クリアの早い順の一覧と、取得に失敗しているか。
+ *      hasError: boolean,
+ *      isLoaded: boolean}: クリアの早い順の一覧と、取得に失敗しているか、
+ *         最初の取得が終わったか。
  */
 function useTodayClears() {
   const [clears, setClears] = useState([]);
   const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -36,6 +39,7 @@ function useTodayClears() {
         if (!isActive) return;
         setClears(rows);
         setHasError(false);
+        setIsLoaded(true);
       } catch (error) {
         console.error('[clearScreen] fetch failed', error);
         if (isActive) setHasError(true);
@@ -74,7 +78,7 @@ function useTodayClears() {
     };
   }, []);
 
-  return { clears, hasError };
+  return { clears, hasError, isLoaded };
 }
 
 export default useTodayClears;

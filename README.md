@@ -91,7 +91,7 @@ npm run preview    # ビルド結果をローカル確認
 1. Supabase でプロジェクトを作り、SQL Editor で `supabase/migrations/20261106000000_create_users.sql` を実行する。
 2. `frontend/.env.example` を `frontend/.env.local` にコピーし、Project Settings → API の URL と publishable key を入れる。Vercel にも同じ 2 つの環境変数を設定する。
 3. ゲームでニックネームを入力すると `users` テーブルに登録され（`register_player`）、4-4 撃破後のエンディング〜エピローグ「つづく…」まで見終えると `cleared_at` が記録される（`mark_cleared`）。
-4. 会場モニターでは `https://<公開URL>/screen` を開く。今日（日本時間）クリアした人数と、ニックネーム・クリアタイム（開始〜クリアの経過時間）の一覧がリアルタイムで表示される。表示確認には `supabase/test_data.sql` を SQL Editor で実行する（削除用の SQL も同じファイルにある）。
+4. 会場モニターでは `https://<公開URL>/screen` を開く。今日（日本時間）クリアした人数と、ニックネーム・クリアタイム（開始〜クリアの経過時間）の一覧がリアルタイムで表示される。表示確認には `supabase/test_data.sql` を SQL Editor で実行する（削除用の SQL も同じファイルにある）。画面を開いたあとに新しくクリアした人が出ると「クリア おめでとう！」の演出が出る。演出だけ見たいときは `/screen` でキーボードから `wqclear` とタイプする（DB には何も書かない）。Realtime 経由で確かめたいときは `test_data.sql` の「3. 1 人だけクリアさせる」を実行する。
 
 環境変数が未設定のときは送信もスクリーンも無効になり、ゲームはそのまま遊べる。`/screen` への直接アクセスは `frontend/vercel.json` の rewrite で `index.html` に流している。
 
@@ -176,7 +176,7 @@ unilab/
 │   └── stage5-model-flowcharts.html ← ワールド 5(敵防御・敵カウンター・敵回復)の設計案とモデルフローチャート
 ├── supabase/                     ← Supabase(クリア集計スクリーン用 DB)
 │   ├── migrations/               ← テーブル・RPC・RLS の定義 SQL
-│   └── test_data.sql             ← /screen 表示確認用のテストデータ(追加・削除)
+│   └── test_data.sql             ← /screen 表示確認用のテストデータ(追加・削除・おめでとう演出の確認)
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
@@ -284,6 +284,9 @@ unilab/
             ├── screen/           ← 会場モニター用の集計スクリーン(/screen で開く。今日のクリア人数とニックネーム)
             │   ├── ClearScreen.jsx
             │   ├── ClearScreen.module.css
+            │   ├── ClearCelebration.jsx   ← 新しくクリアした人が出たときの「クリア おめでとう！」演出(紙ふぶき)
+            │   ├── ClearCelebration.module.css
+            │   ├── useClearCelebrationQueue.js ← 新しいクリアを見つけて 1 人ずつお祝いする順番待ちフック
             │   ├── WalkingHero.jsx        ← 画面下の草原を勇者とビットが歩き回る演出(マップと同じスプライト)
             │   ├── WalkingHero.module.css
             │   ├── FlyingDragon.jsx       ← ときどきドラゴンが夜空を横切って飛んでいく演出
