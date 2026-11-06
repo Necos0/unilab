@@ -1,0 +1,51 @@
+/* 流れはじめる位置。ここを起点に、中の星をななめに走らせる。 */
+.anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/*
+ * 流れ星本体。右端が明るい頭、左へ向かって薄れる尾。頭を進む向きへ
+ * 傾け（`--angle`）、その向きへ translateX で走らせるので、尾は
+ * 自然に後ろへ引かれる。既定は左下へ流れる向き。
+ */
+.star {
+  --angle: 155deg;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 16vw;
+  height: 0.4vh;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(196, 210, 255, 0.5) 70%,
+    #ffffff 100%
+  );
+  box-shadow: 0 0 1.2vh rgba(220, 230, 255, 0.8);
+  transform-origin: right center;
+  animation: shoot 1.4s ease-out forwards;
+}
+
+/* 右下へ流れる向き。 */
+.toRight {
+  --angle: 25deg;
+}
+
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(0);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(30vw);
+  }
+}

@@ -1,0 +1,69 @@
+/*
+ * 画面の外（左右どちらか）から反対側の外まで、等速で横切る。
+ * 画像の幅ぶん外から出入りするよう、-20vw〜120vw を動かす。
+ */
+.flyRight,
+.flyLeft {
+  position: absolute;
+  left: 0;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.flyRight {
+  animation-name: flyRight;
+}
+
+.flyLeft {
+  animation-name: flyLeft;
+}
+
+@keyframes flyRight {
+  from {
+    transform: translateX(-20vw);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}
+
+@keyframes flyLeft {
+  from {
+    transform: translateX(120vw);
+  }
+  to {
+    transform: translateX(-20vw);
+  }
+}
+
+/* 上下にゆったり波打つ（羽ばたいて浮き沈みする感じ）。 */
+.wave {
+  animation: wave 2.4s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5vh);
+  }
+}
+
+.sprite {
+  display: block;
+  /* 画像は余白込みの正方形なので、見た目の大きさより少し大きめに置く */
+  height: 20vh;
+  width: auto;
+  image-rendering: pixelated;
+  /* 夜空になじむよう、少しだけ暗くする */
+  filter: brightness(0.85) saturate(0.9);
+}
+
+/* ドラゴンの画像は左向きなので、右へ飛ぶときは左右反転する。 */
+.flipped {
+  transform: scaleX(-1);
+}
