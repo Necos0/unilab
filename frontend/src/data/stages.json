@@ -251,7 +251,7 @@
         { "lockedCard": { "id": "monster", "power": 5 } },
         {
           "condition": "enemyHp <= 85",
-          "label": "敵《てき》の HPが 85いか？",
+          "label": "敵《てき》の HPが 85以下《いか》？",
           "true": [
             { "id": "p2" },
             { "lockedCard": { "id": "monster", "power": 11 } }
@@ -495,14 +495,14 @@
           "loop": {
             "mode": "pre",
             "condition": "enemyHp <= 240",
-            "label": "敵《てき》のHPが 240 いか？",
+            "label": "敵《てき》のHPが 240 以下《いか》？",
             "trueDir": "down",
             "falseDir": "right",
             "exitRoute": "under",
             "body": [
               {
                 "condition": "playerHp <= 30",
-                "label": "自分《じぶん》のHPが 30 いか？",
+                "label": "自分《じぶん》のHPが 30 以下《いか》？",
                 "true": [
                   {},
                   { "lockedCard": { "id": "monster", "power": 30 } },
@@ -525,7 +525,7 @@
           "loop": {
             "mode": "pre",
             "condition": "playerHp >= 60",
-            "label": "自分《じぶん》のHPが 60 いじょう？",
+            "label": "自分《じぶん》のHPが 60 以上《いじょう》？",
             "trueDir": "down",
             "falseDir": "right",
             "exitRoute": "under",
@@ -552,7 +552,7 @@
                 "false": [
                   {
                     "condition": "playerHp <= 20",
-                    "label": "自分《じぶん》のHPが 20 いか？",
+                    "label": "自分《じぶん》のHPが 20 以下《いか》？",
                     "true": [],
                     "false": [
                       {}
@@ -678,7 +678,7 @@
           "loop": {
             "mode": "pre",
             "condition": "playerHp >= 70",
-            "label": "自分《じぶん》の HPが 70いじょう？",
+            "label": "自分《じぶん》の HPが 70以上《いじょう》？",
             "trueDir": "down",
             "falseDir": "right",
             "exitRoute": "under",
@@ -698,7 +698,7 @@
         { "newline": {} },
         {
           "condition": "playerHp <= 20",
-          "label": "自分《じぶん》の HPが 20いか？",
+          "label": "自分《じぶん》の HPが 20以下《いか》？",
           "true": [],
           "false": [{ "lockedCard": { "id": "monster_reflect" } }]
         },
@@ -711,7 +711,7 @@
         { "lockedCard": { "id": "monster", "power": 5 } },
         {
           "condition": "playerHp <= 25",
-          "label": "自分《じぶん》の HPが 25いか？",
+          "label": "自分《じぶん》の HPが 25以下《いか》？",
           "true": [],
           "false": [{ "lockedCard": { "id": "monster_reflect" } }]
         },
@@ -760,7 +760,7 @@
           "loop": {
             "mode": "pre",
             "condition": "playerHp >= 80",
-            "label": "自分《じぶん》の HPが 80いじょう？",
+            "label": "自分《じぶん》の HPが 80以上《いじょう》？",
             "trueDir": "down",
             "falseDir": "right",
             "exitRoute": "under",
@@ -785,7 +785,7 @@
         { "newline": {} },
         {
           "condition": "playerHp <= 10",
-          "label": "自分《じぶん》の HPが 10いか？",
+          "label": "自分《じぶん》の HPが 10以下《いか》？",
           "true": [],
           "false": [{ "lockedCard": { "id": "monster_reflect" } }]
         },
