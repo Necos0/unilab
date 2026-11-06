@@ -78,61 +78,72 @@
 }
 
 /*
- * エンディング再プレイボタン。ラスボスクリア済みのときだけ出る 2 番手の
- * 導線なので、スタートより控えめな金枠・ダーク地にする（パルスなし）。
+ * 絵の下端に小さく並べるミニゲームの導線。本編（スタート・つづきの
+ * ぼうけんへ）と分けて、おまけであることが分かるよう控えめにする。
+ * 下端は明るい草原と土の道なので、暗い半透明の帯に載せて文字を読める
+ * ようにする。
  */
-.endingButton {
-  padding: 0.5rem 1.6rem;
+.miniGames {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
+  background: rgba(14, 11, 22, 0.78);
+  border: 2px solid rgba(240, 192, 64, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.miniGamesLabel {
   font-family: 'DotGothic16', system-ui, sans-serif;
-  font-size: clamp(0.8rem, 2vw, 1.15rem);
+  font-size: clamp(0.6rem, 1.3vw, 0.85rem);
+  font-weight: 700;
   letter-spacing: 0.1em;
+  color: #f0c040;
+}
+
+/* ミニゲームボタン共通の大きさ（色は下の各ボタンで分ける）。 */
+.miniGameButton {
+  padding: 0.3rem 0.9rem;
+  font-family: 'DotGothic16', system-ui, sans-serif;
+  font-size: clamp(0.6rem, 1.3vw, 0.85rem);
+  letter-spacing: 0.06em;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.miniGameButton:hover {
+  filter: brightness(1.2);
+}
+
+.miniGameButton:active {
+  filter: brightness(0.9);
+}
+
+/* エンディング再プレイ。金枠・ダーク地。 */
+.endingButton {
   color: #f0c040;
   background: rgba(20, 16, 12, 0.82);
   border: 2px solid #f0c040;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-  transition: filter 0.15s;
 }
 
-.endingButton:hover {
-  filter: brightness(1.2);
-}
-
-.endingButton:active {
-  filter: brightness(0.9);
-}
-
-/*
- * おまけミニゲーム「陣取り合戦」への導線。ラスボスクリア＋エンディングロール
- * 達成でだけ出る 3 番手のボタン。エンディングボタン（金枠ダーク）と区別が
- * つくよう、ミニゲームらしい紫地＋金枠にする（パルスなし・控えめ）。
- */
+/* 陣取り合戦。エンディングと区別がつくよう、紫地＋金枠。 */
 .laneBattleButton {
-  padding: 0.5rem 1.6rem;
-  font-family: 'DotGothic16', system-ui, sans-serif;
-  font-size: clamp(0.8rem, 2vw, 1.15rem);
-  letter-spacing: 0.1em;
   color: #ffe9b0;
   background: linear-gradient(rgba(74, 45, 110, 0.92), rgba(48, 28, 74, 0.92));
   border: 2px solid #f0c040;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-
-.laneBattleButton:hover {
-  filter: brightness(1.2);
-}
-
-.laneBattleButton:active {
-  filter: brightness(0.9);
 }
 
 /*
  * ステージ5（`map_5`）への入口。エンディングロールを遊び切ったプレイヤーにだけ出る
- * 4 番手のボタン。ステージ5のマップ（黒と紫の島、入口だけ水色に光る）に
+ * スタートの次のボタン。ステージ5のマップ（黒と紫の島、入口だけ水色に光る）に
  * 合わせて、濃い紫地＋水色の枠と文字にし、ほかの金枠ボタンと区別する。
  */
 .world5Button {

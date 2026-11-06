@@ -41,6 +41,7 @@ import AccelerationEffect from './AccelerationEffect';
 import FinaleOverlay from './FinaleOverlay';
 import EncounterBanner from './EncounterBanner';
 import enemiesData from '../../data/enemies.json';
+import { getClearedVariantEnemyId } from './clearedEnemyVariant.js';
 import isBossStage from './isBossStage';
 import isFinalBossStage from './isFinalBossStage';
 import FinalBossOmen from './FinalBossOmen';
@@ -417,6 +418,14 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * 第二形態のステージ定義を渡す。
    */
   const activeStage = isSecondPhase && stage.secondPhase ? stage.secondPhase : stage;
+  /*
+   * クリア後に再挑戦すると見た目が変わるステージ（5-4: 元に戻った勇者）の
+   * 敵 ID。戦闘に入った時点のクリア状況で決めて固定する（初クリアの退出
+   * 処理でクリア記録が付いた瞬間に、倒れている敵が差し替わらないように）。
+   */
+  const [clearedVariantEnemyId] = useState(() =>
+    getClearedVariantEnemyId(resolvedStageId),
+  );
   const speedMultiplier = useBattleStore((s) => s.speedMultiplier);
   const rootRef = useRef(null);
   useEffect(() => {
@@ -470,6 +479,11 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * 使いつつ、最終ボス専用のクラスで上書きする。
    */
   const isFinalBoss = isFinalBossStage(resolvedStageId);
+  /*
+   * 5-4 クリア後の再挑戦（元に戻った勇者）か。入場演出の形は同じまま、
+   * 魔気を思わせる紫を金・空色の配色に差し替える。
+   */
+  const isPurifiedBoss = isFinalBoss && clearedVariantEnemyId !== null;
   const isBoss = isBossStage(resolvedStageId);
   const [introPhase, setIntroPhase] = useState(
     isFinalBoss ? 'finalOmen' : 'enemyEnter',
@@ -747,9 +761,10 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
    * 形態のままでも見た目だけ先に第二形態（`overrideEnemyId`、例:
    * `dragon_final`）へ差し替える。盤面変身（`initializeBattle`）後は
    * `overrideEnemyId` が null に戻り、`activeStage`（第二形態）側の ID で
-   * 同じ敵が表示され続ける。
+   * 同じ敵が表示され続ける。クリア後に見た目が変わるステージ（5-4）では
+   * `clearedVariantEnemyId` を使う。
    */
-  const displayEnemyId = overrideEnemyId ?? activeStage.enemyId;
+  const displayEnemyId = overrideEnemyId ?? clearedVariantEnemyId ?? activeStage.enemyId;
   const enemy = enemiesData.enemies.find((e) => e.id === displayEnemyId);
   const hasDeadAnim = Boolean(enemy?.animations?.dead);
   /*
@@ -823,7 +838,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
         )}
         {/* 最終ボス（5-4）だけの、敵が出てくる前のシネマ演出 */}
         {introPhase === 'finalOmen' && enemy && (
-          <FinalBossOmen enemyId={enemy.id} />
+          <FinalBossOmen enemyId={enemy.id} isPurified={isPurifiedBoss} />
         )}
         {/*
           * 左上ヘルプ・右上マップ戻りボタンは、入場演出中は非表示にして
@@ -875,7 +890,9 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
             className={
               introPhase === 'enemyEnter'
                 ? isFinalBoss
-                  ? styles.introEnemyEnterFinal
+                  ? isPurifiedBoss
+                    ? `${styles.introEnemyEnterFinal} ${styles.introEnemyEnterPurified}`
+                    : styles.introEnemyEnterFinal
                   : isBoss
                     ? styles.introEnemyEnterBoss
                     : styles.introEnemyEnter
@@ -893,7 +910,11 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
           {introPhase === 'banner' && isBoss && (
             <div
               className={
-                isFinalBoss ? styles.introFinalVignette : styles.introBossVignette
+                isFinalBoss
+                  ? isPurifiedBoss
+                    ? `${styles.introFinalVignette} ${styles.introPurifiedVignette}`
+                    : styles.introFinalVignette
+                  : styles.introBossVignette
               }
               aria-hidden="true"
             />
@@ -903,6 +924,7 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
               enemyName={enemy.displayName}
               isBoss={isBoss}
               isFinalBoss={isFinalBoss}
+              isPurified={isPurifiedBoss}
             />
           )}
           <div

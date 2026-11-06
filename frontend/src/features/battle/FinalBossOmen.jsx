@@ -37,13 +37,18 @@ const CONVERGING_LINES = [
  * Args:
  *     props (object): React プロパティ。
  *         enemyId (string): シルエットに使う敵 ID（`enemies.json` の id）。
+ *         isPurified (boolean): 5-4 クリア後の再挑戦（元に戻った勇者）なら
+ *             true。演出の形はそのまま、紫の線・輪・閃光を金と空色にする。
  *
  * Returns:
  *     JSX.Element: バトル画面全体を覆う演出層。
  */
-function FinalBossOmen({ enemyId }) {
+function FinalBossOmen({ enemyId, isPurified = false }) {
   return (
-    <div className={styles.overlay} aria-hidden="true">
+    <div
+      className={isPurified ? `${styles.overlay} ${styles.purified}` : styles.overlay}
+      aria-hidden="true"
+    >
       <svg
         className={styles.lines}
         viewBox="0 0 1000 600"

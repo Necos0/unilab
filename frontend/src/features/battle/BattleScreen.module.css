@@ -493,6 +493,33 @@
   }
 }
 
+/* 5-4 クリア後（元に戻った勇者）の入場。動きは同じで、まとう光を紫から金色にする */
+.introEnemyEnterPurified {
+  animation-name: introEnemyEnterPurified;
+}
+
+@keyframes introEnemyEnterPurified {
+  0% {
+    transform: scale(0.4) translateY(-8%);
+    opacity: 0;
+    filter: brightness(3) drop-shadow(0 0 24px #ffc640);
+  }
+  45% {
+    transform: scale(1.18) translateY(0);
+    opacity: 1;
+    filter: brightness(1.6) drop-shadow(0 0 18px #ffc640);
+  }
+  70% {
+    transform: scale(0.96);
+    filter: brightness(1.1) drop-shadow(0 0 10px #ffc640);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: none;
+  }
+}
+
 /* 最終ボスのバナー中のゆれ。通常ボス（500ms）より長く大きく、だんだんおさまる */
 .introFinalShake {
   animation: introFinalShake 1200ms ease-out;
@@ -525,4 +552,13 @@
     rgba(150, 50, 255, 0.5) 100%
   );
   animation: introBossVignettePulse 1000ms ease-in-out 3;
+}
+
+/* 5-4 クリア後（元に戻った勇者）のビネット。紫をやめて金色にする。 */
+.introPurifiedVignette {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 200, 70, 0) 40%,
+    rgba(255, 200, 70, 0.4) 100%
+  );
 }

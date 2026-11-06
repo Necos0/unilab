@@ -30,13 +30,22 @@ import styles from './EncounterBanner.module.css';
  *         enemyName (string): 表示する敵の名前（例: "スライム"）。
  *         isBoss (boolean): ボスステージなら true。既定は false。
  *         isFinalBoss (boolean): 最終ボス戦なら true。既定は false。
+ *         isPurified (boolean): 5-4 クリア後の再挑戦（元に戻った勇者）なら
+ *             true。最終ボス版の形のまま、紫を金・空色に差し替える。
  *
  * Returns:
  *     JSX.Element: 敵エリアに絶対配置されるバナー要素。
  */
-function EncounterBanner({ enemyName, isBoss = false, isFinalBoss = false }) {
+function EncounterBanner({
+  enemyName,
+  isBoss = false,
+  isFinalBoss = false,
+  isPurified = false,
+}) {
   const className = isFinalBoss
-    ? `${styles.banner} ${styles.bannerFinal}`
+    ? isPurified
+      ? `${styles.banner} ${styles.bannerFinal} ${styles.bannerPurified}`
+      : `${styles.banner} ${styles.bannerFinal}`
     : isBoss
       ? `${styles.banner} ${styles.bannerBoss}`
       : styles.banner;

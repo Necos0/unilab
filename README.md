@@ -217,7 +217,8 @@ unilab/
     │   │   │   ├── black_wing_dragon/ ← idle / dead(5-1 のボス、ゴールデンバードの進化形)
     │   │   │   ├── flying_sapphire_dragon/ ← idle / dead(5-2 のボス)
     │   │   │   ├── revived_dragon/ ← idle / dead(5-3 のボス、魔気でよみがえったドラゴン)
-    │   │   │   └── dark_hero/    ← idle / dead(5-4 の最終ボス、魔気に操られた勇者)
+    │   │   │   ├── dark_hero/    ← idle / dead(5-4 の最終ボス、魔気に操られた勇者)
+    │   │   │   └── purified_hero/ ← idle / dead(5-4 クリア後に再挑戦したときの、元に戻った勇者)
     │   │   ├── flying_dragon/    ← 集計スクリーンで夜空を飛ぶドラゴン(fly/flying_dragon_fly_NN.png、FlyingDragon が参照)
     │   │   ├── portraits/        ← 会話アイコン用の立ち絵(hero.png: 元に戻った勇者、cutscenes.json の speakerIcon が参照)
     │   │   └── effects/          ← 演出用の単発画像(dragon_shadow.png: 翼を広げたドラゴンの影、DragonShadowOverlay が参照)
@@ -335,6 +336,7 @@ unilab/
             │   ├── BattleFailOverlay.jsx      ← 失敗時の Fail テキスト＋やり直す／マップへ戻るボタン
             │   ├── BattleFailOverlay.module.css
             │   ├── preloadBattleAssets.js     ← ステージから敵スプライト・カード・アイコンを事前読み込み
+            │   ├── clearedEnemyVariant.js     ← クリア後に再挑戦すると見た目が変わる敵(5-4→元に戻った勇者)
             │   ├── enemy/        ← 敵側の演出(スプライト・被弾ダメージ表示・反射ダメージ表示)
             │   │   ├── DamageFloater.jsx
             │   │   ├── DamageFloater.module.css

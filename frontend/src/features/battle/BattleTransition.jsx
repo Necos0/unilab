@@ -3,6 +3,7 @@ import styles from './BattleTransition.module.css';
 import preloadBattleAssets from './preloadBattleAssets';
 import isBossStage from './isBossStage';
 import isFinalBossStage from './isFinalBossStage';
+import { getClearedVariantEnemyId } from './clearedEnemyVariant.js';
 
 const FLASH_MS = 360;
 const IRIS_MS = 450;
@@ -114,9 +115,13 @@ function BattleTransition({ targetStageId, onMidpoint, onEnd }) {
 
   const isFinal = isFinalBossStage(targetStageId);
   const isBoss = isBossStage(targetStageId);
+  /* 5-4 クリア後の再挑戦（元に戻った勇者）は、明滅の紫を金色にする。 */
+  const isPurified = isFinal && getClearedVariantEnemyId(targetStageId) !== null;
   const className = [styles.overlay, styles[phase]].join(' ');
   const flashClassName = isFinal
-    ? `${styles.flashLayer} ${styles.flashLayerFinal}`
+    ? isPurified
+      ? `${styles.flashLayer} ${styles.flashLayerFinal} ${styles.flashLayerPurified}`
+      : `${styles.flashLayer} ${styles.flashLayerFinal}`
     : isBoss
       ? `${styles.flashLayer} ${styles.flashLayerBoss}`
       : styles.flashLayer;
