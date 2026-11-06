@@ -21,6 +21,7 @@ const SIMPLE_COMMANDS = [
   ['wqedit', 'onCreditsEditor'],
   ['wqfull', 'onFullscreen'],
   ['wqwin', 'onInstantWin'],
+  ['wqstage5', 'onStage5Entry'],
 ];
 
 /**
@@ -37,6 +38,8 @@ const SIMPLE_COMMANDS = [
  *   - `wqedit`           : `onCreditsEditor`（エンディング配置エディタの開閉）
  *   - `wqfull`           : `onFullscreen`（ブラウザ全画面表示の切り替え）
  *   - `wqwin`            : `onInstantWin`（バトル中なら即座に勝ちにする）
+ *   - `wqstage5`         : `onStage5Entry`（ステージ5に初めて入る直前の状態に
+ *                          してタイトルへ戻る）
  *   - `wqgo<w>-<n>`      : `onUnlock('<w>-<n>')`（到達レベルの一括設定。
  *                          `wqgo2-3` のほかハイフン省略の `wqgo23` も可）
  *
@@ -61,6 +64,7 @@ const SIMPLE_COMMANDS = [
  *         onCreditsEditor (function): `wqedit` 検出時に呼ぶ（引数なし）。
  *         onFullscreen (function): `wqfull` 検出時に呼ぶ（引数なし）。
  *         onInstantWin (function): `wqwin` 検出時に呼ぶ（引数なし）。
+ *         onStage5Entry (function): `wqstage5` 検出時に呼ぶ（引数なし）。
  *         onUnlock (function): `wqgo〜` 検出時にステージ ID（例 `'2-3'`）を
  *             渡して呼ぶ。ID の実在チェックは呼び出し側で行う。
  *

@@ -151,3 +151,38 @@
   margin: auto;
   font-size: 2.5vh;
 }
+
+/* 操作がしばらくないときは、マウスカーソルも隠す。 */
+.cursorHidden {
+  cursor: none;
+}
+
+/* 右上の大画面ボタンの置き場所。操作が止まるとふっと消える。 */
+.fullscreenSlot {
+  position: absolute;
+  top: 2vh;
+  right: 2vw;
+  z-index: 2;
+  transition: opacity 0.4s;
+}
+
+.fullscreenSlotHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fullscreenButton {
+  padding: 0.6vh 1.2vw;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  font-size: 2vh;
+  color: #f7e9c0;
+  background: rgba(14, 11, 22, 0.78);
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.fullscreenButton:hover {
+  filter: brightness(1.2);
+}
