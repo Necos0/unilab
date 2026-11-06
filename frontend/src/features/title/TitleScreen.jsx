@@ -18,17 +18,16 @@ const TITLE_IMAGE_SRC = '/title.png';
  * 渡したもの）を縦に並べる。レターボックスの黒帯ではなく実際の絵の中央に
  * 重なるよう、`.controls` を `.canvas` 基準の絶対配置で中央に置く。
  *
- * ラスボス（4-4）をクリア済みのプレイヤーには、スタートの下に
- * 「エンディングゲームで あそぶ」ボタンを出し、エンディングロール
- * （クレジットの上を歩くコイン集め）だけをいつでも遊び直せるようにする。
+ * ラスボスクリア＋エンディングロールを遊び切ったプレイヤーには、スタートの
+ * すぐ下に「つづきの ぼうけんへ」ボタンを出し、ステージ5（`map_5`）へ入れる
+ * ようにする。ステージ5の入口はこのボタンだけ。
  *
- * さらにラスボスクリアに加えてエンディングロールも遊び切ったプレイヤーには、
- * その下に「じんとりがっせん で あそぶ」ボタンを出し、おまけミニゲーム
- * （陣取り合戦）へ入れるようにする（本編＋エンディングのさらにおまけ）。
- *
- * 陣取り合戦と同じ条件（ラスボスクリア＋エンディングロールを遊び切った）で、
- * いちばん下に「つづきの ぼうけんへ」ボタンも出し、
- * ステージ5（`map_5`）へ入れるようにする。ステージ5の入口はこのボタンだけ。
+ * おまけのミニゲームは、本編の導線と分けて絵の下端に「ミニゲーム」として
+ * 小さく横に並べる。
+ *   - 「エンディングゲーム」: ラスボス（4-4）クリア済みで出る。エンディング
+ *     ロール（クレジットの上を歩くコイン集め）だけを遊び直せる。
+ *   - 「じんとりがっせん」: さらにエンディングロールも遊び切ると出る。
+ *     おまけミニゲーム（陣取り合戦）へ入れる。
  *
  * Args:
  *     props (object): React プロパティ。
@@ -74,24 +73,6 @@ function TitleScreen({
           >
             スタート
           </button>
-          {canPlayEnding && (
-            <button
-              type="button"
-              className={styles.endingButton}
-              onClick={onPlayEnding}
-            >
-              エンディングゲームで あそぶ
-            </button>
-          )}
-          {canPlayLaneBattle && (
-            <button
-              type="button"
-              className={styles.laneBattleButton}
-              onClick={onPlayLaneBattle}
-            >
-              ⚔️ じんとりがっせん で あそぶ
-            </button>
-          )}
           {canPlayWorld5 && (
             <button
               type="button"
@@ -103,6 +84,29 @@ function TitleScreen({
           )}
           <FullscreenToggleButton className={styles.fullscreenButton} />
         </div>
+        {(canPlayEnding || canPlayLaneBattle) && (
+          <div className={styles.miniGames}>
+            <span className={styles.miniGamesLabel}>ミニゲーム</span>
+            {canPlayEnding && (
+              <button
+                type="button"
+                className={`${styles.miniGameButton} ${styles.endingButton}`}
+                onClick={onPlayEnding}
+              >
+                エンディングゲーム
+              </button>
+            )}
+            {canPlayLaneBattle && (
+              <button
+                type="button"
+                className={`${styles.miniGameButton} ${styles.laneBattleButton}`}
+                onClick={onPlayLaneBattle}
+              >
+                ⚔️ じんとりがっせん
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
