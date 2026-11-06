@@ -327,6 +327,26 @@
       }
     },
     {
+      "id": "purified_hero",
+      "displayName": "勇者《ゆうしゃ》",
+      "maxHp": 100,
+      "sizeRatio": 0.95,
+      "animations": {
+        "idle": {
+          "frameCount": 8,
+          "frameDurationMs": 160,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 8,
+          "frameDurationMs": 180,
+          "loop": false,
+          "holdMs": 2000,
+          "keepVisible": true
+        }
+      }
+    },
+    {
       "id": "revived_dragon",
       "displayName": "グレン・ドラゴン",
       "maxHp": 100,
@@ -334,12 +354,12 @@
       "animations": {
         "idle": {
           "frameCount": 6,
-          "frameDurationMs": 250,
+          "frameDurationMs": 180,
           "loop": true
         },
         "dead": {
-          "frameCount": 6,
-          "frameDurationMs": 250,
+          "frameCount": 8,
+          "frameDurationMs": 180,
           "loop": false
         }
       }
@@ -351,13 +371,13 @@
       "sizeRatio": 1.0,
       "animations": {
         "idle": {
-          "frameCount": 6,
-          "frameDurationMs": 250,
+          "frameCount": 8,
+          "frameDurationMs": 160,
           "loop": true
         },
         "dead": {
-          "frameCount": 6,
-          "frameDurationMs": 250,
+          "frameCount": 8,
+          "frameDurationMs": 180,
           "loop": false
         }
       }
@@ -369,13 +389,13 @@
       "sizeRatio": 1.0,
       "animations": {
         "idle": {
-          "frameCount": 4,
-          "frameDurationMs": 250,
+          "frameCount": 8,
+          "frameDurationMs": 160,
           "loop": true
         },
         "dead": {
-          "frameCount": 5,
-          "frameDurationMs": 250,
+          "frameCount": 8,
+          "frameDurationMs": 180,
           "loop": false
         }
       }

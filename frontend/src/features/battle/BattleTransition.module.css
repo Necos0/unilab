@@ -69,6 +69,25 @@
 .irisHoleFinal {
   animation-duration: 900ms;
 }
+/* 5-4 クリア後（元に戻った勇者）の明滅。回数・時間は同じで、紫を金色にする */
+.flashLayerPurified {
+  background: #ffc640;
+  animation-name: encounterFlashPurified;
+}
+@keyframes encounterFlashPurified {
+  0% {
+    opacity: 0;
+    background: #ffc640;
+  }
+  40% {
+    opacity: 0.95;
+    background: #ffffff;
+  }
+  100% {
+    opacity: 0;
+    background: #ffc640;
+  }
+}
 @keyframes encounterFlashFinal {
   0% {
     opacity: 0;

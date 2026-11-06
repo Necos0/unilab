@@ -1,6 +1,7 @@
 import stagesData from '../../data/stagesLoader.js';
 import enemiesData from '../../data/enemies.json';
 import { getEnemyFramePath } from './enemy/enemySpritePath';
+import { getClearedVariantEnemyId } from './clearedEnemyVariant.js';
 
 /**
  * バトル画面で使用する画像 URL を Image オブジェクトで事前読み込みする。
@@ -36,15 +37,18 @@ function preloadImage(src) {
  *   - フローチャート用アイコン（start / goal / play / reset）
  *
  * Args:
+ *     stageId (string | null): ステージ ID。クリア後に見た目が変わる敵
+ *         （`getClearedVariantEnemyId`）の判定に使う。第二形態では null。
  *     stage (object): `stages.json` の 1 ステージ分定義。
  *
  * Returns:
  *     string[]: 重複を除いた画像 URL 配列。
  */
-function collectBattleAssetUrls(stage) {
+function collectBattleAssetUrls(stageId, stage) {
   const urls = new Set();
 
-  const enemy = enemiesData.enemies.find((e) => e.id === stage.enemyId);
+  const enemyId = (stageId && getClearedVariantEnemyId(stageId)) ?? stage.enemyId;
+  const enemy = enemiesData.enemies.find((e) => e.id === enemyId);
   if (enemy?.animations) {
     for (const [stateName, anim] of Object.entries(enemy.animations)) {
       for (let i = 0; i < anim.frameCount; i += 1) {
@@ -75,7 +79,7 @@ function collectBattleAssetUrls(stage) {
    * チラつかないように）。
    */
   if (stage.secondPhase) {
-    for (const url of collectBattleAssetUrls(stage.secondPhase)) {
+    for (const url of collectBattleAssetUrls(null, stage.secondPhase)) {
       urls.add(url);
     }
   }
@@ -101,6 +105,6 @@ export default function preloadBattleAssets(stageId) {
   if (!stage) {
     return Promise.resolve();
   }
-  const urls = collectBattleAssetUrls(stage);
+  const urls = collectBattleAssetUrls(stageId, stage);
   return Promise.all(urls.map(preloadImage)).then(() => undefined);
 }

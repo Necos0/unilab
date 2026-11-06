@@ -120,3 +120,31 @@
   50%  { box-shadow: 0 0 36px 10px rgba(184, 92, 255, 0.75); }
   100% { box-shadow: 0 0 0 0 rgba(184, 92, 255, 0); }
 }
+
+/*
+ * 5-4 クリア後（元に戻った勇者）の最終ボス版バナー。形・時間は同じで、
+ * 魔気を思わせる紫をやめ、勇者の青いマントと金のふちどりの配色にする。
+ */
+.bannerPurified {
+  background: linear-gradient(rgba(12, 30, 64, 0.94), rgba(6, 16, 38, 0.94));
+  border-top-color: #f0c040;
+  border-bottom-color: #f0c040;
+  animation:
+    encounterBannerIn 350ms cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    encounterPurifiedGlow 1000ms ease-in-out 3,
+    encounterBannerOut 300ms ease-in 2700ms forwards;
+}
+
+.bannerPurified .text {
+  color: #fff6d8;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.7),
+    0 0 14px rgba(255, 210, 90, 0.95),
+    0 0 28px rgba(95, 200, 255, 0.6);
+}
+
+@keyframes encounterPurifiedGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 210, 90, 0); }
+  50%  { box-shadow: 0 0 36px 10px rgba(255, 210, 90, 0.7); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 210, 90, 0); }
+}

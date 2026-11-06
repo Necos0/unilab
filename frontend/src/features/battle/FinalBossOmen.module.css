@@ -194,3 +194,33 @@
     opacity: 0;
   }
 }
+
+/*
+ * 5-4 クリア後（元に戻った勇者）の配色。演出の形・時間はそのままで、
+ * 魔気を思わせる紫をやめ、金色の線・光の輪と、白〜金〜空色の閃光にする。
+ */
+.purified .line {
+  stroke: #ffd35c;
+  filter: drop-shadow(0 0 6px #ffc640) drop-shadow(0 0 14px #ff9f1a);
+}
+
+.purified .arrowHead {
+  fill: #fff0b8;
+}
+
+.purified .ring {
+  background: radial-gradient(
+    circle,
+    rgba(255, 220, 110, 0.55) 0%,
+    rgba(95, 200, 255, 0.25) 45%,
+    rgba(40, 120, 220, 0) 70%
+  );
+}
+
+.purified .silhouette {
+  filter: brightness(0) drop-shadow(0 0 3px #fff0b8) drop-shadow(0 0 16px #ffc640);
+}
+
+.purified .flash {
+  background: radial-gradient(circle, #ffffff 0%, #fff0b8 40%, #5fc8ff 100%);
+}
