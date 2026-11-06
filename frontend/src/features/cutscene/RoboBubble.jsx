@@ -6,6 +6,7 @@ import CutscenePointer from './CutscenePointer';
 import CutsceneDragDemo from './CutsceneDragDemo';
 import NameEntryPanel from './NameEntryPanel';
 import tokenizeFurigana from './tokenizeFurigana';
+import { registerPlayer } from '../../services/clearRecordApi.js';
 import playerData from '../../data/player.json';
 import cutscenesData from '../../data/cutscenes.json';
 
@@ -458,10 +459,12 @@ function RoboBubble({ variant = 'map' }) {
   /*
    * 名前入力（`NameEntryPanel`）の確定。`playerStore` に保存して（以降の
    * `{playerName}` が置き換わる）次の step へ進む。空チェックはパネル側の
-   * 「けってい」の disabled が担う。
+   * 「けってい」の disabled が担う。併せて集計スクリーン用にニックネームと
+   * 開始時間をサーバーへ登録する（結果は待たずに進む）。
    */
   const handleNameSubmit = (name) => {
     usePlayerStore.getState().setPlayerName(name);
+    registerPlayer(name);
     useCutsceneStore.getState().advance();
   };
 

@@ -84,6 +84,17 @@ npm run build      # dist/ に成果物を出力
 npm run preview    # ビルド結果をローカル確認
 ```
 
+### クリア集計スクリーン（Supabase）
+
+複数端末のクリア状況を 1 つのモニターに出すため、Supabase に記録している。
+
+1. Supabase でプロジェクトを作り、SQL Editor で `supabase/migrations/20261106000000_create_users.sql` を実行する。
+2. `frontend/.env.example` を `frontend/.env.local` にコピーし、Project Settings → API の URL と publishable key を入れる。Vercel にも同じ 2 つの環境変数を設定する。
+3. ゲームでニックネームを入力すると `users` テーブルに登録され（`register_player`）、4-4 撃破後のエンディング〜エピローグ「つづく…」まで見終えると `cleared_at` が記録される（`mark_cleared`）。
+4. 会場モニターでは `https://<公開URL>/screen` を開く。今日（日本時間）クリアした人数と、ニックネーム・クリアタイム（開始〜クリアの経過時間）の一覧がリアルタイムで表示される。表示確認には `supabase/test_data.sql` を SQL Editor で実行する（削除用の SQL も同じファイルにある）。
+
+環境変数が未設定のときは送信もスクリーンも無効になり、ゲームはそのまま遊べる。`/screen` への直接アクセスは `frontend/vercel.json` の rewrite で `index.html` に流している。
+
 ### デプロイとブランチ運用（Vercel）
 
 本番は Vercel でホスティングしており、すでに一般ユーザーが遊んでいる公開 URL がある。**編集・調整を毎回そのまま本番へ反映させない**ために、次のブランチ運用を守る。
@@ -163,6 +174,9 @@ unilab/
 │   ├── enemy-action-cards.html   ← 敵カード 3 種(敵防御・敵カウンター・敵回復)のルール案
 │   ├── map-landmark-movement.md
 │   └── stage5-model-flowcharts.html ← ワールド 5(敵防御・敵カウンター・敵回復)の設計案とモデルフローチャート
+├── supabase/                     ← Supabase(クリア集計スクリーン用 DB)
+│   ├── migrations/               ← テーブル・RPC・RLS の定義 SQL
+│   └── test_data.sql             ← /screen 表示確認用のテストデータ(追加・削除)
 └── frontend/                     ← React フロントエンド(将来 backend を横に追加)
     ├── public/                   ← 静的アセット(URL で参照)
     │   ├── favicon.svg
@@ -204,8 +218,10 @@ unilab/
     │   │   │   ├── flying_sapphire_dragon/ ← idle / dead(5-2 のボス)
     │   │   │   ├── revived_dragon/ ← idle / dead(5-3 のボス、魔気でよみがえったドラゴン)
     │   │   │   └── dark_hero/    ← idle / dead(5-4 の最終ボス、魔気に操られた勇者)
+    │   │   ├── flying_dragon/    ← 集計スクリーンで夜空を飛ぶドラゴン(fly/flying_dragon_fly_NN.png、FlyingDragon が参照)
     │   │   ├── portraits/        ← 会話アイコン用の立ち絵(hero.png: 元に戻った勇者、cutscenes.json の speakerIcon が参照)
     │   │   └── effects/          ← 演出用の単発画像(dragon_shadow.png: 翼を広げたドラゴンの影、DragonShadowOverlay が参照)
+    │   ├── screen/               ← 集計スクリーンの背景画像(clear_screen_bg.png、ClearScreen が参照)
     │   └── story/                ← 紙芝居の画像(オープニング story_NN.png・エンディング ending_NN.png、StoryScreen が参照)
     └── src/
         ├── main.jsx              ← エントリポイント
@@ -236,7 +252,11 @@ unilab/
         │   ├── playerStore.js    ← プレイヤー名(オープニングで入力、localStorage 永続)
         │   └── progressStore.js  ← ステージのクリア記録・解放アニメ状態
         ├── hooks/                ← 機能横断のカスタムフック
-        │   └── useSpriteAnimation.js  ← スプライト連番のフレーム送り(敵・主人公共用)
+        │   ├── useSpriteAnimation.js  ← スプライト連番のフレーム送り(敵・主人公共用)
+        │   └── useTodayClears.js      ← 今日のクリア者一覧を Realtime で追従(集計スクリーン用)
+        ├── services/             ← 外部サービスとの通信
+        │   ├── supabaseClient.js      ← Supabase クライアント(環境変数未設定なら null)
+        │   └── clearRecordApi.js      ← ニックネーム登録・クリア送信・今日のクリア者取得
         ├── engine/               ← UI 非依存のゲームロジック(純関数、将来 Python 移植の仕様書代わり)
         │   ├── evaluateCondition.js   ← 条件式(文字列)を実行時状態で評価する純関数
         │   └── simulateBattle.js      ← 実行前に勝敗/無限ループ(runaway)を数値だけで判定する純関数
@@ -260,6 +280,19 @@ unilab/
         │   ├── buildSpriteFileName.js      ← 命名規則のファイル名を組み立てる(純関数)
         │   └── sanitizeId.js               ← 入力名を snake_case の ID へ正規化(純関数)
         └── features/             ← 機能単位で分割
+            ├── screen/           ← 会場モニター用の集計スクリーン(/screen で開く。今日のクリア人数とニックネーム)
+            │   ├── ClearScreen.jsx
+            │   ├── ClearScreen.module.css
+            │   ├── WalkingHero.jsx        ← 画面下の草原を勇者とビットが歩き回る演出(マップと同じスプライト)
+            │   ├── WalkingHero.module.css
+            │   ├── FlyingDragon.jsx       ← ときどきドラゴンが夜空を横切って飛んでいく演出
+            │   ├── FlyingDragon.module.css
+            │   ├── ShootingStar.jsx       ← 15 分に 1 回、夜空に流れ星を流す演出
+            │   ├── ShootingStar.module.css
+            │   ├── WanderingEnemy.jsx     ← 草原を敵(スライム・ウルフ・ナイト)が跳ねながら歩き回る演出
+            │   ├── WanderingEnemy.module.css
+            │   ├── useWanderMotion.js     ← 「少し歩く→立ち止まる」をくり返す横移動フック
+            │   └── formatClearTime.js     ← 開始〜クリアの経過時間を「分:秒」に整える(純関数)
             ├── lanebattle/       ← おまけミニゲーム「陣取り合戦」(レーン大戦争。隠しコマンド wqinouelabegg で起動)
             │   │                    ※ 本編から隔離。既存コードへの変更は main.jsx への1行マウントのみ
             │   ├── LaneBattleGate.jsx     ← 隠しコマンド検出＋全画面オーバーレイの入口
@@ -427,7 +460,7 @@ unilab/
 |---|---|
 | `frontend/src/features/battle/effects/` | フラッシュ・シェイク等の演出 |
 | `frontend/src/features/stage/` | ステージ選択・進行管理 |
-| `backend/` | Python サーバー(将来導入) |
+| `backend/` | Python サーバー(将来導入。クリア集計は現在 Supabase で代替) |
 
 ### 設計の意図
 

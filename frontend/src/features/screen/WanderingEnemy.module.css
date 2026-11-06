@@ -1,0 +1,62 @@
+/*
+ * 敵の足元の位置を表す点。左端（0）を基準に translateX で横へ動かし、
+ * 中の画像はこの点を中心に下端そろえで置く。
+ */
+.track {
+  position: absolute;
+  left: 0;
+  bottom: 3vh;
+  width: 0;
+  height: 0;
+  transition-property: transform;
+  transition-timing-function: linear;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+/* 歩いている間だけ、小さく跳ねる。 */
+.hopping {
+  animation: hop 0.4s ease-in-out infinite;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-1vh);
+  }
+}
+
+.sprite {
+  display: block;
+  width: auto;
+  image-rendering: pixelated;
+  /* 夜の背景になじむよう、少しだけ暗くする */
+  filter: brightness(0.82) saturate(0.9);
+}
+
+/* 敵の画像は左向きなので、右へ歩くときは左右反転する。 */
+.flipped {
+  transform: scaleX(-1);
+}
+
+/* 足元の影。 */
+.shadow {
+  position: absolute;
+  left: 0;
+  bottom: -0.6vh;
+  width: 6vh;
+  height: 1.4vh;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+}

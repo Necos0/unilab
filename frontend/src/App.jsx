@@ -20,6 +20,7 @@ import mapsData from './data/maps.json';
 import useDebugCommands from './hooks/useDebugCommands.js';
 import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
 import ENDING_SLIDES from './data/ending_slides.json';
+import { forgetPlayer, markCleared } from './services/clearRecordApi.js';
 
 /*
  * このステージをクリア（勝利演出経由で退出）したら、マップではなく
@@ -269,6 +270,7 @@ function App() {
     useProgressStore.getState().resetProgress();
     useMapStore.getState().reset();
     usePlayerStore.getState().resetName();
+    forgetPlayer();
     /*
      * 巻き戻し後はタイトル画面へ戻る。視聴履歴も消えているので、タイトルの
      * 「スタート」からオープニング紙芝居を通しでやり直せる。目覚め演出の
@@ -545,8 +547,13 @@ function App() {
     setScreen('epilogue');
   }, []);
 
-  /* エピローグの「つづく…」を見終えたらタイトルへ戻る。 */
+  /*
+   * エピローグの「つづく…」を見終えたらタイトルへ戻る。本編を最後まで
+   * 見終えたこの時点を「クリア」として、集計スクリーン用にサーバーへ送る
+   * （結果は待たない）。
+   */
   const handleEpilogueFinish = useCallback(() => {
+    markCleared();
     setScreen('title');
   }, []);
 

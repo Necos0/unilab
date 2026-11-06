@@ -1,0 +1,153 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* 下は勇者が歩く草原の帯（WalkingHero）のぶんあけておく */
+  padding: 4vh 6vw 17vh;
+  gap: 3vh;
+  /*
+   * 夜の草原の背景画。下半分の草原は明るめなので、一覧の白文字が読める
+   * よう、下に向かって濃くなる暗いグラデーションを上に重ねる。
+   */
+  background:
+    linear-gradient(to bottom, rgba(5, 8, 24, 0.15) 0%, rgba(5, 8, 24, 0.35) 55%, rgba(5, 8, 24, 0.6) 100%),
+    url('/screen/clear_screen_bg.png') center / cover no-repeat,
+    #0b1220;
+  color: #f8fafc;
+  /* ゲーム内の日本語テキスト（吹き出し・勝利画面のボタン等）と統一 */
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  overflow: hidden;
+  user-select: none;
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 見出しと人数が重ならないよう、行の高さに頼らず間をあける */
+  gap: 2.5vh;
+}
+
+.label {
+  margin: 0;
+  font-size: 4vh;
+  font-weight: 400;
+  /* 「今日（きょう）」のふりがなが上にはみ出さないよう行を高めにとる */
+  line-height: 2;
+  letter-spacing: 0.1em;
+  color: #fde68a;
+}
+
+.count {
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.3em;
+  font-size: 6vh;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.countNumber {
+  /*
+   * Press Start 2P は字形が行の上にはみ出しやすいので、ブロックにして
+   * 行の高さ＝文字の高さに固定し、上の見出しに重ならないようにする。
+   */
+  display: block;
+  line-height: 1;
+  /* 数字は勝利画面の「CLEAR!」などと同じドット英字フォント */
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 14vh;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  text-shadow: 0 0 4vh rgba(253, 230, 138, 0.45);
+}
+
+.viewport {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-top: 2px solid rgba(253, 230, 138, 0.35);
+}
+
+/* スクロール中だけ、上下の端で名前がふわっと消える／現れるようにする。 */
+.viewportScrolling {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 94%, transparent 100%);
+}
+
+.nameList {
+  margin: 0 auto;
+  padding: 2vh 0;
+  max-width: 70vw;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  /* DotGothic16 と Press Start 2P はベースラインの位置が違うので中央で揃える */
+  align-items: center;
+  justify-content: space-between;
+  gap: 4vw;
+  padding: 1.2vh 2vw;
+  border-bottom: 1px solid rgba(248, 250, 252, 0.12);
+  font-size: 4.5vh;
+  font-weight: 400;
+}
+
+.name {
+  min-width: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.time {
+  flex: none;
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 3.6vh;
+  font-variant-numeric: tabular-nums;
+  color: #fde68a;
+}
+
+.scroller {
+  animation-name: scrollUp;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes scrollUp {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.empty {
+  margin: 0;
+  padding-top: 8vh;
+  font-size: 4vh;
+  text-align: center;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.error {
+  position: absolute;
+  right: 2vw;
+  bottom: 2vh;
+  margin: 0;
+  font-size: 2vh;
+  color: rgba(248, 250, 252, 0.5);
+}
+
+.notice {
+  margin: auto;
+  font-size: 2.5vh;
+}
