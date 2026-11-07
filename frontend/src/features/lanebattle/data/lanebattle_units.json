@@ -3,7 +3,7 @@
   "roster": [
     "slime", "wolf", "knight", "cactus", "starfish", "shark",
     "crab", "lizard", "cobra", "squid", "scorpion", "golem",
-    "phoenix", "lagiacrus", "goldenbird", "dragon"
+    "phoenix", "lagiacrus", "goldenbird", "mecha_dragon"
   ],
   "overrides": [
     { "id": "slime", "cost": 10, "hp": 10, "atk": 3,
@@ -54,7 +54,7 @@
       "slowOnAttack": { "ms": 2500, "mul": 0.5 }, "supportAllLanes": true, "atkIntervalMs": 1400, "legend": true,
       "ability": "【でんせつ】てきを おそく", "desc": "中距離で攻撃しつつ、敵全体を減速させる。" },
 
-    { "id": "dragon", "cost": 85, "hp": 100, "atk": 90, "range": 150, "splash": 55,
+    { "id": "mecha_dragon", "cost": 85, "hp": 100, "atk": 90, "range": 150, "splash": 55,
       "atkIntervalMs": 2200, "legend": true,
       "ability": "【でんせつ】つよい はんい", "desc": "攻撃間隔は長いが、範囲に超強力ダメージ。" }
   ]

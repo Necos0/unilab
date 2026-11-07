@@ -271,6 +271,24 @@
       }
     },
     {
+      "id": "mecha_dragon",
+      "displayName": "メカドラゴン",
+      "maxHp": 100,
+      "sizeRatio": 1.0,
+      "animations": {
+        "idle": {
+          "frameCount": 9,
+          "frameDurationMs": 150,
+          "loop": true
+        },
+        "dead": {
+          "frameCount": 8,
+          "frameDurationMs": 160,
+          "loop": false
+        }
+      }
+    },
+    {
       "id": "dragon_final",
       "displayName": "しんのドラゴン",
       "maxHp": 9999,

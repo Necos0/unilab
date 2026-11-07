@@ -3,7 +3,6 @@ import { createLaneSprite } from './laneSprite';
 import { arenaXPct } from './arena';
 import { createAttackEffect } from './laneEffect';
 import { createBaseSprite } from './baseSprite';
-import { deriveUnitDef } from './deriveUnitDef';
 import { getHeroFramePath } from '../../map/heroSpritePath';
 import { getEnemyFramePath } from '../../battle/enemy/enemySpritePath';
 
@@ -51,11 +50,11 @@ export function createRenderer(fieldEl) {
   const fx = document.createElement('div');
   fx.className = 'lbf-fx';
   fieldEl.appendChild(fx);
-  // 本陣キャラ：味方＝主人公（hero），敵＝真のドラゴン（dragon_final）．立たせるだけで動かない．
-  // hero は enemies.json に無いため idle 4 コマ（public/sprites/hero/idle）を定数で与える．
-  // 敵本陣はラスボスなので少し大きめ（scale 1.35）．
-  const dragonDef = deriveUnitDef('dragon_final');
-  // 本陣キャラはアリーナ外の袖（盤面端寄り）に立たせる．敵本陣はラスボスなので高めに．
+  // 本陣キャラ：味方＝主人公（hero），敵＝メカサファイアドラゴン（mecha_sapphire_dragon）．
+  // 立たせるだけで動かない．どちらも enemies.json に無いため frames/frameMs は定数で与える
+  // （hero=idle 4コマ／敵=idle 8コマ）．陣取り合戦は 2-4 で早期解放するため，ラスボスの
+  // 「しんのドラゴン」ではなくネタバレにならない別キャラを敵本陣に立たせる．敵は少し大きめ．
+  // 本陣キャラはアリーナ外の袖（盤面端寄り）に立たせる．
   const INSET = 1; // 盤面端からの内側%．
   const heroSpr = createBaseSprite(fieldEl, {
     framePath: (i) => getHeroFramePath('idle', i),
@@ -67,9 +66,9 @@ export function createRenderer(fieldEl) {
     side: 'you',
   });
   const dragonSpr = createBaseSprite(fieldEl, {
-    framePath: (i) => getEnemyFramePath('dragon_final', 'idle', i),
-    frames: dragonDef.idleFrames,
-    frameMs: dragonDef.idleMs,
+    framePath: (i) => getEnemyFramePath('mecha_sapphire_dragon', 'idle', i),
+    frames: 8,
+    frameMs: 120,
     flipX: false,
     heightPx: 130,
     insetPct: INSET,
