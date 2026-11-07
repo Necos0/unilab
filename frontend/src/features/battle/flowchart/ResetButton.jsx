@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import useBattleStore from '../../../stores/battleStore';
+import ResetConfirmModal from './ResetConfirmModal';
 import styles from './ResetButton.module.css';
 
 /**                                                                           
   * フローチャート上のカード配置をリセットするボタン。
   *                                                                            
-  * クリックするとストアの `initializeBattle(stage)` を再実行し、手札を
-  * `stages.json` の初期順序に戻しつつ全スロットを空にする。スロットが         
+  * クリックするとまず確認モーダル（`ResetConfirmModal`）を出し，「もどす」が
+  * 選ばれたときだけストアの `initializeBattle(stage)` を再実行して，手札を
+  * `stages.json` の初期順序に戻しつつ全スロットを空にする。拡大しようとして
+  * 誤タップ→即リセットしてしまう事故を防ぐため，実行前に確認を挟む。スロットが
   * 既に全て空であっても冪等な no-op として成立する（card-placement 要件7-4）。
   *                                                                            
   * 表示は円環状の矢印アイコン（SVG）を使用し、テキストは持たない。隣接する    
@@ -49,14 +53,22 @@ function ResetButton({ stage }) {
 
   const isDisabled = isExecuting || isTransitioning || victoryPhase !== null || failPhase !== null;
 
-  const handleClick = () => {
+  // 拡大しようとして誤タップ→即リセットの事故を防ぐため，確認モーダルを挟む．
+  const [confirming, setConfirming] = useState(false);
+  const handleConfirm = () => {
     initializeBattle(stage);
+    setConfirming(false);
   };
 
   return (
-    <button type="button" className={styles.button} onClick={handleClick} aria-label="リセット" disabled={isDisabled} data-cutscene-point="resetButton">
-      <img className={styles.icon} src="/icons/flowchart/reset.svg" alt="" draggable={false}/>
-    </button>
+    <>
+      <button type="button" className={styles.button} onClick={() => setConfirming(true)} aria-label="リセット" disabled={isDisabled} data-cutscene-point="resetButton">
+        <img className={styles.icon} src="/icons/flowchart/reset.svg" alt="" draggable={false}/>
+      </button>
+      {confirming && (
+        <ResetConfirmModal onConfirm={handleConfirm} onCancel={() => setConfirming(false)} />
+      )}
+    </>
   );
 }
 
