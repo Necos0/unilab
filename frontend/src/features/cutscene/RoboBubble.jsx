@@ -205,16 +205,18 @@ function RoboBubble({ variant = 'map' }) {
   const demoDrag = currentStep?.demoDrag ?? null;
   /*
    * プレイヤーの操作待ち step。`waitForCardInSlot`（カードをスロットへ置く
-   * 待ち）または `waitForExecute`（実行ボタンを押す待ち）を持つ step では、
-   * 吹き出し（ヒント）は出しつつ全面レイヤーを「素通し」にして、下の画面を
-   * 実際に操作できるようにする。クリック／Enter での送りも止め、次へ進める
-   * のは `BattleScreen` 側の監視（カードが入った／実行が始まったら
-   * `advance`）だけにする。ヒントを見て押したクリックがカットシーン送りに
-   * 吸われて「押したのに効かない」とならないようにするための仕組み。
+   * 待ち）・`waitForExecute`（実行ボタンを押す待ち）・`waitForExpand`（拡大
+   * ボタンを押す待ち）を持つ step では、吹き出し（ヒント）は出しつつ全面
+   * レイヤーを「素通し」にして、下の画面を実際に操作できるようにする。
+   * クリック／Enter での送りも止め、次へ進めるのは `BattleScreen` 側の監視
+   * （カードが入った／実行が始まった／拡大した ら `advance`）だけにする。
+   * ヒントを見て押したクリックがカットシーン送りに吸われて「押したのに効か
+   * ない」とならないようにするための仕組み。
    */
   const isWaitStep =
     currentStep?.waitForCardInSlot === true ||
-    currentStep?.waitForExecute === true;
+    currentStep?.waitForExecute === true ||
+    currentStep?.waitForExpand === true;
   /*
    * 主人公の返事の選択肢（`choices`）と名前入力（`nameInput`）。どちらかを
    * 持つ step では、読み上げ完了後もレイヤーのクリック／Enter で先へ進めず、
