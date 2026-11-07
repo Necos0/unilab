@@ -689,6 +689,31 @@ function BattleScreen({ stageId, onExitToMap, onClearedExitToMap }) {
   }, [isWaitingForExecute, isExecuting, advanceCutscene]);
 
   /*
+   * カットシーンの「拡大待ち」step（`waitForExpand`）の進行。拡大ボタンを実際に
+   * 押して拡大するまで次へ進ませない（連打でチュートリアルを飛ばし，拡大機能を
+   * 知らないまま進むのを防ぐ）。step 突入時にまず縮小へ揃え，その後 `isExpanded`
+   * が true になった（＝押した）時点で `advance` する。`expandArmedRef` で「突入
+   * tick で即 advance」する競合を避け，既に拡大済みなら一度縮小してから押させる。
+   */
+  const isWaitingForExpand = useCutsceneStore(
+    (s) => Boolean(s.activeId) && s.steps[s.stepIndex]?.waitForExpand === true,
+  );
+  const expandArmedRef = useRef(false);
+  useEffect(() => {
+    if (!isWaitingForExpand) {
+      expandArmedRef.current = false;
+      return;
+    }
+    if (!expandArmedRef.current) {
+      // step 突入：縮小に揃えてから「押して拡大」を待つ（既に拡大だと成立しないため）．
+      expandArmedRef.current = true;
+      if (isExpanded) collapseFlowchart();
+      return;
+    }
+    if (isExpanded) advanceCutscene();
+  }, [isWaitingForExpand, isExpanded, collapseFlowchart, advanceCutscene]);
+
+  /*
    * カットシーンの「盤面変身」step（`boardTransform`、最終ボス第二形態）。
    * ロボの決意のセリフの後にこの step へ進むと、フローチャート＋手札パネルに
    * 金色の変身エフェクト（`BoardTransformEffect`）を重ね、光が最も強くなる
