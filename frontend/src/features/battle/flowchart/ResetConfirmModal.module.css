@@ -1,0 +1,68 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+}
+
+.panel {
+  background: rgba(21, 21, 28, 0.96);
+  border: 2px solid #f5f5f5;
+  border-radius: 8px;
+  padding: 1.6rem 1.8rem;
+  max-width: min(88vw, 22rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.message {
+  margin: 0;
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  font-size: 1rem;
+  color: #e5e5ff;
+  line-height: 1.6;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.button {
+  font-family: 'DotGothic16', 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: #e5e5ff;
+  background: rgba(31, 31, 40, 0.85);
+  border: 2px solid #f5f5f5;
+  border-radius: 4px;
+  padding: 0.6rem 1.4rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.button:hover {
+  background: rgba(42, 42, 51, 0.95);
+  border-color: #ffe27a;
+}
+
+.button:active {
+  transform: translateY(1px);
+  background: rgba(21, 21, 28, 0.95);
+}
+
+.confirm {
+  border-color: #ff9a9a;
+}
+
+.confirm:hover {
+  border-color: #ff5a5a;
+}
