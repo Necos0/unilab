@@ -26,7 +26,8 @@
     "laneHeight": 150,
     "midX": 600,
     "youBaseX": 60,
-    "cpuBaseX": 1140
+    "cpuBaseX": 1140,
+    "arenaPadPct": 10
   },
   "deploy": {
     "steps": 3,
@@ -35,7 +36,7 @@
   },
   "base": {
     "hp": 2600,
-    "defense": { "atk": 7, "intervalMs": 900 }
+    "defense": { "atk": 5, "intervalMs": 900 }
   },
   "timeLimitMs": 180000,
   "escalation": {

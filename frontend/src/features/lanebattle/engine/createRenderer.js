@@ -1,5 +1,11 @@
 import config from '../data/lanebattle_config.json';
 import { createLaneSprite } from './laneSprite';
+import { arenaXPct } from './arena';
+import { createAttackEffect } from './laneEffect';
+import { createBaseSprite } from './baseSprite';
+import { deriveUnitDef } from './deriveUnitDef';
+import { getHeroFramePath } from '../../map/heroSpritePath';
+import { getEnemyFramePath } from '../../battle/enemy/enemySpritePath';
 
 const { field } = config;
 
@@ -17,6 +23,11 @@ const { field } = config;
  * 移し、`deadMs` ごとに死亡フレームを進めて再生し切ってからスプライトを除去
  * する（sim が dead を即除去しても死亡演出は流れる）。アニメの時間は `sync`
  * に渡る**実フレーム dt** で進む（見た目のクロックで、sim の固定ステップとは別）。
+ *
+ * さらに盤面全面のエフェクト層 `.lbf-fx` と本陣キャラ（味方＝主人公／敵＝真の
+ * ドラゴン）を持つ。`sync` は毎フレーム `state.hits`（攻撃イベント）を読み切って
+ * `createAttackEffect` でエフェクト DOM 化し，キューを空にする（消費は描画側の
+ * 責務）。本陣キャラは `step(dt)` で待機アニメだけ送る。`destroy` で両者も撤去する。
  *
  * Args:
  *     fieldEl (HTMLElement): `.lbf-field` 要素。ここにユニット層を差し込む。
@@ -36,6 +47,34 @@ export function createRenderer(fieldEl) {
     fieldEl.appendChild(el);
     return el;
   });
+  // 攻撃エフェクト層（盤面全面）．飛翔体・斬撃はレーンをまたぐのでユニット層とは別に 1 枚持つ．
+  const fx = document.createElement('div');
+  fx.className = 'lbf-fx';
+  fieldEl.appendChild(fx);
+  // 本陣キャラ：味方＝主人公（hero），敵＝真のドラゴン（dragon_final）．立たせるだけで動かない．
+  // hero は enemies.json に無いため idle 4 コマ（public/sprites/hero/idle）を定数で与える．
+  // 敵本陣はラスボスなので少し大きめ（scale 1.35）．
+  const dragonDef = deriveUnitDef('dragon_final');
+  // 本陣キャラはアリーナ外の袖（盤面端寄り）に立たせる．敵本陣はラスボスなので高めに．
+  const INSET = 1; // 盤面端からの内側%．
+  const heroSpr = createBaseSprite(fieldEl, {
+    framePath: (i) => getHeroFramePath('idle', i),
+    frames: 4,
+    frameMs: 200,
+    flipX: false,
+    heightPx: 96,
+    insetPct: INSET,
+    side: 'you',
+  });
+  const dragonSpr = createBaseSprite(fieldEl, {
+    framePath: (i) => getEnemyFramePath('dragon_final', 'idle', i),
+    frames: dragonDef.idleFrames,
+    frameMs: dragonDef.idleMs,
+    flipX: false,
+    heightPx: 130,
+    insetPct: INSET,
+    side: 'cpu',
+  });
   const sprites = new Map(); // unit -> { spr, animT, frame }
   const dying = []; // { spr, def, animT, frame }
 
@@ -47,7 +86,7 @@ export function createRenderer(fieldEl) {
         rec = { spr: createLaneSprite(layers[u.lane], u.def, u.side), animT: 0, frame: 0 };
         sprites.set(u, rec);
       }
-      rec.spr.setPos((u.x / field.virtualWidth) * 100);
+      rec.spr.setPos(arenaXPct(u.x));
       rec.spr.setHp(u.hp / u.maxHp);
       rec.animT += dt;
       if (rec.animT >= u.def.idleMs) {
@@ -76,6 +115,12 @@ export function createRenderer(fieldEl) {
         dying.splice(i, 1);
       }
     }
+    // 攻撃イベントを消費してエフェクト化し，キューを空にする（描画側の責務）．
+    for (const h of state.hits) createAttackEffect(fx, h);
+    state.hits.length = 0;
+    // 本陣キャラの待機アニメを実フレーム dt で進める．
+    heroSpr.step(dt);
+    dragonSpr.step(dt);
   }
 
   function destroy() {
@@ -84,6 +129,9 @@ export function createRenderer(fieldEl) {
     sprites.clear();
     dying.length = 0;
     layers.forEach((el) => el.remove());
+    fx.remove();
+    heroSpr.remove();
+    dragonSpr.remove();
   }
 
   return { sync, destroy };
