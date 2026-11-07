@@ -84,6 +84,23 @@ export async function markCleared() {
 }
 
 /**
+ * 登録済みのプレイヤーをステージ5クリア済みにする（5-4 をクリアしたときに呼ぶ）。
+ *
+ * 本編クリア（`markCleared`）とは別の記録で、集計スクリーンには出さない。
+ * ニックネーム未登録（ID なし）や接続未設定なら何もしない。同じ
+ * プレイヤーが 2 回クリアしてもサーバー側で最初の 1 回だけが記録される。
+ *
+ * Returns:
+ *     Promise<void>: 送信処理の完了。
+ */
+export async function markStage5Cleared() {
+  const userId = loadUserId();
+  if (!supabase || !userId) return;
+  const { error } = await supabase.rpc('mark_stage5_cleared', { p_user_id: userId });
+  if (error) console.error('[clearRecord] mark_stage5_cleared failed', error);
+}
+
+/**
  * 保存済みのプレイヤー ID を消す（開発用の全リセットから呼ぶ）。
  */
 export function forgetPlayer() {

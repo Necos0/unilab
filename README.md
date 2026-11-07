@@ -88,10 +88,11 @@ npm run preview    # ビルド結果をローカル確認
 
 複数端末のクリア状況を 1 つのモニターに出すため、Supabase に記録している。
 
-1. Supabase でプロジェクトを作り、SQL Editor で `supabase/migrations/20261106000000_create_users.sql` を実行する。
+1. Supabase でプロジェクトを作り、SQL Editor で `supabase/migrations/` の SQL をファイル名の順にすべて実行する。
 2. `frontend/.env.example` を `frontend/.env.local` にコピーし、Project Settings → API の URL と publishable key を入れる。Vercel にも同じ 2 つの環境変数を設定する。
 3. ゲームでニックネームを入力すると `users` テーブルに登録され（`register_player`）、4-4 撃破後のエンディング〜エピローグ「つづく…」まで見終えると `cleared_at` が記録される（`mark_cleared`）。
 4. 会場モニターでは `https://<公開URL>/screen` を開く。今日（日本時間）クリアした人数と、ニックネーム・クリアタイム（開始〜クリアの経過時間）の一覧がリアルタイムで表示される。表示確認には `supabase/test_data.sql` を SQL Editor で実行する（削除用の SQL も同じファイルにある）。画面を開いたあとに新しくクリアした人が出ると「クリア おめでとう！」の演出が出る。演出だけ見たいときは `/screen` でキーボードから `wqclear` とタイプする（DB には何も書かない）。Realtime 経由で確かめたいときは `test_data.sql` の「3. 1 人だけクリアさせる」を実行する。
+5. ステージ5（5-4）をクリアすると `stage5_cleared_at` が記録される（`mark_stage5_cleared`）。スクリーンには出さないので、人数は SQL Editor で `select count(*) from public.users where stage5_cleared_at is not null;` を実行して数える（今日の分だけなら `and stage5_cleared_at >= date_trunc('day', now() at time zone 'Asia/Tokyo') at time zone 'Asia/Tokyo'` を足す）。
 
 環境変数が未設定のときは送信もスクリーンも無効になり、ゲームはそのまま遊べる。`/screen` への直接アクセスは `frontend/vercel.json` の rewrite で `index.html` に流している。
 

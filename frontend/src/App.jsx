@@ -25,7 +25,7 @@ import mapsData from './data/maps.json';
 import useDebugCommands from './hooks/useDebugCommands.js';
 import { TRAVEL_BUTTON_DEBUT_MS } from './features/map/MapTravelButton.jsx';
 import ENDING_SLIDES from './data/ending_slides.json';
-import { forgetPlayer, markCleared } from './services/clearRecordApi.js';
+import { forgetPlayer, markCleared, markStage5Cleared } from './services/clearRecordApi.js';
 
 /*
  * このステージをクリア（勝利演出経由で退出）したら、マップではなく
@@ -42,6 +42,8 @@ const LANEBATTLE_UNLOCK_STAGE_ID = '2-4';
 const WORLD5_MAP_ID = 'map_5';
 /* ステージ5の入口ステージ。入場の会話（`enterMapArea`）の判定に使う。 */
 const WORLD5_ENTRY_STAGE_ID = '5-1';
+/* ステージ5の最後のステージ。クリアしたらステージ5クリアとしてサーバーへ送る。 */
+const WORLD5_FINAL_STAGE_ID = '5-4';
 
 /*
  * 本編の最初のマップ ID（`MapScreen` の初期マップと同じ）。続きの位置が
@@ -768,6 +770,13 @@ function App() {
      */
     returnToMapActionRef.current = () => {
       useProgressStore.getState().markStageCleared(clearedStageId);
+      /*
+       * ステージ5を最後まで遊んだ人数の集計用に、5-4 のクリアをサーバーへ
+       * 送る（結果は待たない）。2 回目以降のクリアはサーバー側で無視される。
+       */
+      if (clearedStageId === WORLD5_FINAL_STAGE_ID) {
+        markStage5Cleared();
+      }
       /*
        * ラスボス（4-4）クリア時はマップへ戻らず、暗転したままエンディング
        * 紙芝居へ遷移する。4-4 には次ステージの解放・`exitStage` カット
