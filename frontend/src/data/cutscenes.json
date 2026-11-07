@@ -255,6 +255,16 @@
     ]
   },
 
+  "lanebattle-unlocked": {
+    "category": "tutorial",
+    "once": true,
+    "trigger": { "type": "exitStage", "stageId": "2-4" },
+    "steps": [
+      { "bubble": "そういえば！ 「じんとりがっせん」が あそべるように なったよ！" },
+      { "bubble": "まず ここから タイトルに もどって、「じんとりがっせん」ボタンから あそべるんだ！", "point": "backToTitle" }
+    ]
+  },
+
   "map-stage3-enter": {
     "category": "tutorial",
     "once": true,
