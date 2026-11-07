@@ -1,0 +1,64 @@
+/* どの順位でも同じ幅にして、名前の書き出し位置をそろえる。 */
+.badge {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7vh;
+  height: 6vh;
+  font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+  font-size: 3vh;
+  color: rgba(248, 250, 252, 0.75);
+}
+
+.crownIcon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 1.2vh var(--glow));
+}
+
+.crownBody {
+  fill: var(--crown);
+  stroke: var(--edge);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+.crownJewel {
+  fill: var(--jewel);
+  stroke: var(--edge);
+  stroke-width: 0.4;
+}
+
+/* 王冠の下の帯に順位の数字を重ねる */
+.crownNumber {
+  position: relative;
+  margin-top: 2.2vh;
+  font-size: 2.4vh;
+  color: var(--edge);
+}
+
+.gold {
+  --crown: #facc15;
+  --edge: #78350f;
+  --jewel: #ef4444;
+  --glow: rgba(250, 204, 21, 0.6);
+}
+
+.silver {
+  --crown: #e2e8f0;
+  --edge: #334155;
+  --jewel: #38bdf8;
+  --glow: rgba(226, 232, 240, 0.45);
+}
+
+.bronze {
+  --crown: #d97706;
+  --edge: #431407;
+  --jewel: #22c55e;
+  --glow: rgba(217, 119, 6, 0.45);
+}

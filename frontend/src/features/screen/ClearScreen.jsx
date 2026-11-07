@@ -5,6 +5,7 @@ import { isClearRecordEnabled } from '../../services/clearRecordApi.js';
 import FullscreenToggleButton from '../map/FullscreenToggleButton.jsx';
 import ClearCelebration from './ClearCelebration.jsx';
 import formatClearTime from './formatClearTime.js';
+import RankBadge from './RankBadge.jsx';
 import FlyingDragon from './FlyingDragon.jsx';
 import ShootingStar from './ShootingStar.jsx';
 import WalkingHero from './WalkingHero.jsx';
@@ -29,6 +30,9 @@ const WANDERING_ENEMIES = [
  */
 const CONTROLS_HIDE_DELAY_MS = 3000;
 
+/* 1〜3 位の行に重ねる色（金・銀・銅）。添字は順位 - 1。 */
+const TOP_ROW_CLASSES = [styles.rowGold, styles.rowSilver, styles.rowBronze];
+
 /* 1 行ぶんがスクロールで流れるのにかける秒数。 */
 const SECONDS_PER_ROW = 1.6;
 
@@ -38,8 +42,9 @@ const DEBUG_CLEAR_TIME_MS = (12 * 60 + 34) * 1000;
 /**
  * 会場モニター用の集計スクリーン（`/screen` で開く）。
  *
- * 上部に今日クリアした人数、下部に今日クリアした人を「ニックネーム・
- * クリアタイム」の 1 行ずつ、クリアタイムが短い順に表示する。クリアタイムは
+ * 上部に今日クリアした人数、下部に今日クリアした人を「順位・ニックネーム・
+ * クリアタイム」の 1 行ずつ、クリアタイムが短い順に表示する。1〜3 位は
+ * 王冠つきの順位マーク（`RankBadge`）と色つきの行で目立たせる。クリアタイムは
  * ニックネーム入力（開始）からクリアまでの経過時間。一覧が表示枠に
  * 収まりきらないときだけ、一覧を 2 つ並べて
  * 縦方向に途切れなくループスクロールさせる。データは `useTodayClears`
@@ -150,8 +155,14 @@ function ClearScreen() {
       className={styles.nameList}
       aria-hidden={isClone || undefined}
     >
-      {rankedClears.map((clear) => (
-        <li key={clear.id} className={styles.row}>
+      {rankedClears.map((clear, index) => (
+        <li
+          key={clear.id}
+          className={
+            TOP_ROW_CLASSES[index] ? `${styles.row} ${TOP_ROW_CLASSES[index]}` : styles.row
+          }
+        >
+          <RankBadge rank={index + 1} />
           <span className={styles.name}>{clear.nickname}</span>
           <span className={styles.time}>
             {formatClearTime(clear.started_at, clear.cleared_at)}
