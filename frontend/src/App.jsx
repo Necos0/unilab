@@ -30,6 +30,8 @@ import { forgetPlayer, markCleared } from './services/clearRecordApi.js';
  * エンディング紙芝居（`screen === 'ending'`）へ遷移する。ラスボスの 4-4。
  */
 const ENDING_STAGE_ID = '4-4';
+/* 陣取り合戦（おまけ）の解放ステージ。ここをクリアしたらタイトルにボタンを出す。 */
+const LANEBATTLE_UNLOCK_STAGE_ID = '2-4';
 
 /*
  * ステージ5のマップ ID。全体マップ（`map_0`）に領域を持たない独立マップで、
@@ -180,14 +182,17 @@ function App() {
   const isEndingUnlocked = useProgressStore((s) =>
     s.clearedStageIds.includes(ENDING_STAGE_ID),
   );
-  /*
-   * おまけミニゲーム「陣取り合戦」の入口をタイトルに出すか。ラスボス（4-4）を
-   * クリアし、かつエンディングロール（コイン集め）も最後まで遊び切った
-   * プレイヤーにだけ、スタートの下に「じんとりがっせん で あそぶ」ボタンを
-   * 出す。両条件そろって初めて解放される、本編＋エンディングのさらにおまけ。
-   */
   const hasFinishedEndingGame = useProgressStore((s) => s.hasFinishedEndingGame);
-  const canPlayLaneBattle = isEndingUnlocked && hasFinishedEndingGame;
+  /*
+   * おまけミニゲーム「陣取り合戦」の入口をタイトルに出すか。2-4（ワールド2の
+   * 最終ステージ）クリアで解放する。解放通知（once）は世界解放シネマ後の
+   * `exitStage 2-4` カットシーンで出す（その時点でマップが落ち着き「タイトルに
+   * もどる」ボタンも見えるので指差し誘導できる）。タイトルの『じんとりがっせん』
+   * ボタンへ動線を示す。
+   */
+  const canPlayLaneBattle = useProgressStore((s) =>
+    s.clearedStageIds.includes(LANEBATTLE_UNLOCK_STAGE_ID),
+  );
   /*
    * スタートボタンのラベルを「つづきから」に切り替える目印．App が「再開するか
    * 最初からか」を判定している当のフラグ（オープニング視聴済み＝再開する）を

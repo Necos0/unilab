@@ -15,6 +15,10 @@ import styles from './BackToTitleButton.module.css';
  * CSS の `position: absolute` で SVG マップ上に重ねる（右上の
  * `MapTravelButton` と対になる左上）。
  *
+ * `data-cutscene-point="backToTitle"` は陣取り合戦の解放通知カットシーン
+ * （`lanebattle-unlocked`）の指差し対象アンカー。2-4 クリア後に「タイトルへ
+ * もどって『じんとりがっせん』ボタンから遊べる」動線をこのボタンで示す。
+ *
  * Args:
  *     props (object): React プロパティ。
  *         onClick (function): ボタンクリック時に呼び出すハンドラ。引数なし。
@@ -30,6 +34,7 @@ function BackToTitleButton({ onClick }) {
       onClick={onClick}
       aria-label="タイトルに もどる"
       title="タイトルに もどる"
+      data-cutscene-point="backToTitle"
     >
       タイトルに もどる
     </button>
