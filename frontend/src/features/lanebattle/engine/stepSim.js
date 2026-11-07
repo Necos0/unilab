@@ -63,6 +63,39 @@ function moveToward(state, u, goalX, dist) {
 }
 
 /**
+ * 攻撃エフェクト用のイベントを `state.hits` に 1 件積む（要件 1・4）．
+ *
+ * 描画層が「元→先」の向きと種別を描けるよう，攻撃元・攻撃先の仮想座標
+ * （x・lane），攻撃した側 `side`，遠隔か `ranged` を純データで記録する．
+ * ダメージ適用（dealDamage 等）とは分離し，ここでは hp にも DOM にも触れない．
+ * 1 攻撃アクションにつき主対象へ 1 件だけ積む（pierce/splash でも氾濫させない）．
+ *
+ * Args:
+ *     state (object): 対戦状態．`hits` に push する．
+ *     from (object): 攻撃元 `{x, lane}`．
+ *     to (object): 攻撃先 `{x, lane}`．
+ *     side (string): 攻撃した側 `'you'` / `'cpu'`（色分け用）．
+ *     ranged (boolean): 遠隔なら true（飛翔体）／近接なら false（斬撃）．
+ *     opts (object): 追加情報．
+ *         base (boolean): 本陣（タワー）の攻撃か．true なら敵味方共通色にする．
+ *         splash (number): 範囲攻撃の半径（仮想x）．0 なら範囲表示なし．
+ *         pierce (number): 貫通攻撃の射程（仮想x）．0 なら貫通ビーム表示なし．
+ */
+function pushHit(state, from, to, side, ranged, opts = {}) {
+  state.hits.push({
+    fromX: from.x,
+    fromLane: from.lane,
+    toX: to.x,
+    toLane: to.lane,
+    side,
+    ranged,
+    base: opts.base ?? false,
+    splash: opts.splash ?? 0,
+    pierce: opts.pierce ?? 0,
+  });
+}
+
+/**
  * 各ユニットを 1 ステップ分「移動 または 攻撃」させる（要件 1・8）。
  *
  * ユニット 1 体につき `findTarget` を 1 回だけ呼び、その 1 つの標的で「攻撃
@@ -72,8 +105,9 @@ function moveToward(state, u, goalX, dist) {
  * `Math.sign(target.x - u.x)` の向き（前方＝前進／後方＝後退。要件 1-7/8）へ
  * 進む。標的が居なければ、敵本陣が射程内なら本陣 HP を削り、遠ければ本陣へ
  * 前進する。速度は素の `spd` に鈍足倍率 `slowMul` と `config.moveSpeedScale`
- * を掛ける。死亡判定・本陣防衛はこの関数では行わない（後続ブロック）。DOM に
- * 触れない純関数。
+ * を掛ける。死亡判定・本陣防衛はこの関数では行わない（後続ブロック）。攻撃が
+ * 発生したティックでは `pushHit` で攻撃エフェクト用イベントを `state.hits` に
+ * 積む（対ユニット・対本陣の 2 経路）。ダメージ適用とは分離し DOM には触れない．
  *
  * Args:
  *     state (object): 対戦状態。`units` / `base` を更新する。
@@ -95,6 +129,14 @@ export function stepUnits(state, dt) {
         if (u.atkTimer <= 0) {
           u.atkTimer = u.atkInterval;
           resolveAttack(state, u, target);
+          // 攻撃元 u → 主対象 target．resolveAttack（pierce/splash で多重処理）
+          // ではなくここで 1 件だけ積む．範囲は splash 半径，貫通は本陣までの距離を
+          // 渡して可視化する（ビームが攻撃位置→敵本陣の直前まで伸びる）．
+          const pierceBaseX = u.side === 'you' ? config.field.cpuBaseX : config.field.youBaseX;
+          pushHit(state, u, target, u.side, !!u.def.ranged, {
+            splash: u.splash,
+            pierce: u.pierce ? Math.abs(pierceBaseX - u.x) : 0,
+          });
         }
       } else {
         moveToward(state, u, target.x, speed * s);
@@ -106,6 +148,8 @@ export function stepUnits(state, dt) {
         if (u.atkTimer <= 0) {
           u.atkTimer = u.atkInterval;
           state.base[enemyBase].hp -= u.atk;
+          // 本陣は lane を持たないので攻撃元の lane に撃ち込む形で記録する．
+          pushHit(state, u, { x: baseX, lane: u.lane }, u.side, !!u.def.ranged);
         }
       } else {
         moveToward(state, u, baseX, speed * s);
@@ -140,7 +184,9 @@ export function dealDamage(state, target, amount) {
  * バードなどレジェンドが true）。ダメージは貫通（`pierce`：前方 `range` 内の
  * 敵全員）／範囲（`splash`：着弾点まわり）／単体のいずれか。範囲・貫通が届く
  * レーンは `attackAllLanes` で決まる（既定 false＝同レーン、true＝全レーン。
- * ドラゴン等が true。検知の `laneReach` とは独立の軸）。攻撃の間隔・発生
+ * ドラゴン等が true。検知の `laneReach` とは独立の軸）。貫通の到達距離は固定
+ * `range` ではなく「攻撃元から敵本陣までの距離」で、打つ位置によって変わる
+ * （前進するほど短く。前方の敵を本陣手前まで全て貫く）。攻撃の間隔・発生
  * タイミングは呼び出し側（stepCombat）が管理する。DOM に触れない純関数。
  *
  * Args:
@@ -169,11 +215,15 @@ export function resolveAttack(state, u, target) {
   const dir = u.side === 'you' ? 1 : -1;
   const dmgSameLane = !u.attackAllLanes; // 既定は同レーン／ドラゴン等は全レーン攻撃
   if (u.pierce) {
+    // 貫通の到達距離は固定 range ではなく「攻撃元から敵本陣までの距離」．
+    // 前方にいる敵ユニットを本陣手前まで全て貫く（打つ位置で範囲が変わる）．
+    const enemyBaseX = u.side === 'you' ? config.field.cpuBaseX : config.field.youBaseX;
+    const reach = Math.abs(enemyBaseX - u.x);
     for (const o of state.units) {
       if (o.dead || o.side === u.side) continue;
       if (dmgSameLane && o.lane !== u.lane) continue;
       const ahead = (o.x - u.x) * dir;
-      if (ahead > 0 && ahead <= u.range) dealDamage(state, o, u.atk);
+      if (ahead > 0 && ahead <= reach) dealDamage(state, o, u.atk);
     }
   } else if (u.splash > 0) {
     for (const o of state.units) {
@@ -197,7 +247,9 @@ export function resolveAttack(state, u, target) {
  * これにより、本陣防衛より射程の長い遠距離ユニット（トカゲ等）でも、自陣に
  * 入れば必ず被弾する。クールダウン `base[side].defT` は撃った時だけリセット
  * するので、敵が自陣に入った瞬間に反応する。`dealDamage` を通すため、死亡
- * シールド中の敵には本陣の弾も軽減される。DOM に触れない純関数。
+ * シールド中の敵には本陣の弾も軽減される。迎撃したティックでは `pushHit` で
+ * 本陣→対象ユニットのイベントを `state.hits` に積む（塔の射撃なので ranged）。
+ * DOM に触れない純関数。
  *
  * Args:
  *     state (object): 対戦状態。`base` / `units` を更新する。
@@ -228,6 +280,9 @@ export function stepBaseDefense(state, dt) {
     if (target) {
       b.defT = def.intervalMs;
       dealDamage(state, target, def.atk);
+      // 攻撃元は本陣（baseX，対象のレーン上）．塔の射撃なので遠隔（飛翔体）扱い．
+      // base:true で敵味方とも共通色にし，ユニット攻撃と区別する．
+      pushHit(state, { x: baseX, lane: target.lane }, target, side, true, { base: true });
     }
   }
 }

@@ -759,9 +759,9 @@
   width: 100%;
   /* 高さを画面高で頭打ちにする（幅を 2×高さ上限で制限＝2:1 のまま縦だけ縮む）。
      ヘッダー・残り時間・手札を含めて1画面に収め、下スクロールで手札が隠れないように。 */
-  max-width: min(100%, 116vh);
+  max-width: min(100%, 145vh);
   margin-inline: auto;
-  aspect-ratio: 1200 / 600;
+  aspect-ratio: 1500 / 600;
   border-radius: 14px;
   overflow: hidden;
   background: linear-gradient(180deg, #23264a, #171a34);
@@ -778,8 +778,6 @@
 /* レーン帯（top / height は JSX がインライン指定） */
 .lbf-lane {
   position: absolute;
-  left: 1.5%;
-  right: 1.5%;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -852,6 +850,99 @@
   left: 0;
   right: 0;
   pointer-events: none;
+}
+
+/* 本陣キャラ（味方＝主人公／敵＝真のドラゴン）．盤面の床に立つだけで動かない．
+   位置（left%）・サイズ倍率・向きは createBaseSprite がインライン指定する．
+   ユニットより奥（z-index 1）に置き，HPバーの柱と重ならない． */
+.lbf-basechar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+.lbf-basechar img {
+  display: block;
+  width: auto;
+  /* 既存ユニットと同じスムース縮小（詳細なドット絵は pixelated だと粗く見える）．
+     大きさ（高さ）は createBaseSprite がインライン指定する． */
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45));
+}
+
+/* 攻撃エフェクト層（盤面全面）．飛翔体・斬撃をユニットより前（z-index 6）に出す． */
+.lbf-fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+}
+/* 飛翔体（遠隔）．left/top は createAttackEffect が WAAPI で元→先へ動かす．
+   ここは見た目だけ：ドット調の小さな弾．中心合わせの transform は固定． */
+.lbf-proj {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.lbf-proj.you {
+  background: #bfe0ff;
+  box-shadow: 0 0 6px 2px rgba(124, 192, 255, 0.85);
+}
+.lbf-proj.cpu {
+  background: #ffcabd;
+  box-shadow: 0 0 6px 2px rgba(255, 154, 134, 0.85);
+}
+/* 本陣（タワー）の攻撃：敵味方とも同じ色でユニット攻撃と区別する（黄白）． */
+.lbf-proj.base {
+  background: #fff1a8;
+  box-shadow: 0 0 7px 2px rgba(255, 216, 90, 0.95);
+}
+/* 範囲攻撃（splash）の着弾範囲リング．攻撃側の色で広がって消える． */
+.lbf-aoe {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  transform: translate(-50%, -50%);
+}
+.lbf-aoe.you {
+  color: #7cc0ff;
+  background: radial-gradient(circle, rgba(124, 192, 255, 0.28), transparent 70%);
+}
+.lbf-aoe.cpu {
+  color: #ff9a86;
+  background: radial-gradient(circle, rgba(255, 154, 134, 0.28), transparent 70%);
+}
+/* 貫通攻撃のビーム．攻撃元から射程ぶん伸びて消える（攻撃元側を明るく）． */
+.lbf-beam {
+  position: absolute;
+  height: 6px;
+  border-radius: 3px;
+  transform: translateY(-50%);
+}
+.lbf-beam.you {
+  background: linear-gradient(90deg, #7cc0ff, rgba(124, 192, 255, 0.1));
+  box-shadow: 0 0 6px rgba(124, 192, 255, 0.8);
+}
+.lbf-beam.cpu {
+  background: linear-gradient(90deg, rgba(255, 154, 134, 0.1), #ff9a86);
+  box-shadow: 0 0 6px rgba(255, 154, 134, 0.8);
+}
+/* 斬撃／着弾（近接）．被弾点で拡大フェード（scale は WAAPI が制御）．
+   初期 transform を置き，アニメ開始前の 1 フレームのズレを防ぐ． */
+.lbf-slash {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%) scale(0.4);
+}
+.lbf-slash.you {
+  background: radial-gradient(circle, #e6f3ff 0%, #7cc0ff 42%, transparent 70%);
+}
+.lbf-slash.cpu {
+  background: radial-gradient(circle, #ffe8e1 0%, #ff9a86 42%, transparent 70%);
 }
 
 /* 遊べる版のレイアウト（盤面＋HUD）と HUD */

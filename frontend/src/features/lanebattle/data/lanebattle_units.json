@@ -21,7 +21,7 @@
     { "id": "starfish", "cost": 12, "hp": 12, "atk": 3, "swarm": true, "swarmSize": 3,
       "ability": "1まいで 3びき でる むれ", "desc": "1枚で3体湧く群れ。コスト分をまとめて出す低HPユニット。" },
 
-    { "id": "shark", "cost": 55, "hp": 120, "atk": 60, "spd": 90, "rushBase": true,
+    { "id": "shark", "cost": 55, "hp": 105, "atk": 60, "spd": 90, "rushBase": true,
       "ability": "まっすぐ 本陣《ほんじん》へ とっしん", "desc": "敵を無視して本陣へ直行する弾丸。硬く足が速く、本陣に大ダメージ。" },
 
     { "id": "crab", "cost": 22, "hp": 70, "atk": 3, "rushBase": true,
@@ -54,7 +54,7 @@
       "slowOnAttack": { "ms": 2500, "mul": 0.5 }, "supportAllLanes": true, "atkIntervalMs": 1400, "legend": true,
       "ability": "【でんせつ】てきを おそく", "desc": "中距離で攻撃しつつ、敵全体を減速させる。" },
 
-    { "id": "dragon", "cost": 85, "hp": 100, "atk": 90, "range": 62, "splash": 55,
+    { "id": "dragon", "cost": 85, "hp": 100, "atk": 90, "range": 150, "splash": 55,
       "atkIntervalMs": 2200, "legend": true,
       "ability": "【でんせつ】つよい はんい", "desc": "攻撃間隔は長いが、範囲に超強力ダメージ。" }
   ]

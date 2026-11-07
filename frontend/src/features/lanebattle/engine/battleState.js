@@ -16,6 +16,10 @@ import config from '../data/lanebattle_config.json';
  *   - `cpuRegenMul` : CPU のエナジー回復倍率（難易度で決まる。既定 1＝互角）。
  *                `createRuntime` が選んだ難易度の `energyRegenMul` を積む。
  *   - `units`  : 場に出ているユニットの配列（`spawnUnit` が積む）。
+ *   - `hits`   : 攻撃エフェクト用の揮発キュー．各要素は
+ *                `{fromX, fromLane, toX, toLane, side, ranged}` の純データ．
+ *                `stepSim` が攻撃解決時に積み，描画層が毎フレーム読み切って
+ *                空にする（DOM 非依存。表示されたら消える一過性の情報）．
  *   - `result` : 決着。`'you'` / `'cpu'` / `null`。
  * デッキ（手札）や seed 付き乱数などは、それらが要る後続の作業ユニットで足す。
  *
@@ -47,6 +51,8 @@ export function createBattleState(cfg = config) {
     cpuRegenMul: 1,
 
     units: [],
+    // 攻撃エフェクトのイベントキュー．stepSim が push し，描画層が消費後に空にする．
+    hits: [],
     result: null,
   };
 }

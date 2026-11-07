@@ -1,8 +1,12 @@
 import config from './data/lanebattle_config.json';
+import { arenaXPct } from './engine/arena';
 
 const { field, deploy } = config;
-const pctX = (x) => (x / field.virtualWidth) * 100;
+const PAD = field.arenaPadPct ?? 0;
 const pctY = (y) => (y / field.virtualHeight) * 100;
+// セルはレーン帯（袖を除いた部分）内のローカル%で置く．レーン自体を袖ぶん
+// 内側へ寄せるので，ローカルは素の x/virtualWidth でよい．
+const laneLocalX = (x) => (x / field.virtualWidth) * 100;
 
 /**
  * 3 レーン盤面の描画（フィールド整備。要件 1・2・6・8）。
@@ -47,6 +51,8 @@ export default function BattleField({ state, fieldRef, onCellTap, active }) {
           style={{
             top: `${pctY(y - field.laneHeight / 2)}%`,
             height: `${pctY(field.laneHeight)}%`,
+            left: `${PAD}%`,
+            right: `${PAD}%`,
           }}
         >
           {deploy.youSlotXs.map((x, step) => (
@@ -54,19 +60,19 @@ export default function BattleField({ state, fieldRef, onCellTap, active }) {
               key={step}
               type="button"
               className={`lbf-cell${active ? ' active' : ''}`}
-              style={{ left: `${pctX(x)}%` }}
+              style={{ left: `${laneLocalX(x)}%` }}
               onClick={onCellTap ? () => onCellTap(lane, step) : undefined}
             />
           ))}
         </div>
       ))}
 
-      <div className="lbf-mid" style={{ left: `${pctX(field.midX)}%` }} />
+      <div className="lbf-mid" style={{ left: `${arenaXPct(field.midX)}%` }} />
 
-      <div className="lbf-base you" style={{ left: `${pctX(field.youBaseX)}%` }}>
+      <div className="lbf-base you" style={{ left: `${arenaXPct(field.youBaseX)}%` }}>
         <span className="lbf-hp"><i style={{ width: `${youHpPct}%` }} /></span>
       </div>
-      <div className="lbf-base cpu" style={{ left: `${pctX(field.cpuBaseX)}%` }}>
+      <div className="lbf-base cpu" style={{ left: `${arenaXPct(field.cpuBaseX)}%` }}>
         <span className="lbf-hp"><i style={{ width: `${cpuHpPct}%` }} /></span>
       </div>
     </div>
