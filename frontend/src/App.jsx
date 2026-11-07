@@ -189,6 +189,13 @@ function App() {
   const hasFinishedEndingGame = useProgressStore((s) => s.hasFinishedEndingGame);
   const canPlayLaneBattle = isEndingUnlocked && hasFinishedEndingGame;
   /*
+   * スタートボタンのラベルを「つづきから」に切り替える目印．App が「再開するか
+   * 最初からか」を判定している当のフラグ（オープニング視聴済み＝再開する）を
+   * そのまま使い，進行フラグを二重に作らない．resetProgress で false に戻り，
+   * 表示も「スタート」に戻る（スタッフがリセット要否をラベルで判別できる）．
+   */
+  const hasSeenOpeningStory = useProgressStore((s) => s.hasSeenOpeningStory);
+  /*
    * ステージ5（`map_5`）の入口をタイトルに出すか。陣取り合戦と同じく、
    * ラスボス（4-4）をクリアし、エンディングロール（コイン集め）も最後まで
    * 遊び切ったプレイヤーにだけ出す。本編の流れ（エピローグ経由）でも、
@@ -803,6 +810,7 @@ function App() {
     currentScreen = (
       <TitleScreen
         onStart={handleStartGame}
+        hasStarted={hasSeenOpeningStory}
         onPlayEnding={handlePlayEndingGame}
         canPlayEnding={isEndingUnlocked}
         onPlayLaneBattle={handlePlayLaneBattle}

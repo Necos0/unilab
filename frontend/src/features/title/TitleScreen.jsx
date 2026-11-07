@@ -32,6 +32,9 @@ const TITLE_IMAGE_SRC = '/title.png';
  * Args:
  *     props (object): React プロパティ。
  *         onStart (function): スタートボタン押下時に呼ぶ関数（引数なし）。
+ *         hasStarted (boolean): 進行データがあるか（オープニング視聴済み）。
+ *             true のときスタートボタンの文言を「つづきから」にする。押したときの
+ *             挙動は変えず，スタッフがリセット要否をラベルで判別できるようにする。
  *         onPlayEnding (function): 「エンディングゲームで あそぶ」押下時に
  *             呼ぶ関数（引数なし）。エンディングロールへ直行する。
  *         canPlayEnding (boolean): エンディング再プレイボタンを出すか
@@ -50,6 +53,7 @@ const TITLE_IMAGE_SRC = '/title.png';
  */
 function TitleScreen({
   onStart,
+  hasStarted = false,
   onPlayEnding,
   canPlayEnding = false,
   onPlayLaneBattle,
@@ -71,7 +75,7 @@ function TitleScreen({
             className={styles.startButton}
             onClick={onStart}
           >
-            スタート
+            {hasStarted ? 'つづきから' : 'スタート'}
           </button>
           {canPlayWorld5 && (
             <button
