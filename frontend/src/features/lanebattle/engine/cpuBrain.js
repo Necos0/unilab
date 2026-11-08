@@ -271,3 +271,33 @@ export function decideCpu(brain, state, cpuHand, dt, diff, rng) {
   }
   return null;
 }
+
+/**
+ * ☆×1（かんたん）用のランダム出撃判断（要件6）．
+ *
+ * 反応間隔（`brain.reactT`）でゲートし，出せる札をランダムに1枚選んで，
+ * ランダムなレーン・スロットへ出すだけ．レーン脅威・相性などの戦術評価は
+ * 一切しない（練習向けの弱い CPU）．占有スロット等で配置できない場合は
+ * 駆動側の `applyDeploy` が弾くので，その回は出さない．乱数は `rng` に集約．
+ *
+ * Args:
+ *     brain (object): CPU の思考状態．`reactT` を持つ．
+ *     state (object): 対戦状態．`energy.cpu` を参照する．
+ *     cpuHand (string[]): CPU の手札（カード ID）．
+ *     dt (number): 経過ミリ秒．
+ *     diff (object): 難易度プリセット（`reactionMs` を使う）．
+ *     rng (function): 0〜1 の乱数を返す関数．
+ *
+ * Returns:
+ *     object|null: 出撃コマンド `{ lane, slot, handIndex }`，または null．
+ */
+export function decideRandomCpu(brain, state, cpuHand, dt, diff, rng) {
+  brain.reactT -= dt;
+  if (brain.reactT > 0) return null;
+  brain.reactT = diff.reactionMs;
+  const idx = pickAnyAffordable(cpuHand, state.energy.cpu, rng);
+  if (idx < 0) return null;
+  const lane = Math.floor(rng() * config.field.laneCount);
+  const slot = Math.floor(rng() * config.deploy.steps);
+  return { lane, slot, handIndex: idx };
+}

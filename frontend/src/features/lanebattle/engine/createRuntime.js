@@ -4,7 +4,7 @@ import { applyDeploy } from './applyDeploy';
 import { stepSim } from './stepSim';
 import { createDeck } from './createDeck';
 import { deriveUnitDef } from './deriveUnitDef';
-import { decideCpu } from './cpuBrain';
+import { decideCpu, decideRandomCpu } from './cpuBrain';
 
 const FIXED_MS = 1000 / 60;
 const HUD_MS = 66;
@@ -48,6 +48,9 @@ function shuffle(ids) {
  * Args:
  *     opts (object):
  *         deckIds (string[]): プレイヤーの 6 枚デッキ（キャラ ID）。
+ *         cpuDeckIds (string[]): CPU のデッキ（キャラ ID）。省略時は難易度の
+ *             固定デッキ（`diff.deck`）→ 後方互換の `config.cpu.deck` を使う。
+ *             ☆×1 は呼び出し側が解放済みからランダムに選んで渡す。
  *         state (object): 使う対戦状態（任意）。省略時は内部で生成する。UI と
  *             同じ state オブジェクトを共有したいとき（本陣 HP の表示など）に渡す。
  *         onFrame (function): 毎フレーム `(state, dt)` を渡す（描画用）。
@@ -64,11 +67,14 @@ function shuffle(ids) {
  *         getState (function): 現在の state を返す（テスト・確認用）。
  *         destroy (function): ループ停止・破棄。
  */
-export function createRuntime({ deckIds, state: initialState, onFrame, onHud, onResult, difficulty } = {}) {
+export function createRuntime({ deckIds, cpuDeckIds, state: initialState, onFrame, onHud, onResult, difficulty } = {}) {
   const state = initialState ?? createBattleState();
   const deck = createDeck(shuffle(deckIds ?? []));
-  const cpuDeck = createDeck(shuffle(config.cpu.deck ?? []));
-  const diff = difficulty ?? config.cpu.difficulty.normal;
+  // 難易度プリセット（未指定時は ☆×2 相当を既定）．CPU デッキは呼び出し側が渡す
+  // cpuDeckIds（☆×1 の解放プールからのランダム等）を最優先，無ければ preset 固定
+  // デッキ，それも無ければ後方互換の config.cpu.deck を使う．
+  const diff = difficulty ?? config.cpu.difficulty.star2;
+  const cpuDeck = createDeck(shuffle(cpuDeckIds ?? diff.deck ?? config.cpu.deck ?? []));
   state.cpuRegenMul = diff.energyRegenMul ?? 1; // CPU のエナジー回復倍率は難易度で決まる
   const cpuBrain = { reactT: diff.reactionMs };
   let running = false;
@@ -112,7 +118,10 @@ export function createRuntime({ deckIds, state: initialState, onFrame, onHud, on
         onHud?.(buildHud());
         onResult?.(state);
       } else {
-        const cmd = decideCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random);
+        // ☆×1（diff.random）は戦術評価なしのランダム出撃，それ以外は通常AI．
+        const cmd = diff.random
+          ? decideRandomCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random)
+          : decideCpu(cpuBrain, state, cpuDeck.hand(), dt, diff, Math.random);
         if (cmd) {
           const id = cpuDeck.hand()[cmd.handIndex];
           if (applyDeploy(state, { side: 'cpu', id, lane: cmd.lane, slot: cmd.slot })) {

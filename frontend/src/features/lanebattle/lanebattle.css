@@ -301,6 +301,85 @@
   cursor: not-allowed;
 }
 
+/* 未解放キャラ（「？」で伏せる・選択不可） */
+.lb-pick.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-style: dashed;
+  background: var(--panel);
+}
+.lb-pick.locked:hover {
+  transform: none;
+  border-color: var(--line);
+}
+.lb-pk-locked {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--dim);
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 「ストーリーを進めると増えるよ」案内バナー（目立たせる） */
+.lb-unlock-note {
+  margin: 0 0 10px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  font-family: var(--disp);
+  font-size: 13px;
+  text-align: center;
+  color: #3a2a00;
+  background: linear-gradient(180deg, #ffe79a, #ffd45e);
+  border: 2px solid #e6b800;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* 下部：難易度ボタン（☆×1/×2/×3 横並び。押下＝対戦開始） */
+.lb-difficulty-row {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.lb-diff-btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--disp);
+  font-weight: 700;
+  color: #fff;
+  background: var(--win);
+  border-radius: 14px;
+  padding: 7px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+.lb-diff-stars {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #ffe680;
+}
+.lb-diff-label {
+  font-size: 11px;
+}
+.lb-diff-btn:disabled {
+  background: var(--line);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+.lb-diff-btn.locked {
+  background: var(--panel);
+  border: 1.5px dashed var(--line);
+}
+.lb-diff-btn.locked .lb-diff-stars {
+  color: var(--dim);
+}
+
 /* ---- arena ---- */
 .lb-arena {
   position: relative;

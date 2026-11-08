@@ -36,6 +36,9 @@ function formatTime(sec) {
  * Args:
  *     props (object):
  *         deckIds (string[]): プレイヤーの 6 枚デッキ（キャラ ID）。
+ *         cpuDeckIds (string[]): CPU のデッキ（キャラ ID）。`LaneBattleApp` が
+ *             難易度に応じて渡す（☆×1 は解放済みからランダム、☆×2/×3 は固定）。
+ *         difficulty (object): 難易度プリセット（AIパラメータ・random フラグ等）。
  *         onExit (function): 結果画面の「もどる」。渡されたときだけボタンを出す
  *             （プレビュー単体では戻り先が無いので省略できる）。
  *         onRebuild (function): 結果画面の「デッキを かえる」。渡されたときだけ
@@ -44,7 +47,7 @@ function formatTime(sec) {
  * Returns:
  *     JSX.Element: 盤面＋HUD（＋決着後は結果オーバーレイ）。
  */
-export default function MatchView({ deckIds, onExit, onRebuild }) {
+export default function MatchView({ deckIds, cpuDeckIds, difficulty, onExit, onRebuild }) {
   const fieldRef = useRef(null);
   const rtRef = useRef(null);
   const [state, setState] = useState(() => createBattleState());
@@ -57,6 +60,8 @@ export default function MatchView({ deckIds, onExit, onRebuild }) {
     const renderer = createRenderer(fieldRef.current);
     const rt = createRuntime({
       deckIds,
+      cpuDeckIds,
+      difficulty,
       state,
       onFrame: (s, dt) => renderer.sync(s, dt),
       onHud: setHud,
@@ -79,7 +84,7 @@ export default function MatchView({ deckIds, onExit, onRebuild }) {
       renderer.destroy();
       rtRef.current = null;
     };
-  }, [deckIds, state, submit]);
+  }, [deckIds, cpuDeckIds, difficulty, state, submit]);
 
   const handleCellTap = (lane, slot) => {
     if (selected == null) return;
