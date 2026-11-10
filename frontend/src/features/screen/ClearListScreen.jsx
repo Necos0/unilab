@@ -16,6 +16,8 @@ import styles from './ClearListScreen.module.css';
 /* 1〜3 位の行の色（金・銀・銅）。会場用と同じ見た目を流用する。 */
 const TOP_ROW_CLASSES = [clearStyles.rowGold, clearStyles.rowSilver, clearStyles.rowBronze];
 const MAX_ROWS = 1000;
+/* これ未満のクリアタイムはデバッグ等の異常値として一覧に出さない（15分）。 */
+const MIN_CLEAR_TIME_MS = 15 * 60 * 1000;
 /* 会場用 ClearScreen と同じ、草原を歩き回る敵（大きさ・初期位置・速さ）。 */
 const WANDERING_ENEMIES = [
   { enemyId: 'slime', heightVh: 5, initialX: 34, speedVwPerSec: 3 },
@@ -29,7 +31,8 @@ const WANDERING_ENEMIES = [
  * 会場用 `ClearScreen` と同じ見た目（`ClearScreen.module.css`・`RankBadge`・
  * `formatClearTime` を流用）で、過去を含む全クリア者を**手動スクロール**で
  * 見せる。既定は「ぜんぶ」、トグルで「きょうだけ」に絞れる。並びはクリアタイム
- * の速い順（同タイムはクリア時刻の早い順）。Supabase 未設定・0件・取得失敗は
+ * の速い順（同タイムはクリア時刻の早い順）。15分未満のタイムはデバッグ等の
+ * 異常値とみなして表示しない。Supabase 未設定・0件・取得失敗は
  * それぞれ文言で表示して画面を壊さない。開いた時点の一覧（Realtime なし）。
  * 背景の装飾（流れ星・飛ぶドラゴン・草原を歩く敵・歩く勇者）も会場用と同じ
  * 部品を流用して表示する。会場用 `/screen`（自動スクロール）は変更しない。
@@ -68,8 +71,12 @@ function ClearListScreen({ onBack }) {
   /* 表示集合（きょうだけ絞り）をクリアタイムの速い順に並べて順位付けする。 */
   const ranked = useMemo(() => {
     const start = getTodayStart();
-    const shown = today ? rows.filter((r) => new Date(r.cleared_at) >= start) : rows;
     const elapsed = (r) => new Date(r.cleared_at) - new Date(r.started_at);
+    const shown = rows.filter((r) => {
+      if (elapsed(r) < MIN_CLEAR_TIME_MS) return false; // 15分未満は異常値として除外
+      if (today && new Date(r.cleared_at) < start) return false; // きょうだけ絞り
+      return true;
+    });
     return [...shown].sort(
       (a, b) => elapsed(a) - elapsed(b) || new Date(a.cleared_at) - new Date(b.cleared_at),
     );
