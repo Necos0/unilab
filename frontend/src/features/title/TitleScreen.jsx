@@ -47,6 +47,9 @@ const TITLE_IMAGE_SRC = '/title.png';
  *             （引数なし）。ステージ5のマップへ移動する。
  *         canPlayWorld5 (boolean): ステージ5入口ボタンを出すか（ラスボス
  *             クリア済み かつ エンディングロールを遊び切ったか）。
+ *         onShowClearList (function): 「クリア者一覧」押下時に呼ぶ関数（引数
+ *             なし）。クリア者一覧画面へ遷移する。常時表示（進行に依存しない）。
+ *             意匠は「大画面」ボタンと同じ（`fullscreenButton`）。
  *
  * Returns:
  *     JSX.Element: タイトル画面全体を表す `<section>` 要素。
@@ -60,6 +63,7 @@ function TitleScreen({
   canPlayLaneBattle = false,
   onPlayWorld5,
   canPlayWorld5 = false,
+  onShowClearList,
 }) {
   return (
     <section className={styles.root}>
@@ -86,6 +90,13 @@ function TitleScreen({
               つづきの ぼうけんへ
             </button>
           )}
+          <button
+            type="button"
+            className={styles.fullscreenButton}
+            onClick={onShowClearList}
+          >
+            クリア者一覧
+          </button>
           <FullscreenToggleButton className={styles.fullscreenButton} />
         </div>
         {(canPlayEnding || canPlayLaneBattle) && (

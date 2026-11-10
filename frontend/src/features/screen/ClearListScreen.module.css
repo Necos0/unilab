@@ -1,0 +1,56 @@
+.header {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2vw;
+}
+
+.title {
+  margin: 0;
+  font-size: 3.4vh;
+  letter-spacing: 0.08em;
+  color: #fde68a;
+}
+
+.backBtn,
+.toggleBtn {
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: #f8fafc;
+  background: rgba(31, 31, 40, 0.7);
+  border: 2px solid rgba(253, 230, 138, 0.5);
+  border-radius: 999px;
+  padding: 1vh 2.4vw;
+  font-size: 2.4vh;
+}
+
+.backBtn:hover,
+.toggleBtn:hover {
+  border-color: #fde68a;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 1vw;
+}
+
+.toggleBtn.active {
+  background: #fde68a;
+  color: #1a1400;
+  border-color: #fde68a;
+  font-weight: 700;
+}
+
+/* 手動スクロール枠（会場用 .viewport は自動スクロール用なので別に持つ） */
+.viewport {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 2px solid rgba(253, 230, 138, 0.35);
+}
