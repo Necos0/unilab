@@ -128,6 +128,35 @@ export async function fetchTodayClears() {
 }
 
 /**
+ * クリアした全プレイヤーを取得する（タイトルの「クリア者一覧」用）．
+ *
+ * `fetchTodayClears` と同型だが，今日フィルタをかけず `cleared_at` が入って
+ * いる行をすべて（上限 limit）返す．並びはクリア時刻の昇順（順位付けは
+ * 呼び出し側がクリアタイムの速い順で行う）．
+ *
+ * Args:
+ *     limit (number): 取得する最大件数（既定 1000）．
+ *
+ * Returns:
+ *     Promise<Array<{id: string, nickname: string, started_at: string,
+ *         cleared_at: string}>>: クリアした全プレイヤー．
+ *
+ * Raises:
+ *     Error: 接続未設定、または取得に失敗したとき。
+ */
+export async function fetchAllClears(limit = 1000) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, nickname, started_at, cleared_at')
+    .not('cleared_at', 'is', null)
+    .order('cleared_at', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
+/**
  * プレイヤーがクリアしたときに通知を受け取る。
  *
  * Args:

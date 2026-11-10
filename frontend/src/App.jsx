@@ -10,6 +10,8 @@ import BattleScreen from './features/battle/BattleScreen.jsx';
 import BattleTransition from './features/battle/BattleTransition.jsx';
 import MapReturnTransition from './features/battle/MapReturnTransition.jsx';
 import CutsceneFlowScreen from './features/cutsceneflow/CutsceneFlowScreen.jsx';
+import ClearListScreen from './features/screen/ClearListScreen.jsx';
+import ClearCelebration from './features/screen/ClearCelebration.jsx';
 import CreditsScreen from './features/ending/CreditsScreen.jsx';
 import EpilogueScreen from './features/ending/EpilogueScreen.jsx';
 import CreditsEditorScreen from './features/ending/editor/CreditsEditorScreen.jsx';
@@ -103,6 +105,8 @@ const MAIN_START_MAP_ID = 'map_1';
 function App() {
   const [screen, setScreen] = useState('title');
   const [stageId, setStageId] = useState(stagesData.demoStageIds[0]);
+  /* 本人クリア時の祝福演出（`ClearCelebration`）に出す名前。非 null の間だけ重ねる。 */
+  const [clearCelebrateName, setClearCelebrateName] = useState(null);
   const [pendingStageId, setPendingStageId] = useState(null);
   /*
    * バトル → マップの黒フェード帰還演出（`MapReturnTransition`）を表示中か。
@@ -653,6 +657,8 @@ function App() {
    */
   const handleEpilogueFinish = useCallback(() => {
     markCleared();
+    // 計測終了＝クリア記録の瞬間に、本人の画面にも祝福演出を1回出す（要件7）．
+    setClearCelebrateName(usePlayerStore.getState().playerName);
     setScreen('title');
   }, []);
 
@@ -810,6 +816,8 @@ function App() {
     setIsReturningToMap(true);
   }, []);
 
+  const handleShowClearList = useCallback(() => setScreen('clearlist'), []);
+
   let currentScreen;
   if (screen === 'title') {
     currentScreen = (
@@ -822,6 +830,7 @@ function App() {
         canPlayLaneBattle={canPlayLaneBattle}
         onPlayWorld5={handlePlayWorld5}
         canPlayWorld5={canPlayWorld5}
+        onShowClearList={handleShowClearList}
       />
     );
   } else if (screen === 'story') {
@@ -857,6 +866,8 @@ function App() {
     currentScreen = <CreditsEditorScreen onExit={handleExitCreditsEditor} />;
   } else if (screen === 'gallery') {
     currentScreen = <CharacterGallery onExit={handleExitGallery} />;
+  } else if (screen === 'clearlist') {
+    currentScreen = <ClearListScreen onBack={() => setScreen('title')} />;
   } else {
     currentScreen = (
       <MapScreen
@@ -870,6 +881,13 @@ function App() {
   return (
     <>
       {currentScreen}
+      {clearCelebrateName && (
+        <ClearCelebration
+          key={clearCelebrateName}
+          clear={{ nickname: clearCelebrateName }}
+          onFinish={() => setClearCelebrateName(null)}
+        />
+      )}
       {isWakingUp && screen === 'map' && <WakeUpOverlay onEnd={handleWakeUpEnd} />}
       {isVoyaging && (
         <IslandVoyageOverlay
