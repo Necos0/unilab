@@ -11,10 +11,16 @@
 }
 
 /* 手札レイアウト用：行の高さに合わせ、幅は 2:3 から算出する（原寸）。
+   寸法は `Hand` が手札エリアの実寸を測り、CSS 変数で px 指定する。
+   `height: 100%` + `aspect-ratio` だけに任せると、古い iPad の WebKit で
+   行の幅が 0 と見積もられ、カードが右へはみ出して見えなくなるため。
+   変数が未設定（計測前の初回描画）のときだけ、既定値の 100% と
+   aspect-ratio で描く（幅・高さが両方決まれば aspect-ratio は無視される）。
    枚数が多く行幅に入りきらない場合は、`Hand` 側が行全体を transform: scale で
    縮小するため、各カードは原寸のままでよい（縮小は行単位・比率維持）。 */
 .hand {
-  height: 100%;
+  height: var(--hand-card-height, 100%);
+  width: var(--hand-card-width, auto);
   aspect-ratio: 2 / 3;
 }
 
